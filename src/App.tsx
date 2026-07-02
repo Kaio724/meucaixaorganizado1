@@ -9,8 +9,23 @@ import Dashboard from './components/Dashboard';
 import History from './components/History';
 import Withdraw from './components/Withdraw';
 import Summary from './components/Summary';
+import Auth from './components/Auth';
+
+// Supabase Helpers
+import { 
+  getSupabase, 
+  isSupabaseConfigured, 
+  fetchProfile, 
+  upsertProfile, 
+  fetchTransactions, 
+  insertTransaction, 
+  updateTransaction, 
+  deleteTransaction 
+} from './lib/supabase';
 
 export default function App() {
+  const [session, setSession] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [activeTab, setActiveTab] = useState<ActiveTab>('historico'); // default to 'historico' like the screenshot
@@ -19,81 +34,436 @@ export default function App() {
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [editName, setEditName] = useState('');
   const [editBusinessName, setEditBusinessName] = useState('');
+  
+  // Migration states
+  const [showMigrationModal, setShowMigrationModal] = useState(false);
+  const [dbError, setDbError] = useState<string | null>(null);
+  const [dbSchemaError, setDbSchemaError] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  // Load configuration from localStorage on mount
+  // Check session and load configuration on mount
   useEffect(() => {
-    const savedProfile = localStorage.getItem('mco_profile');
-    const savedTransactions = localStorage.getItem('mco_transactions');
-
-    if (savedProfile) {
-      try {
-        setProfile(JSON.parse(savedProfile));
-      } catch (e) {
-        console.error('Error parsing profile', e);
-      }
+    const supabase = getSupabase();
+    if (!supabase) {
+      setLoading(false);
+      return;
     }
 
-    if (savedTransactions) {
-      try {
-        setTransactions(JSON.parse(savedTransactions));
-      } catch (e) {
-        console.error('Error parsing transactions', e);
-        setTransactions(INITIAL_TRANSACTIONS);
+    // Get current session
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      setSession(currentSession);
+      if (currentSession) {
+        loadUserData(currentSession.user.id);
+      } else {
+        setLoading(false);
       }
-    } else {
-      setTransactions(INITIAL_TRANSACTIONS);
-    }
+    });
+
+    // Listen to auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+      if (newSession) {
+        loadUserData(newSession.user.id);
+      } else {
+        setProfile(null);
+        setTransactions([]);
+        setLoading(false);
+      }
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
   }, []);
 
-  // Complete onboarding
-  const handleOnboardingComplete = (newProfile: UserProfile) => {
-    setProfile(newProfile);
-    localStorage.setItem('mco_profile', JSON.stringify(newProfile));
-    // If first time, also save the default transactions
-    if (!localStorage.getItem('mco_transactions')) {
-      localStorage.setItem('mco_transactions', JSON.stringify(INITIAL_TRANSACTIONS));
+  const loadUserData = async (userId: string) => {
+    setLoading(true);
+    setDbError(null);
+    try {
+      const dbProfile = await fetchProfile(userId);
+      if (dbProfile) {
+        setProfile(dbProfile);
+        const dbTxs = await fetchTransactions(userId);
+        setTransactions(dbTxs);
+        
+        // After loading profile successfully, check if we need to migrate local storage
+        const localTxsSaved = localStorage.getItem('mco_transactions');
+        if (localTxsSaved) {
+          try {
+            const parsed = JSON.parse(localTxsSaved);
+            if (parsed && parsed.length > 0) {
+              setShowMigrationModal(true);
+            } else {
+              // No user transactions to migrate or empty, clean local state
+              localStorage.removeItem('mco_transactions');
+              localStorage.removeItem('mco_profile');
+            }
+          } catch (e) {
+            localStorage.removeItem('mco_transactions');
+            localStorage.removeItem('mco_profile');
+          }
+        }
+      } else {
+        // No profile in cloud yet, they need to onboard
+        setProfile(null);
+        setTransactions([]);
+        
+        // Check if there is local profile to prefill onboarding
+        const savedProfile = localStorage.getItem('mco_profile');
+        if (savedProfile) {
+          try {
+            const parsed = JSON.parse(savedProfile);
+            if (parsed && parsed.name) {
+              setEditName(parsed.name);
+              setEditBusinessName(parsed.businessName || '');
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        }
+      }
+    } catch (error: any) {
+      console.error('Error loading cloud data:', error);
+      const isSchemaError = error.message?.includes('profiles') || 
+                            error.message?.includes('lancamentos') || 
+                            error.message?.includes('schema cache') || 
+                            error.message?.includes('relation') ||
+                            error.message?.includes('not found');
+      if (isSchemaError) {
+        setDbSchemaError(true);
+      } else {
+        setDbError('Sem conexão, tente novamente.');
+      }
+    } finally {
+      setLoading(false);
     }
-    setActiveTab('dashboard');
+  };
+
+  // Complete onboarding
+  const handleOnboardingComplete = async (newProfile: UserProfile) => {
+    if (!session?.user) return;
+    setLoading(true);
+    setDbError(null);
+    try {
+      await upsertProfile(session.user.id, newProfile);
+      setProfile(newProfile);
+
+      // Check for migration immediately
+      const localTxsSaved = localStorage.getItem('mco_transactions');
+      let migrated = false;
+      if (localTxsSaved) {
+        try {
+          const parsed = JSON.parse(localTxsSaved);
+          if (parsed && parsed.length > 0) {
+            setShowMigrationModal(true);
+            migrated = true;
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      if (!migrated) {
+        // If no migration needed, insert initial default transactions
+        try {
+          for (const item of INITIAL_TRANSACTIONS) {
+            await insertTransaction(session.user.id, item);
+          }
+          const cloudTxs = await fetchTransactions(session.user.id);
+          setTransactions(cloudTxs);
+        } catch (err) {
+          console.error('Error inserting initial transactions:', err);
+          setTransactions([]);
+        }
+      }
+
+      setActiveTab('dashboard');
+    } catch (err: any) {
+      console.error('Error on onboarding:', err);
+      const isSchemaError = err.message?.includes('profiles') || 
+                            err.message?.includes('lancamentos') || 
+                            err.message?.includes('schema cache') || 
+                            err.message?.includes('relation') ||
+                            err.message?.includes('not found');
+      if (isSchemaError) {
+        setDbSchemaError(true);
+      } else {
+        setDbError('Erro ao salvar perfil. Sem conexão, tente novamente.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Create Transaction (Add)
-  const handleAddTransaction = (newTx: Omit<Transaction, 'id'>) => {
-    const txWithId: Transaction = {
-      ...newTx,
-      id: Math.random().toString(36).substring(2, 9),
-    };
-    const updated = [txWithId, ...transactions];
-    setTransactions(updated);
-    localStorage.setItem('mco_transactions', JSON.stringify(updated));
+  const handleAddTransaction = async (newTx: Omit<Transaction, 'id'>) => {
+    if (!session?.user) return;
+    setDbError(null);
+    try {
+      const savedTx = await insertTransaction(session.user.id, newTx);
+      setTransactions((prev) => [savedTx, ...prev]);
+    } catch (err) {
+      setDbError('Sem conexão, tente novamente');
+    }
   };
 
   // Update Transaction (Edit)
-  const handleEditTransaction = (updatedTx: Transaction) => {
-    const updated = transactions.map((t) => (t.id === updatedTx.id ? updatedTx : t));
-    setTransactions(updated);
-    localStorage.setItem('mco_transactions', JSON.stringify(updated));
+  const handleEditTransaction = async (updatedTx: Transaction) => {
+    if (!session?.user) return;
+    setDbError(null);
+    try {
+      const savedTx = await updateTransaction(session.user.id, updatedTx);
+      setTransactions((prev) => prev.map((t) => (t.id === savedTx.id ? savedTx : t)));
+    } catch (err) {
+      setDbError('Sem conexão, tente novamente');
+    }
   };
 
   // Delete Transaction (Delete)
-  const handleDeleteTransaction = (id: string) => {
-    const updated = transactions.filter((t) => t.id !== id);
-    setTransactions(updated);
-    localStorage.setItem('mco_transactions', JSON.stringify(updated));
+  const handleDeleteTransaction = async (id: string) => {
+    if (!session?.user) return;
+    setDbError(null);
+    try {
+      await deleteTransaction(session.user.id, id);
+      setTransactions((prev) => prev.filter((t) => t.id !== id));
+    } catch (err) {
+      setDbError('Sem conexão, tente novamente');
+    }
   };
 
   // Update profile handler
-  const handleUpdateProfile = (e: React.FormEvent) => {
+  const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile) return;
-    const updated = {
-      ...profile,
-      name: editName.trim(),
-      businessName: editBusinessName.trim()
-    };
-    setProfile(updated);
-    localStorage.setItem('mco_profile', JSON.stringify(updated));
-    setShowEditProfileModal(false);
+    if (!profile || !session?.user) return;
+    setDbError(null);
+    try {
+      const updatedProfile: UserProfile = {
+        ...profile,
+        name: editName.trim(),
+        businessName: editBusinessName.trim()
+      };
+      await upsertProfile(session.user.id, updatedProfile);
+      setProfile(updatedProfile);
+      setShowEditProfileModal(false);
+    } catch (err) {
+      setDbError('Sem conexão, tente novamente');
+    }
   };
+
+  // Perform migration of local transactions to Supabase
+  const handlePerformMigration = async (importData: boolean) => {
+    setShowMigrationModal(false);
+    if (!session?.user) return;
+    
+    setLoading(true);
+    setDbError(null);
+    
+    try {
+      if (importData) {
+        const localTxsSaved = localStorage.getItem('mco_transactions');
+        if (localTxsSaved) {
+          const parsed: Transaction[] = JSON.parse(localTxsSaved);
+          if (parsed && parsed.length > 0) {
+            // Save transactions to cloud
+            for (const tx of parsed) {
+              await insertTransaction(session.user.id, tx);
+            }
+          }
+        }
+      }
+      
+      // Clear localStorage
+      localStorage.removeItem('mco_transactions');
+      localStorage.removeItem('mco_profile');
+      
+      // Reload fresh data from Supabase
+      const cloudTxs = await fetchTransactions(session.user.id);
+      setTransactions(cloudTxs);
+      
+      setShowNotification(true);
+    } catch (err) {
+      console.error('Migration failed:', err);
+      setDbError('Falha ao migrar dados. Sem conexão, tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Logout handler
+  const handleLogout = async () => {
+    const supabase = getSupabase();
+    if (supabase) {
+      await supabase.auth.signOut();
+      setSession(null);
+      setProfile(null);
+      setTransactions([]);
+      setActiveTab('historico');
+      setShowProfileMenu(false);
+    }
+  };
+
+  // If Supabase keys are not configured yet, show helper instructions screen
+  if (!isSupabaseConfigured()) {
+    return (
+      <div className="min-h-screen bg-[#131315] text-[#e5e1e4] flex items-center justify-center p-6 font-sans">
+        <div className="w-full max-w-md glass-card rounded-[32px] p-8 shadow-2xl flex flex-col gap-6 bg-gradient-to-b from-[#1a1a22]/80 to-[#121217]/90 border border-primary/20 text-center">
+          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center border border-primary/25 shadow-[0_0_15px_rgba(208,188,255,0.15)] mx-auto">
+            <span className="material-symbols-outlined text-primary text-3xl font-bold">settings</span>
+          </div>
+          <div className="flex flex-col gap-2">
+            <h1 className="text-xl font-extrabold text-on-surface">Configuração Necessária</h1>
+            <p className="text-xs text-on-surface-variant leading-relaxed">
+              O aplicativo <strong>Meu Caixa Organizado</strong> foi promovido a um SaaS real com persistência na nuvem!
+            </p>
+          </div>
+          <div className="bg-surface-container-low rounded-2xl p-4 text-left border border-white/5 flex flex-col gap-2.5">
+            <span className="text-xs font-bold text-primary">Próximos passos:</span>
+            <ol className="text-xs text-on-surface-variant leading-relaxed list-decimal pl-4 flex flex-col gap-1.5 font-medium">
+              <li>Acesse o menu de Configurações do seu espaço de desenvolvimento.</li>
+              <li>Defina as seguintes chaves/segredos no painel:</li>
+            </ol>
+            <div className="bg-black/20 p-3 rounded-xl border border-white/5 text-[11px] font-mono text-on-surface-variant flex flex-col gap-1">
+              <div>VITE_SUPABASE_URL=sua_url</div>
+              <div>VITE_SUPABASE_ANON_KEY=sua_chave</div>
+            </div>
+          </div>
+          <p className="text-[10px] text-on-surface-variant/60">
+            Depois de definir as variáveis de ambiente, reinicie o servidor de desenvolvimento para que as alterações entrem em vigor.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // If Supabase tables are not configured yet, show helper instructions screen
+  if (dbSchemaError) {
+    const sqlScript = `-- 1. Criar a tabela de perfis (profiles) vinculada ao auth.users
+CREATE TABLE IF NOT EXISTS public.profiles (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    nome TEXT NOT NULL,
+    nome_negocio TEXT NOT NULL,
+    tipo_negocio TEXT NOT NULL CHECK (tipo_negocio IN ('mei', 'autonomo')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 2. Criar a tabela de lançamentos (lancamentos)
+CREATE TABLE IF NOT EXISTS public.lancamentos (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    tipo TEXT NOT NULL CHECK (tipo IN ('entrada', 'saida')),
+    categoria TEXT NOT NULL,
+    valor NUMERIC NOT NULL,
+    titulo TEXT NOT NULL,
+    forma_pagamento TEXT NOT NULL,
+    descricao TEXT,
+    data DATE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 3. Habilitar o RLS (Row Level Security) em ambas as tabelas
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lancamentos ENABLE ROW LEVEL SECURITY;
+
+-- 4. Criar as políticas de segurança RLS (Garantindo privacidade total)
+CREATE POLICY "Users can read own profile" ON public.profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Users can insert own profile" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
+CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+
+CREATE POLICY "Users can read own transactions" ON public.lancamentos FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own transactions" ON public.lancamentos FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own transactions" ON public.lancamentos FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELETE USING (auth.uid() = user_id);`;
+
+    const handleCopySql = () => {
+      navigator.clipboard.writeText(sqlScript);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    };
+
+    const handleRetry = () => {
+      setDbSchemaError(false);
+      if (session?.user) {
+        loadUserData(session.user.id);
+      }
+    };
+
+    return (
+      <div className="min-h-screen bg-[#131315] text-[#e5e1e4] flex items-center justify-center p-4 font-sans">
+        <div className="w-full max-w-lg glass-card rounded-[32px] p-6 md:p-8 shadow-2xl flex flex-col gap-5 bg-gradient-to-b from-[#1a1a22]/85 to-[#121217]/95 border border-primary/20">
+          <div className="w-14 h-14 rounded-full bg-primary/15 flex items-center justify-center border border-primary/30 shadow-[0_0_15px_rgba(208,188,255,0.2)] mx-auto">
+            <span className="material-symbols-outlined text-primary text-2xl font-bold">database</span>
+          </div>
+          
+          <div className="flex flex-col gap-1.5 text-center">
+            <h1 className="text-lg font-extrabold text-on-surface">Configurar Tabelas no Supabase</h1>
+            <p className="text-xs text-on-surface-variant leading-relaxed">
+              Para salvar seus dados na nuvem, execute o script SQL abaixo no painel do seu Supabase.
+            </p>
+          </div>
+
+          <div className="bg-surface-container-low rounded-2xl p-4 text-left border border-white/5 flex flex-col gap-3">
+            <span className="text-xs font-bold text-primary flex items-center gap-1">
+              <span className="material-symbols-outlined text-sm">info</span> Passo a passo simples:
+            </span>
+            <ol className="text-xs text-on-surface-variant leading-relaxed list-decimal pl-4 flex flex-col gap-1">
+              <li>Acesse o seu painel do <strong>Supabase</strong>.</li>
+              <li>No menu lateral esquerdo, clique em <strong>SQL Editor</strong>.</li>
+              <li>Clique em <strong>New Query</strong> e cole o código SQL abaixo.</li>
+              <li>Clique no botão verde <strong>Run</strong> (no canto inferior direito).</li>
+            </ol>
+          </div>
+
+          <div className="flex flex-col gap-2 relative">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-[10px] font-bold text-on-surface-variant tracking-wider uppercase">Script SQL de Configuração</span>
+              <button 
+                onClick={handleCopySql}
+                className="flex items-center gap-1 text-[11px] font-bold text-primary hover:text-primary-container bg-primary/10 hover:bg-primary/25 px-2.5 py-1 rounded-lg transition-all cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-sm">{copied ? 'done' : 'content_copy'}</span>
+                {copied ? 'Copiado!' : 'Copiar Script'}
+              </button>
+            </div>
+            <pre className="bg-black/40 p-3.5 rounded-xl border border-white/5 text-[10px] font-mono text-on-surface-variant overflow-x-auto max-h-48 text-left leading-relaxed">
+              {sqlScript}
+            </pre>
+          </div>
+
+          <div className="flex flex-col gap-2 pt-2">
+            <button
+              onClick={handleRetry}
+              className="w-full bg-[#6d3bd7] hover:bg-[#8455ef] text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 shadow-[0_4px_14px_rgba(109,59,215,0.25)] cursor-pointer text-xs"
+            >
+              <span className="material-symbols-outlined text-sm">refresh</span>
+              Já executei o script, Tentar Novamente
+            </button>
+            
+            <button
+              onClick={handleLogout}
+              className="w-full bg-surface-container hover:bg-surface-container-highest border border-outline-variant/20 font-bold py-3 rounded-2xl flex items-center justify-center gap-2 transition-all cursor-pointer text-xs text-on-surface"
+            >
+              <span className="material-symbols-outlined text-sm">logout</span>
+              Sair da Conta
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Loading Screen
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#131315] text-[#e5e1e4] flex items-center justify-center font-sans">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-xs font-bold text-on-surface-variant tracking-wider uppercase animate-pulse">
+            Carregando Caixa...
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   // Navigation Items definitions
   const NAV_ITEMS = [
@@ -109,19 +479,44 @@ export default function App() {
       {/* Ambient background glow gradient */}
       <div className="absolute inset-0 ambient-glow pointer-events-none z-0"></div>
 
+      {/* Connection Error Toast */}
+      <AnimatePresence>
+        {dbError && (
+          <motion.div
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            className="fixed top-4 left-4 right-4 z-50 p-4 bg-error/95 border border-error/20 rounded-2xl text-xs font-bold text-white shadow-2xl flex items-center justify-between"
+          >
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-base">cloud_off</span>
+              <span>{dbError}</span>
+            </div>
+            <button onClick={() => setDbError(null)} className="text-white/80 hover:text-white">
+              <span className="material-symbols-outlined text-base">close</span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Main Container */}
       <div className="w-full max-w-lg mx-auto px-4 z-10 relative flex-1 flex flex-col justify-between">
         
-        {/* Onboarding Screen if profile is missing */}
-        {!profile || !profile.isOnboarded ? (
+        {/* Render Auth Screen if not logged in */}
+        {!session ? (
+          <div className="flex-1 flex items-center justify-center py-8">
+            <Auth onAuthSuccess={(newSession) => setSession(newSession)} />
+          </div>
+        ) : !profile || !profile.isOnboarded ? (
+          /* Render Onboarding if logged in but profile is missing */
           <div className="flex-1 flex items-center justify-center py-8">
             <Onboarding onComplete={handleOnboardingComplete} />
           </div>
         ) : (
           /* Logged In Core Layout */
-          <div className="flex-1 flex flex-col justify-between">
+          <div className="flex-1 flex flex-col justify-between pb-24">
             
-            {/* Top Navigation Bar matching screenshots */}
+            {/* Top Navigation Bar */}
             <header className="py-4 flex items-center justify-between sticky top-0 bg-transparent z-30 mb-4">
               
               {/* Profile/Settings button */}
@@ -149,6 +544,7 @@ export default function App() {
                         <p className="text-[10px] text-on-surface-variant truncate">{profile.businessName}</p>
                       </div>
 
+                      {/* Alterar Perfil Option */}
                       <button
                         onClick={() => {
                           if (profile) {
@@ -163,14 +559,23 @@ export default function App() {
                         <span className="material-symbols-outlined text-sm">manage_accounts</span>
                         Alterar Perfil
                       </button>
+
+                      {/* Logout option */}
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl text-left text-xs font-semibold text-error hover:bg-error/10 transition-colors w-full cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-sm">logout</span>
+                        Sair da Conta
+                      </button>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
 
-              {/* Title brand logo with bright purple glass bubble - updated to Meu Caixa Organizado */}
+              {/* Title brand logo with bright purple glass bubble */}
               <div className="px-4 py-1.5 rounded-full bg-primary/10 backdrop-blur-md border border-primary/30 shadow-[0_0_15px_rgba(208,188,255,0.25)] flex items-center justify-center max-w-[210px] text-center">
-                <h1 className="text-[10px] xs:text-xs font-extrabold text-primary tracking-wider uppercase select-none truncate">
+                <h1 className="text-[10px] xs:text-xs font-extrabold text-primary tracking-wider uppercase select-none truncate font-sans">
                   Meu Caixa Organizado
                 </h1>
               </div>
@@ -207,8 +612,8 @@ export default function App() {
                           <span className="material-symbols-outlined text-xs">close</span>
                         </button>
                       </div>
-                      <p className="text-[11px] text-on-surface-variant leading-relaxed">
-                        Tudo pronto! Seu fluxo de caixa local foi sincronizado e salvo no dispositivo com sucesso.
+                      <p className="text-[11px] text-on-surface-variant leading-relaxed font-semibold">
+                        Tudo pronto! Seu fluxo de caixa foi sincronizado e salvo na nuvem com sucesso.
                       </p>
                     </motion.div>
                   )}
@@ -261,8 +666,8 @@ export default function App() {
               </AnimatePresence>
             </main>
 
-            {/* Bottom Navigation matching screenshots */}
-            <nav className="fixed bottom-0 left-0 right-0 py-3 bg-[#1c1b1d]/90 backdrop-blur-md border-t border-white/5 z-40">
+            {/* Bottom Navigation */}
+            <nav className="fixed bottom-0 left-0 right-0 py-3 bg-[#1c1b1d]/95 backdrop-blur-md border-t border-white/5 z-40 shadow-xl">
               <div className="max-w-lg mx-auto px-6 flex items-center justify-between">
                 {NAV_ITEMS.map((item) => {
                   const isActive = activeTab === item.id;
@@ -297,7 +702,6 @@ export default function App() {
                 })}
               </div>
             </nav>
-
           </div>
         )}
       </div>
@@ -378,6 +782,53 @@ export default function App() {
                 </form>
               </div>
 
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Migration Confirmation Modal */}
+      <AnimatePresence>
+        {showMigrationModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="glass-card rounded-[28px] p-6 shadow-2xl border border-primary/20 w-full max-w-sm flex flex-col gap-6 relative bg-gradient-to-b from-[#1a141b]/95 to-[#120e11]/98"
+            >
+              <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full filter blur-xl pointer-events-none"></div>
+
+              <div className="flex flex-col items-center text-center gap-4">
+                <div className="w-14 h-14 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-[0_0_15px_rgba(109,59,215,0.15)] animate-pulse">
+                  <span className="material-symbols-outlined text-2xl font-bold">cloud_upload</span>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <h3 className="text-lg font-bold text-on-surface">Importar Seus Dados?</h3>
+                  <p className="text-xs text-on-surface-variant/80 max-w-[260px] leading-relaxed font-semibold">
+                    Identificamos lançamentos salvos no seu navegador. Gostaria de importá-los para sua nova conta em nuvem?
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => handlePerformMigration(true)}
+                  className="w-full py-3.5 bg-primary hover:bg-[#8455ef] text-white rounded-xl text-xs font-bold transition-all shadow-[0_4px_12px_rgba(109,59,215,0.2)] cursor-pointer select-none flex items-center justify-center gap-1.5"
+                >
+                  <span className="material-symbols-outlined text-sm font-bold">cloud_upload</span>
+                  Sim, importar dados antigos
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handlePerformMigration(false)}
+                  className="w-full py-3.5 bg-surface-container hover:bg-surface-container-highest rounded-xl text-xs font-bold text-on-surface border border-outline-variant/20 transition-all cursor-pointer select-none"
+                >
+                  Não, começar do zero na nuvem
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
