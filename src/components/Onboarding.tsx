@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { UserProfile } from '../types';
-import mcoLogo from '../assets/images/mco_logo.png';
 
 interface OnboardingProps {
   onComplete: (profile: UserProfile) => void;
@@ -35,7 +34,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         <header className="flex flex-col items-center text-center gap-4">
           <div className="w-20 h-20 rounded-2xl overflow-hidden shadow-[0_0_20px_rgba(109,59,215,0.3)] mb-2">
             <img 
-              src={`${mcoLogo}?v=3`} 
+              src="/mco_logo.png" 
               alt="MCO Logo" 
               className="w-full h-full object-cover" 
               referrerPolicy="no-referrer"

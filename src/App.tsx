@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { UserProfile, Transaction, ActiveTab } from './types';
 import { INITIAL_TRANSACTIONS } from './initialData';
-import mcoLogo from './assets/images/mco_logo.png';
 
 // Components
 import Onboarding from './components/Onboarding';
@@ -577,7 +576,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
               {/* Title brand logo with bright purple glass bubble */}
               <div className="px-3 py-1.5 rounded-full bg-primary/10 backdrop-blur-md border border-primary/30 shadow-[0_0_15px_rgba(208,188,255,0.25)] flex items-center gap-2 max-w-[210px] text-center">
                 <img 
-                  src={`${mcoLogo}?v=3`} 
+                  src="/mco_logo.png" 
                   alt="MCO" 
                   className="w-5 h-5 rounded-md object-cover flex-shrink-0" 
                   referrerPolicy="no-referrer"
