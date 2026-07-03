@@ -88,13 +88,10 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
       >
         {/* Header Section */}
         <header className="flex flex-col items-center text-center gap-3">
-          <div className="w-20 h-20 rounded-2xl overflow-hidden shadow-[0_0_20px_rgba(109,59,215,0.3)] mb-1">
-            <img 
-              src="/mco_logo.png" 
-              alt="MCO Logo" 
-              className="w-full h-full object-cover" 
-              referrerPolicy="no-referrer"
-            />
+          <div className="w-16 h-16 rounded-2xl bg-primary/15 border border-primary/30 shadow-[0_0_20px_rgba(109,59,215,0.25)] mb-1 flex items-center justify-center">
+            <span className="material-symbols-outlined text-primary text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+              account_balance_wallet
+            </span>
           </div>
           <h1 className="text-2xl md:text-3xl font-extrabold text-on-surface tracking-tight">
             Meu Caixa <span className="text-primary font-bold">Organizado</span>
