@@ -91,7 +91,7 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
         <header className="flex flex-col items-center text-center gap-3">
           <div className="w-20 h-20 rounded-2xl overflow-hidden shadow-[0_0_20px_rgba(109,59,215,0.3)] mb-1">
             <img 
-              src={mcoLogo} 
+              src={`${mcoLogo}?v=3`} 
               alt="MCO Logo" 
               className="w-full h-full object-cover" 
               referrerPolicy="no-referrer"

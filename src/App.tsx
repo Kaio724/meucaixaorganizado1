@@ -577,7 +577,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
               {/* Title brand logo with bright purple glass bubble */}
               <div className="px-3 py-1.5 rounded-full bg-primary/10 backdrop-blur-md border border-primary/30 shadow-[0_0_15px_rgba(208,188,255,0.25)] flex items-center gap-2 max-w-[210px] text-center">
                 <img 
-                  src={mcoLogo} 
+                  src={`${mcoLogo}?v=3`} 
                   alt="MCO" 
                   className="w-5 h-5 rounded-md object-cover flex-shrink-0" 
                   referrerPolicy="no-referrer"
