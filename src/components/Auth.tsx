@@ -205,32 +205,8 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
           </button>
 
           {/* Toggle Modes */}
-          <div className="text-center mt-3 pt-3 border-t border-white/5">
-            {mode === 'login' && (
-              <p className="text-xs text-on-surface-variant font-medium">
-                Novo por aqui?{' '}
-                <button
-                  type="button"
-                  onClick={() => setMode('signup')}
-                  className="text-primary hover:underline font-bold cursor-pointer"
-                >
-                  Crie sua conta agora
-                </button>
-              </p>
-            )}
-            {mode === 'signup' && (
-              <p className="text-xs text-on-surface-variant font-medium">
-                Já tem conta?{' '}
-                <button
-                  type="button"
-                  onClick={() => setMode('login')}
-                  className="text-primary hover:underline font-bold cursor-pointer"
-                >
-                  Fazer login
-                </button>
-              </p>
-            )}
-            {mode === 'forgot' && (
+          {mode === 'forgot' && (
+            <div className="text-center mt-3 pt-3 border-t border-white/5">
               <button
                 type="button"
                 onClick={() => setMode('login')}
@@ -238,8 +214,8 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
               >
                 Voltar para o login
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </form>
       </motion.div>
     </div>
