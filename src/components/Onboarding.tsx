@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { UserProfile } from '../types';
+import mcoLogo from '../assets/images/mco_logo.png';
 
 interface OnboardingProps {
   onComplete: (profile: UserProfile) => void;
@@ -32,10 +33,13 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
       >
         {/* Header Section */}
         <header className="flex flex-col items-center text-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 mb-2">
-            <span className="material-symbols-outlined text-primary text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-              waving_hand
-            </span>
+          <div className="w-20 h-20 rounded-2xl overflow-hidden shadow-[0_0_20px_rgba(109,59,215,0.3)] mb-2">
+            <img 
+              src={mcoLogo} 
+              alt="MCO Logo" 
+              className="w-full h-full object-cover" 
+              referrerPolicy="no-referrer"
+            />
           </div>
           <h1 className="text-2xl md:text-3xl font-semibold text-on-surface tracking-tight">
             Boas-vindas ao <span className="text-primary font-bold">MCO</span>
