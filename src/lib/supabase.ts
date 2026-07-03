@@ -4,11 +4,11 @@ import { UserProfile, Transaction } from '../types';
 let supabaseClient: any = null;
 
 export function getSupabaseUrl() {
-  return (import.meta as any).env.VITE_SUPABASE_URL || '';
+  return (import.meta as any).env.VITE_SUPABASE_URL || 'https://yfbgauajvijwngvhrkms.supabase.co';
 }
 
 export function getSupabaseAnonKey() {
-  return (import.meta as any).env.VITE_SUPABASE_ANON_KEY || '';
+  return (import.meta as any).env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlmYmdhdWFqdmlqd25ndmhya21zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwMTUwNzUsImV4cCI6MjA5ODU5MTA3NX0.gmhQiDzKghNUWMhX5kh3WWrWvaAAX4Kdyi1RAAowzyM';
 }
 
 export function isSupabaseConfigured(): boolean {
