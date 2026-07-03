@@ -1,5 +1,5 @@
 {
-  "name": "MCO",
+  "name": "Meu Caixa Organizado",
   "description": "Organizador financeiro simples e moderno para autônomos e MEI.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

@@ -285,12 +285,13 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
                 </div>
               </div>
 
-              {/* Descrição */}
+              {/* Especificação do Item ou Serviço */}
               <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold text-on-surface-variant/90">Descrição <span className="text-xs font-normal text-on-surface-variant/50">(opcional)</span></label>
+                <label className="text-xs font-bold text-on-surface-variant/90">Especificação do Item ou Serviço</label>
                 <input
                   type="text"
-                  placeholder="Ex.: corte de cabelo, aluguel..."
+                  required
+                  placeholder="Ex.: corte de cabelo, compra de insumos..."
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   className="w-full bg-surface-container-low border border-outline-variant/40 rounded-2xl px-4 py-3 text-xs focus:outline-none focus:border-primary text-on-surface placeholder:text-on-surface-variant/30"

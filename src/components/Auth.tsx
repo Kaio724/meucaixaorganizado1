@@ -204,16 +204,6 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
             )}
           </button>
 
-          {/* Offline/Local fallback */}
-          <button
-            type="button"
-            onClick={() => onAuthSuccess({ user: { id: 'local' } })}
-            className="w-full bg-surface-container hover:bg-surface-container-highest text-on-surface font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 transition-all duration-200 border border-outline-variant/30 cursor-pointer select-none text-xs"
-          >
-            <span className="material-symbols-outlined text-base">cloud_off</span>
-            <span>Continuar sem login (Modo Offline)</span>
-          </button>
-
           {/* Toggle Modes */}
           <div className="text-center mt-3 pt-3 border-t border-white/5">
             {mode === 'login' && (

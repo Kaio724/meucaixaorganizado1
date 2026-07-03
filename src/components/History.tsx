@@ -405,7 +405,7 @@ export default function History({ transactions, onAddTransaction, onEditTransact
                           {/* Quick inputs */}
                           <div className="grid grid-cols-2 gap-3">
                             <div className="flex flex-col gap-1">
-                              <label className="text-[10px] font-bold text-on-surface-variant">Descrição</label>
+                              <label className="text-[10px] font-bold text-on-surface-variant">Especificação do Item/Serviço</label>
                               <input 
                                 type="text"
                                 required
@@ -544,11 +544,11 @@ export default function History({ transactions, onAddTransaction, onEditTransact
 
                 {/* Title */}
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs text-on-surface-variant font-medium">Nome / Descrição</label>
+                  <label className="text-xs text-on-surface-variant font-medium">Especificação do Item ou Serviço</label>
                   <input
                     type="text"
                     required
-                    placeholder="Ex: Encomenda de Bolo de Noiva"
+                    placeholder="Ex: Venda de Bolo, Compra de Insumos..."
                     value={formTitle}
                     onChange={(e) => setFormTitle(e.target.value)}
                     className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-primary text-on-surface placeholder:text-on-surface-variant/30"

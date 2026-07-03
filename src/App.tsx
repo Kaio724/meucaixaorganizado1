@@ -28,7 +28,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [activeTab, setActiveTab] = useState<ActiveTab>('historico'); // default to 'historico' like the screenshot
+  const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard'); // default to 'dashboard'
   const [showNotification, setShowNotification] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
@@ -297,7 +297,7 @@ export default function App() {
       setSession(null);
       setProfile(null);
       setTransactions([]);
-      setActiveTab('historico');
+      setActiveTab('dashboard');
       setShowProfileMenu(false);
     }
   };
