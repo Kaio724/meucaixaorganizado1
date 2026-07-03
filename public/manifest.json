@@ -1,0 +1,22 @@
+{
+  "short_name": "MCO",
+  "name": "Meu Caixa Organizado",
+  "icons": [
+    {
+      "src": "/mco_logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/mco_logo.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#120f1d",
+  "theme_color": "#6d3bd7",
+  "display": "standalone",
+  "orientation": "portrait"
+}
