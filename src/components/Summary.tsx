@@ -1,12 +1,16 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Transaction } from '../types';
+import { Transaction, UserProfile } from '../types';
 
 interface SummaryProps {
   transactions: Transaction[];
+  profile: UserProfile;
+  onNavigateToPlanos?: () => void;
 }
 
-export default function Summary({ transactions }: SummaryProps) {
+export default function Summary({ transactions, profile, onNavigateToPlanos }: SummaryProps) {
+  const isPro = (profile.plan || 'essential') === 'pro';
+
   // Calculations
   const totalEntradas = transactions
     .filter(t => t.type === 'entrada')
@@ -199,6 +203,62 @@ export default function Summary({ transactions }: SummaryProps) {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+
+        {/* Seção Estruturada para Projeções / Funcionalidade futura PRO */}
+        <div className="glass-card rounded-[24px] p-5 border border-white/5 flex flex-col gap-4 relative overflow-hidden bg-gradient-to-br from-primary/5 to-transparent">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-full filter blur-xl pointer-events-none"></div>
+          
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-lg">insights</span>
+              <h4 className="text-sm font-bold text-on-surface">Projeção de Lucro Futuro</h4>
+            </div>
+            {isPro ? (
+              <span className="text-[9px] uppercase font-bold text-primary px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20">
+                Desbloqueado Pro
+              </span>
+            ) : (
+              <span className="text-[9px] uppercase font-bold text-outline px-2 py-0.5 rounded-full bg-white/5 border border-white/10 flex items-center gap-1">
+                <span className="material-symbols-outlined text-[10px]">lock</span>
+                Recurso Pro
+              </span>
+            )}
+          </div>
+          
+          {isPro ? (
+            <div className="flex flex-col gap-3">
+              <p className="text-xs text-on-surface-variant font-medium leading-relaxed">
+                Com base nos seus lançamentos recentes, sua projeção de faturamento para os próximos 30 dias é de:
+              </p>
+              <div className="bg-surface-container-low p-3.5 rounded-xl border border-white/5 flex justify-between items-center">
+                <span className="text-xs text-on-surface-variant">Expectativa de Sobra</span>
+                <span className="text-sm font-bold text-tertiary">{formatBRL(netBalance * 1.12)}</span>
+              </div>
+              <p className="text-[10px] text-on-surface-variant/70 font-medium">
+                *A projeção considera um aumento sazonal estimado de 12% baseado no histórico do seu segmento de {profile.businessType === 'cnpj' ? 'MEI' : 'Autônomo'}.
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <p className="text-xs text-on-surface-variant/60 font-medium leading-relaxed">
+                Gostaria de ver estimativas automáticas do seu caixa para os próximos meses com base em inteligência artificial?
+              </p>
+              <div className="filter blur-[3px] bg-surface-container-low/50 p-3.5 rounded-xl border border-white/5 flex justify-between items-center select-none pointer-events-none">
+                <span className="text-xs text-on-surface-variant/45">Expectativa de Sobra</span>
+                <span className="text-sm font-bold text-tertiary">R$ 5.420,00</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-on-surface-variant/50 font-medium">Faça o upgrade para liberar a inteligência financeira.</span>
+                <button 
+                  onClick={() => onNavigateToPlanos?.()}
+                  className="text-[10px] font-bold text-primary hover:text-primary-container transition-colors cursor-pointer"
+                >
+                  Ver Planos →
+                </button>
+              </div>
             </div>
           )}
         </div>

@@ -1,8 +1,11 @@
+export type PlanType = 'essential' | 'pro';
+
 export interface UserProfile {
   name: string;
   businessName: string;
   businessType: 'cnpj' | 'autonomo';
   isOnboarded: boolean;
+  plan?: PlanType; // 'essential' | 'pro'
 }
 
 export type TransactionType = 'entrada' | 'saida';
@@ -18,4 +21,5 @@ export interface Transaction {
   description?: string;
 }
 
-export type ActiveTab = 'dashboard' | 'historico' | 'retirar' | 'resumo';
+export type ActiveTab = 'dashboard' | 'historico' | 'retirar' | 'resumo' | 'planos';
+

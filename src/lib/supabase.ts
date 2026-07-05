@@ -42,6 +42,7 @@ export function mapDbProfileToUserProfile(row: any): UserProfile {
     businessName: row.nome_negocio || '',
     businessType: row.tipo_negocio === 'mei' ? 'cnpj' : 'autonomo',
     isOnboarded: true,
+    plan: (row.plano as any) === 'pro' ? 'pro' : 'essential',
   };
 }
 
@@ -52,6 +53,7 @@ export function mapUserProfileToDbProfile(profile: UserProfile, userId: string) 
     nome: profile.name,
     nome_negocio: profile.businessName,
     tipo_negocio: profile.businessType === 'cnpj' ? 'mei' : 'autonomo',
+    plano: profile.plan || 'essential',
   };
 }
 

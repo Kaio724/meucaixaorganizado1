@@ -72,9 +72,18 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
       {/* Top Welcome Bar */}
       <div className="flex items-center justify-between">
         <div>
-          <span className="text-xs text-on-surface-variant font-medium tracking-wider uppercase">
-            {profile.businessType === 'cnpj' ? 'MEI' : 'Autônomo'}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-on-surface-variant font-medium tracking-wider uppercase">
+              {profile.businessType === 'cnpj' ? 'MEI' : 'Autônomo'}
+            </span>
+            <span className={`text-[8px] px-1.5 py-0.5 rounded-full uppercase font-extrabold border ${
+              (profile.plan || 'essential') === 'pro'
+                ? 'bg-primary/20 text-primary border-primary/30'
+                : 'bg-white/10 text-on-surface-variant border-white/10'
+            }`}>
+              {profile.plan || 'essential'}
+            </span>
+          </div>
           <h2 className="text-xl font-bold text-on-surface tracking-tight">
             Olá, <span className="text-primary">{profile.name}</span>!
           </h2>

@@ -10,6 +10,7 @@ import History from './components/History';
 import Withdraw from './components/Withdraw';
 import Summary from './components/Summary';
 import Auth from './components/Auth';
+import Plans from './components/Plans';
 
 // Supabase Helpers
 import { 
@@ -247,6 +248,30 @@ export default function App() {
       setShowEditProfileModal(false);
     } catch (err) {
       setDbError('Sem conexão, tente novamente');
+    }
+  };
+
+  // Update plan handler
+  const handleUpdatePlan = async (newPlan: 'essential' | 'pro') => {
+    if (!profile) return;
+    const userId = session?.user?.id || 'local';
+    setDbError(null);
+    try {
+      const updatedProfile: UserProfile = {
+        ...profile,
+        plan: newPlan
+      };
+      await upsertProfile(userId, updatedProfile);
+      setProfile(updatedProfile);
+      
+      // Also update in local storage if not logged in
+      if (userId === 'local') {
+        localStorage.setItem('mco_profile', JSON.stringify(updatedProfile));
+      }
+    } catch (err) {
+      console.error('Error updating plan:', err);
+      setDbError('Sem conexão para atualizar plano. Tente novamente.');
+      throw err;
     }
   };
 
@@ -539,7 +564,16 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                       className="absolute left-0 mt-2 w-56 rounded-2xl bg-surface-container border border-outline-variant shadow-2xl p-3 z-50 flex flex-col gap-1.5"
                     >
                       <div className="px-3 py-2 border-b border-white/5">
-                        <span className="text-[10px] uppercase font-bold text-primary tracking-wider">Espaço Configurado</span>
+                        <div className="flex items-center justify-between gap-1.5">
+                          <span className="text-[10px] uppercase font-bold text-primary tracking-wider">Espaço Configurado</span>
+                          <span className={`text-[8px] px-1.5 py-0.5 rounded-full uppercase font-extrabold border ${
+                            (profile.plan || 'essential') === 'pro'
+                              ? 'bg-primary/20 text-primary border-primary/30'
+                              : 'bg-white/5 text-on-surface-variant border-white/10'
+                          }`}>
+                            {profile.plan || 'essential'}
+                          </span>
+                        </div>
                         <h4 className="text-xs font-bold text-on-surface mt-0.5 truncate">{profile.name}</h4>
                         <p className="text-[10px] text-on-surface-variant truncate">{profile.businessName}</p>
                       </div>
@@ -558,6 +592,18 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                       >
                         <span className="material-symbols-outlined text-sm">manage_accounts</span>
                         Alterar Perfil
+                      </button>
+
+                      {/* Gerenciar Planos Option */}
+                      <button
+                        onClick={() => {
+                          setActiveTab('planos');
+                          setShowProfileMenu(false);
+                        }}
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl text-left text-xs font-semibold text-primary hover:bg-primary/10 transition-colors w-full cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-sm">workspace_premium</span>
+                        Gerenciar Planos
                       </button>
 
                       {/* Logout option */}
@@ -663,6 +709,16 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                   {activeTab === 'resumo' && (
                     <Summary 
                       transactions={transactions}
+                      profile={profile}
+                      onNavigateToPlanos={() => setActiveTab('planos')}
+                    />
+                  )}
+
+                  {activeTab === 'planos' && (
+                    <Plans 
+                      profile={profile}
+                      onUpdatePlan={handleUpdatePlan}
+                      onNavigateToTab={setActiveTab}
                     />
                   )}
                 </motion.div>
