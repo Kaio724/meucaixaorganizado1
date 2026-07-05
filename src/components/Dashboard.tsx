@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Transaction, UserProfile, TransactionType } from '../types';
 import { AVAILABLE_CATEGORIES, PAYMENT_METHODS } from '../initialData';
+import EvolutionCard from './EvolutionCard';
 
 interface DashboardProps {
   profile: UserProfile;
@@ -11,6 +12,7 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ profile, transactions, onAddTransaction, onNavigateToTab }: DashboardProps) {
+  const isPro = (profile.plan || 'essential') === 'pro';
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [txType, setTxType] = useState<TransactionType>('entrada');
   const [title, setTitle] = useState('');
@@ -334,6 +336,17 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Insights PRO (Exclusivo PRO) */}
+      {isPro && (
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary text-lg">insights</span>
+            <h3 className="text-sm font-bold text-on-surface">Insights PRO</h3>
+          </div>
+          <EvolutionCard transactions={transactions} />
+        </div>
+      )}
 
       {/* Short list of Recent Transactions */}
       <div className="flex flex-col gap-3">

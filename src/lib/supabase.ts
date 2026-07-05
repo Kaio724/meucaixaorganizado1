@@ -136,6 +136,25 @@ export async function upsertProfile(userId: string, profile: UserProfile): Promi
 
   if (error) {
     console.error('Error upserting profile:', error.message);
+    
+    // If the error is about 'plano' column not in schema cache or missing, retry without it
+    const isPlanoError = error.message?.includes('plano') || 
+                          error.message?.includes('schema cache') || 
+                          error.message?.includes('column');
+    if (isPlanoError) {
+      console.warn('Retrying upsert without "plano" column...');
+      const { plano, ...cleanDbProfile } = dbProfile;
+      const { error: retryError } = await supabase
+        .from('profiles')
+        .upsert(cleanDbProfile);
+        
+      if (retryError) {
+        console.error('Error upserting profile on retry:', retryError.message);
+        throw retryError;
+      }
+      return true;
+    }
+    
     throw error;
   }
 

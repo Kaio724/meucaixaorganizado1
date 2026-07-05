@@ -41,6 +41,7 @@ export default function App() {
   const [dbError, setDbError] = useState<string | null>(null);
   const [dbSchemaError, setDbSchemaError] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [sqlTab, setSqlTab] = useState<'upgrade' | 'full'>('upgrade');
 
   // Check session and load configuration on mount
   useEffect(() => {
@@ -54,7 +55,7 @@ export default function App() {
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
       setSession(currentSession);
       if (currentSession) {
-        loadUserData(currentSession.user.id);
+        loadUserData(currentSession.user.id, currentSession.user.email);
       } else {
         setLoading(false);
       }
@@ -64,7 +65,7 @@ export default function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
       if (newSession) {
-        loadUserData(newSession.user.id);
+        loadUserData(newSession.user.id, newSession.user.email);
       } else {
         setProfile(null);
         setTransactions([]);
@@ -77,12 +78,21 @@ export default function App() {
     };
   }, []);
 
-  const loadUserData = async (userId: string) => {
+  const loadUserData = async (userId: string, email?: string) => {
     setLoading(true);
     setDbError(null);
     try {
-      const dbProfile = await fetchProfile(userId);
+      let dbProfile = await fetchProfile(userId);
+      const isPromoUser = email?.toLowerCase() === 'kaiopatrick42@gmail.com';
       if (dbProfile) {
+        if (isPromoUser && dbProfile.plan !== 'essential') {
+          dbProfile.plan = 'essential';
+          try {
+            await upsertProfile(userId, dbProfile);
+          } catch (e) {
+            console.warn('Silent downgrade profile failed:', e);
+          }
+        }
         setProfile(dbProfile);
         const dbTxs = await fetchTransactions(userId);
         setTransactions(dbTxs);
@@ -146,6 +156,10 @@ export default function App() {
     setLoading(true);
     setDbError(null);
     try {
+      const isPromoUser = session?.user?.email?.toLowerCase() === 'kaiopatrick42@gmail.com';
+      if (isPromoUser) {
+        newProfile.plan = 'essential';
+      }
       await upsertProfile(session.user.id, newProfile);
       setProfile(newProfile);
 
@@ -268,9 +282,17 @@ export default function App() {
       if (userId === 'local') {
         localStorage.setItem('mco_profile', JSON.stringify(updatedProfile));
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error updating plan:', err);
-      setDbError('Sem conexão para atualizar plano. Tente novamente.');
+      const isSchemaError = err.message?.includes('profiles') || 
+                            err.message?.includes('schema cache') || 
+                            err.message?.includes('plano') ||
+                            err.message?.includes('relation');
+      if (isSchemaError) {
+        setDbSchemaError(true);
+      } else {
+        setDbError('Sem conexão para atualizar plano. Tente novamente.');
+      }
       throw err;
     }
   };
@@ -362,12 +384,17 @@ export default function App() {
 
   // If Supabase tables are not configured yet, show helper instructions screen
   if (dbSchemaError) {
+    const upgradeScript = `-- ATUALIZAÇÃO SÓ DE COLUNAS (Se você já tem as tabelas criadas)
+-- Use isso para corrigir o erro 'plano column' ou 'policy already exists'
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS plano TEXT DEFAULT 'essential' CHECK (plano IN ('essential', 'pro'));`;
+
     const sqlScript = `-- 1. Criar a tabela de perfis (profiles) vinculada ao auth.users
 CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     nome TEXT NOT NULL,
     nome_negocio TEXT NOT NULL,
     tipo_negocio TEXT NOT NULL CHECK (tipo_negocio IN ('mei', 'autonomo')),
+    plano TEXT DEFAULT 'essential' CHECK (plano IN ('essential', 'pro')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -390,17 +417,30 @@ ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lancamentos ENABLE ROW LEVEL SECURITY;
 
 -- 4. Criar as políticas de segurança RLS (Garantindo privacidade total)
+DROP POLICY IF EXISTS "Users can read own profile" ON public.profiles;
 CREATE POLICY "Users can read own profile" ON public.profiles FOR SELECT USING (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
 CREATE POLICY "Users can insert own profile" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
 CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Users can read own transactions" ON public.lancamentos;
 CREATE POLICY "Users can read own transactions" ON public.lancamentos FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert own transactions" ON public.lancamentos;
 CREATE POLICY "Users can insert own transactions" ON public.lancamentos FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update own transactions" ON public.lancamentos;
 CREATE POLICY "Users can update own transactions" ON public.lancamentos FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete own transactions" ON public.lancamentos;
 CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELETE USING (auth.uid() = user_id);`;
 
     const handleCopySql = () => {
-      navigator.clipboard.writeText(sqlScript);
+      const activeScript = sqlTab === 'upgrade' ? upgradeScript : sqlScript;
+      navigator.clipboard.writeText(activeScript);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     };
@@ -422,35 +462,77 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
           <div className="flex flex-col gap-1.5 text-center">
             <h1 className="text-lg font-extrabold text-on-surface">Configurar Tabelas no Supabase</h1>
             <p className="text-xs text-on-surface-variant leading-relaxed">
-              Para salvar seus dados na nuvem, execute o script SQL abaixo no painel do seu Supabase.
+              Escolha a opção que corresponde ao estado atual do seu banco de dados no Supabase.
             </p>
           </div>
 
-          <div className="bg-surface-container-low rounded-2xl p-4 text-left border border-white/5 flex flex-col gap-3">
-            <span className="text-xs font-bold text-primary flex items-center gap-1">
-              <span className="material-symbols-outlined text-sm">info</span> Passo a passo simples:
-            </span>
-            <ol className="text-xs text-on-surface-variant leading-relaxed list-decimal pl-4 flex flex-col gap-1">
-              <li>Acesse o seu painel do <strong>Supabase</strong>.</li>
-              <li>No menu lateral esquerdo, clique em <strong>SQL Editor</strong>.</li>
-              <li>Clique em <strong>New Query</strong> e cole o código SQL abaixo.</li>
-              <li>Clique no botão verde <strong>Run</strong> (no canto inferior direito).</li>
-            </ol>
+          {/* Tab Selector */}
+          <div className="flex bg-black/30 p-1.5 rounded-2xl border border-white/5 gap-1">
+            <button
+              type="button"
+              onClick={() => setSqlTab('upgrade')}
+              className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                sqlTab === 'upgrade'
+                  ? 'bg-[#6d3bd7] text-white shadow-md shadow-[#6d3bd7]/20'
+                  : 'text-on-surface-variant hover:text-on-surface hover:bg-white/5'
+              }`}
+            >
+              🔄 Apenas Atualizar (Recomendado)
+            </button>
+            <button
+              type="button"
+              onClick={() => setSqlTab('full')}
+              className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                sqlTab === 'full'
+                  ? 'bg-[#6d3bd7] text-white shadow-md shadow-[#6d3bd7]/20'
+                  : 'text-on-surface-variant hover:text-on-surface hover:bg-white/5'
+              }`}
+            >
+              ✨ Instalação do Zero
+            </button>
           </div>
+
+          {sqlTab === 'upgrade' ? (
+            <div className="bg-surface-container-low rounded-2xl p-4 text-left border border-white/5 flex flex-col gap-3">
+              <span className="text-xs font-bold text-primary flex items-center gap-1">
+                <span className="material-symbols-outlined text-sm">info</span> Correção do erro de coluna / políticas:
+              </span>
+              <p className="text-xs text-on-surface-variant leading-relaxed">
+                Se você já possui as tabelas <strong>profiles</strong> e <strong>lancamentos</strong> criadas, você não precisa criá-las de novo nem recriar políticas.
+              </p>
+              <ol className="text-xs text-on-surface-variant leading-relaxed list-decimal pl-4 flex flex-col gap-1">
+                <li>Copie o comando simples de atualização abaixo.</li>
+                <li>Cole no seu <strong>SQL Editor</strong> do Supabase e clique em <strong>Run</strong>.</li>
+                <li>Isso adiciona a nova coluna de planos sem recriar políticas e evita o erro <code>policy already exists</code>.</li>
+              </ol>
+            </div>
+          ) : (
+            <div className="bg-surface-container-low rounded-2xl p-4 text-left border border-white/5 flex flex-col gap-3">
+              <span className="text-xs font-bold text-primary flex items-center gap-1">
+                <span className="material-symbols-outlined text-sm">info</span> Instalação do Zero:
+              </span>
+              <ol className="text-xs text-on-surface-variant leading-relaxed list-decimal pl-4 flex flex-col gap-1">
+                <li>Selecione esta opção caso você esteja iniciando um banco de dados novo no Supabase.</li>
+                <li>Cole o código SQL completo no SQL Editor e execute-o.</li>
+              </ol>
+            </div>
+          )}
 
           <div className="flex flex-col gap-2 relative">
             <div className="flex items-center justify-between px-1">
-              <span className="text-[10px] font-bold text-on-surface-variant tracking-wider uppercase">Script SQL de Configuração</span>
+              <span className="text-[10px] font-bold text-on-surface-variant tracking-wider uppercase">
+                {sqlTab === 'upgrade' ? 'SQL de Atualização' : 'SQL Completo do Zero'}
+              </span>
               <button 
                 onClick={handleCopySql}
                 className="flex items-center gap-1 text-[11px] font-bold text-primary hover:text-primary-container bg-primary/10 hover:bg-primary/25 px-2.5 py-1 rounded-lg transition-all cursor-pointer"
               >
                 <span className="material-symbols-outlined text-sm">{copied ? 'done' : 'content_copy'}</span>
-                {copied ? 'Copiado!' : 'Copiar Script'}
+                {copied ? 'Copiado!' : 'Copiar Código'}
               </button>
             </div>
             <pre className="bg-black/40 p-3.5 rounded-xl border border-white/5 text-[10px] font-mono text-on-surface-variant overflow-x-auto max-h-48 text-left leading-relaxed">
-              {sqlScript}
+              {sqlTab === 'upgrade' ? upgradeScript : sqlScript}
             </pre>
           </div>
 
