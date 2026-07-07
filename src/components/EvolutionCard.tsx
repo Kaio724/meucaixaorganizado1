@@ -172,7 +172,7 @@ export default function EvolutionCard({ transactions }: EvolutionCardProps) {
   // Let's build metrics list
   const metrics = [
     {
-      title: 'Receitas',
+      title: 'Receita',
       current: currentReceitas,
       previous: prevReceitas,
       variation: varReceitas,
@@ -192,7 +192,7 @@ export default function EvolutionCard({ transactions }: EvolutionCardProps) {
       iconBg: isDespesasPositive ? 'bg-tertiary/10 border-tertiary/20' : 'bg-error/10 border-error/20'
     },
     {
-      title: 'Saldo Líquido',
+      title: 'Lucro',
       current: currentSaldo,
       previous: prevSaldo,
       variation: varSaldo,

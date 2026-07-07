@@ -114,19 +114,19 @@ export default function ProGrowthPanel({ transactions, isPro, onUnlockPro }: Pro
 
   // Status message logic for Goal
   let goalStatusMessage = '';
-  if (goalPercentage < 25) {
-    goalStatusMessage = 'Você está começando.';
-  } else if (goalPercentage < 50) {
-    goalStatusMessage = 'Bom progresso.';
-  } else if (goalPercentage < 75) {
-    goalStatusMessage = 'Você está chegando lá.';
+  if (goalPercentage === 0) {
+    goalStatusMessage = 'Inicie seus lançamentos de entrada para começar a pontuar sua meta!';
+  } else if (goalPercentage < 35) {
+    goalStatusMessage = 'Ótimo começo! Continue focado e registre todas as suas vendas.';
+  } else if (goalPercentage < 70) {
+    goalStatusMessage = 'Excelente ritmo! Você está no caminho certo do seu objetivo.';
   } else if (goalPercentage < 100) {
-    goalStatusMessage = 'Falta pouco para atingir sua meta.';
+    goalStatusMessage = 'Quase lá! Falta muito pouco para você consolidar esta meta.';
   } else if (goalPercentage === 100) {
-    goalStatusMessage = '🎉 Parabéns! Você atingiu sua meta deste mês.';
+    goalStatusMessage = 'Parabéns! Você atingiu 100% da sua meta de faturamento!';
   } else {
     const surplus = faturadoDisplay - goalValue;
-    goalStatusMessage = `🚀 Você superou sua meta em ${formatBRL(surplus)}.`;
+    goalStatusMessage = `Espetacular! Você superou sua meta de faturamento em ${formatBRL(surplus)}.`;
   }
 
   // Score & Status Logic for Financial Health
@@ -167,30 +167,25 @@ export default function ProGrowthPanel({ transactions, isPro, onUnlockPro }: Pro
       healthScore = baseScore;
     }
 
-    if (healthScore >= 85) {
-      healthStatusLabel = 'Excelente';
+    if (healthScore >= 70) {
+      healthStatusLabel = '🟢 Saudável';
       healthColorClass = 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
       healthBulletColor = 'bg-emerald-400';
-      healthStatusMessage = 'Seu negócio está com excelente margem de lucro neste mês.';
-    } else if (healthScore >= 70) {
-      healthStatusLabel = 'Saudável';
-      healthColorClass = 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
-      healthBulletColor = 'bg-emerald-400';
-      healthStatusMessage = 'Você está controlando bem seus gastos.';
-    } else if (healthScore >= 50) {
-      healthStatusLabel = 'Atenção';
+      healthStatusMessage = 'Seu caixa está saudável. O negócio tem boa geração de lucro.';
+    } else if (healthScore >= 45) {
+      healthStatusLabel = '🟡 Atenção';
       healthColorClass = 'text-amber-400 bg-amber-500/10 border-amber-500/20';
       healthBulletColor = 'bg-amber-400';
-      healthStatusMessage = 'Vale acompanhar as despesas nas próximas semanas.';
+      healthStatusMessage = 'Suas despesas aumentaram neste mês. Recomenda-se cautela.';
     } else {
-      healthStatusLabel = 'Cuidado';
+      healthStatusLabel = '🔴 Crítico';
       healthColorClass = 'text-rose-400 bg-rose-500/10 border-rose-500/20';
       healthBulletColor = 'bg-rose-400';
-      healthStatusMessage = 'Suas despesas estão consumindo boa parte do faturamento.';
+      healthStatusMessage = 'Seu lucro está crítico! Reavalie os custos e reduza despesas.';
     }
 
     if (hasWithdrawalPenalty) {
-      healthStatusMessage = `${healthStatusMessage} Suas retiradas pessoais estão consumindo grande parte do lucro.`;
+      healthStatusMessage = 'Suas despesas aumentaram e suas retiradas pessoais estão consumindo o caixa.';
     }
   }
 
@@ -223,18 +218,28 @@ export default function ProGrowthPanel({ transactions, isPro, onUnlockPro }: Pro
     }
 
     return (
-      <div className="flex flex-col gap-2.5 mt-1 text-left">
+      <div className="flex flex-col gap-3 mt-1 text-left">
         <div className="flex justify-between items-baseline">
-          <span className="text-xl font-black text-on-surface tracking-tight">
-            {formatBRL(faturadoDisplay)}
-          </span>
-          <span className="text-[11px] font-bold text-on-surface-variant/85">
-            meta: {formatBRL(goalValue)}
-          </span>
+          <div className="flex flex-col">
+            <span className="text-[9px] uppercase font-extrabold text-on-surface-variant tracking-wider leading-none">
+              Faturamento Atual
+            </span>
+            <span className="text-xl font-black text-on-surface tracking-tight mt-1">
+              {formatBRL(faturadoDisplay)}
+            </span>
+          </div>
+          <div className="flex flex-col items-end">
+            <span className="text-[9px] uppercase font-extrabold text-on-surface-variant tracking-wider leading-none">
+              Meta Alvo
+            </span>
+            <span className="text-xs font-bold text-primary mt-1">
+              {formatBRL(goalValue)}
+            </span>
+          </div>
         </div>
         
         {/* Progress Bar */}
-        <div className="w-full bg-surface-container-low h-2 rounded-full overflow-hidden border border-outline-variant/10 relative">
+        <div className="w-full bg-surface-container-low h-3 rounded-full overflow-hidden border border-outline-variant/10 relative">
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${Math.min(100, goalPercentage)}%` }}
@@ -243,12 +248,19 @@ export default function ProGrowthPanel({ transactions, isPro, onUnlockPro }: Pro
           />
         </div>
         
-        <div className="flex items-center justify-between text-[11px] font-semibold text-on-surface-variant leading-none">
-          <span className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+        <div className="flex flex-col gap-1 text-xs">
+          <div className="flex items-center justify-between font-bold">
+            <span className="text-on-surface">
+              Você já atingiu <span className="text-primary font-black">{goalPercentage}%</span> da sua meta.
+            </span>
+            <span className="text-on-surface-variant">
+              {goalMissing > 0 ? `Restam ${formatBRL(goalMissing)}` : 'Meta Superada!'}
+            </span>
+          </div>
+          <p className="text-[11px] text-on-surface-variant/80 font-medium italic mt-0.5 flex items-center gap-1">
+            <span className="material-symbols-outlined text-[12px] text-amber-400">tips_and_updates</span>
             {goalStatusMessage}
-          </span>
-          <span className="text-primary font-bold">{goalPercentage}%</span>
+          </p>
         </div>
       </div>
     );
@@ -314,8 +326,7 @@ export default function ProGrowthPanel({ transactions, isPro, onUnlockPro }: Pro
             <span className="text-[9px] uppercase font-extrabold text-on-surface-variant/90 tracking-wider">
               Índice MCO
             </span>
-            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-extrabold leading-none ${healthColorClass}`}>
-              <span className={`w-1 h-1 rounded-full ${healthBulletColor}`} />
+            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-[10px] font-extrabold leading-none ${healthColorClass}`}>
               {healthStatusLabel}
             </span>
           </div>

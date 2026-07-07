@@ -4,6 +4,8 @@ import { Transaction, UserProfile, TransactionType } from '../types';
 import { AVAILABLE_CATEGORIES, PAYMENT_METHODS } from '../initialData';
 import EvolutionCard from './EvolutionCard';
 import ProGrowthPanel from './ProGrowthPanel';
+import ProInsights from './ProInsights';
+import MonthComparison from './MonthComparison';
 
 const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://pay.kiwify.com.br/exemplo-checkout';
 
@@ -404,16 +406,37 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
 
       {/* Insights PRO (Exclusivo PRO) - apenas se for PRO */}
       {isPro && (
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-lg">insights</span>
-              <h3 className="text-sm font-bold text-on-surface">Evolução do Negócio</h3>
+        <div className="flex flex-col gap-6">
+          {/* Evolução do Negócio (Evolução do Lucro) */}
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-lg">insights</span>
+                <h3 className="text-sm font-bold text-on-surface">Evolução do Negócio</h3>
+              </div>
+            </div>
+
+            <div className="relative overflow-hidden rounded-[24px]">
+              <EvolutionCard transactions={transactions} />
             </div>
           </div>
 
+          {/* Comparativo entre Meses */}
           <div className="relative overflow-hidden rounded-[24px]">
-            <EvolutionCard transactions={transactions} />
+            <MonthComparison transactions={transactions} />
+          </div>
+
+          {/* Insights Inteligentes */}
+          <div className="relative overflow-hidden rounded-[24px]">
+            <ProInsights transactions={transactions} />
+          </div>
+
+          {/* Informativo de Atualizações Vitalícias */}
+          <div className="glass-card rounded-[20px] p-4 border border-primary/20 bg-primary/5 flex items-start gap-3 text-left">
+            <span className="material-symbols-outlined text-primary text-lg shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>verified_user</span>
+            <p className="text-[11px] text-on-surface-variant font-medium leading-normal">
+              Você tem <span className="text-primary font-bold">acesso vitalício</span> a todas as futuras atualizações, melhorias e novos recursos exclusivos do MCO PRO sem nenhuma taxa recorrente.
+            </p>
           </div>
         </div>
       )}
@@ -449,17 +472,21 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
             </div>
 
             {/* Feature Check List (Oriented to benefits with emojis!) */}
-            <div className="flex flex-col gap-2.5 sm:gap-3 text-left bg-white/[0.01] border border-white/5 rounded-2xl p-3.5 sm:p-4">
+            <div className="flex flex-col gap-3 text-left bg-white/[0.01] border border-white/5 rounded-2xl p-4">
               {[
-                { emoji: '📈', text: 'Evolução do Negócio' },
-                { emoji: '🎯', text: 'Objetivos Financeiros' },
-                { emoji: '💜', text: 'Saúde Financeira' },
-                { emoji: '⚡', text: 'Atualizações Vitalícias' },
-                { emoji: '✨', text: 'Novos recursos exclusivos do PRO' }
+                { emoji: '📈', title: 'Evolução do Lucro', text: 'Monitore receitas, despesas e margem líquida com comparativos reais MoM.' },
+                { emoji: '🎯', title: 'Metas Inteligentes', text: 'Defina alvos mensais de faturamento com barras de progresso dinâmicas.' },
+                { emoji: '💚', title: 'Saúde Financeira', text: 'Status em tempo real (🟢 Saudável, 🟡 Atenção, 🔴 Crítico) do seu caixa.' },
+                { emoji: '💡', title: 'Insights com IA', text: 'Análises automatizadas e alertas acionáveis sob medida para seu negócio.' },
+                { emoji: '📊', title: 'Comparativos Avançados', text: 'Alterne rápido entre períodos com gráficos interativos e minimalistas.' },
+                { emoji: '⚡', title: 'Atualizações Vitalícias', text: 'Acesso vitalício garantido a todas as melhorias e novos recursos PRO.' }
               ].map((item, i) => (
-                <div key={i} className="flex items-start gap-2.5 text-xs font-semibold text-on-surface-variant leading-relaxed">
-                  <span className="text-sm shrink-0 leading-none">{item.emoji}</span>
-                  <span className="text-[11px] sm:text-xs">{item.text}</span>
+                <div key={i} className="flex items-start gap-3 text-xs leading-normal">
+                  <span className="text-base shrink-0 select-none mt-0.5">{item.emoji}</span>
+                  <div className="flex flex-col">
+                    <span className="font-extrabold text-on-surface">{item.title}</span>
+                    <span className="text-[10px] text-on-surface-variant/80 font-medium">{item.text}</span>
+                  </div>
                 </div>
               ))}
             </div>

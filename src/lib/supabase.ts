@@ -301,21 +301,52 @@ export async function insertTransaction(userId: string, tx: Omit<Transaction, 'i
   }
 
   const supabase = getSupabase();
-  if (!supabase) throw new Error('Supabase client not initialized');
+  const fallbackTx: Transaction = {
+    ...tx,
+    id: tx.id || 'offline_' + Math.random().toString(36).substring(2, 9),
+  } as Transaction;
 
-  const dbTx = mapTransactionToDb(tx, userId);
-  const { data, error } = await supabase
-    .from('lancamentos')
-    .insert(dbTx)
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Error inserting transaction:', error.message);
-    throw error;
+  // Add to local cache first
+  try {
+    const cachedStr = localStorage.getItem(`mco_cached_transactions_${userId}`);
+    const list = cachedStr ? JSON.parse(cachedStr) : [];
+    list.unshift(fallbackTx);
+    localStorage.setItem(`mco_cached_transactions_${userId}`, JSON.stringify(list));
+  } catch (e) {
+    console.error('Error caching new transaction locally:', e);
   }
 
-  return mapDbToTransaction(data);
+  if (!supabase) return fallbackTx;
+
+  try {
+    const dbTx = mapTransactionToDb(tx, userId);
+    const { data, error } = await supabase
+      .from('lancamentos')
+      .insert(dbTx)
+      .select()
+      .single();
+
+    if (error) {
+      console.warn('Supabase insert failed, running with local fallback:', error.message);
+      return fallbackTx;
+    }
+
+    const insertedTx = mapDbToTransaction(data);
+    // Replace fallback with real database transaction in local cache
+    try {
+      const cachedStr = localStorage.getItem(`mco_cached_transactions_${userId}`);
+      let list = cachedStr ? JSON.parse(cachedStr) : [];
+      list = list.map((t: any) => (t.id === fallbackTx.id ? insertedTx : t));
+      localStorage.setItem(`mco_cached_transactions_${userId}`, JSON.stringify(list));
+    } catch (e) {
+      // ignore
+    }
+
+    return insertedTx;
+  } catch (err) {
+    console.warn('Network error during insert, running with local fallback:', err);
+    return fallbackTx;
+  }
 }
 
 export async function updateTransaction(userId: string, tx: Transaction): Promise<Transaction> {
@@ -327,24 +358,41 @@ export async function updateTransaction(userId: string, tx: Transaction): Promis
     return tx;
   }
 
-  const supabase = getSupabase();
-  if (!supabase) throw new Error('Supabase client not initialized');
-
-  const dbTx = mapTransactionToDb(tx, userId);
-  const { data, error } = await supabase
-    .from('lancamentos')
-    .update(dbTx)
-    .eq('id', tx.id)
-    .eq('user_id', userId)
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Error updating transaction:', error.message);
-    throw error;
+  // Update in local cache first
+  try {
+    const cachedStr = localStorage.getItem(`mco_cached_transactions_${userId}`);
+    if (cachedStr) {
+      let list = JSON.parse(cachedStr);
+      list = list.map((t: any) => (t.id === tx.id ? tx : t));
+      localStorage.setItem(`mco_cached_transactions_${userId}`, JSON.stringify(list));
+    }
+  } catch (e) {
+    console.error('Error caching transaction update:', e);
   }
 
-  return mapDbToTransaction(data);
+  const supabase = getSupabase();
+  if (!supabase) return tx;
+
+  try {
+    const dbTx = mapTransactionToDb(tx, userId);
+    const { data, error } = await supabase
+      .from('lancamentos')
+      .update(dbTx)
+      .eq('id', tx.id)
+      .eq('user_id', userId)
+      .select()
+      .single();
+
+    if (error) {
+      console.warn('Supabase update failed, running with local fallback:', error.message);
+      return tx;
+    }
+
+    return mapDbToTransaction(data);
+  } catch (err) {
+    console.warn('Network error during update, running with local fallback:', err);
+    return tx;
+  }
 }
 
 export async function deleteTransaction(userId: string, txId: string): Promise<boolean> {
@@ -356,20 +404,37 @@ export async function deleteTransaction(userId: string, txId: string): Promise<b
     return true;
   }
 
-  const supabase = getSupabase();
-  if (!supabase) throw new Error('Supabase client not initialized');
-
-  const { error } = await supabase
-    .from('lancamentos')
-    .delete()
-    .eq('id', txId)
-    .eq('user_id', userId);
-
-  if (error) {
-    console.error('Error deleting transaction:', error.message);
-    throw error;
+  // Remove from local cache first
+  try {
+    const cachedStr = localStorage.getItem(`mco_cached_transactions_${userId}`);
+    if (cachedStr) {
+      let list = JSON.parse(cachedStr);
+      list = list.filter((t: any) => t.id !== txId);
+      localStorage.setItem(`mco_cached_transactions_${userId}`, JSON.stringify(list));
+    }
+  } catch (e) {
+    console.error('Error caching transaction deletion:', e);
   }
 
-  return true;
+  const supabase = getSupabase();
+  if (!supabase) return true;
+
+  try {
+    const { error } = await supabase
+      .from('lancamentos')
+      .delete()
+      .eq('id', txId)
+      .eq('user_id', userId);
+
+    if (error) {
+      console.warn('Supabase delete failed, running with local fallback:', error.message);
+      return true;
+    }
+
+    return true;
+  } catch (err) {
+    console.warn('Network error during delete, running with local fallback:', err);
+    return true;
+  }
 }
 
