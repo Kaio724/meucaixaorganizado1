@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Transaction, UserProfile, TransactionType } from '../types';
 import { AVAILABLE_CATEGORIES, PAYMENT_METHODS } from '../initialData';
 
-const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://pay.kiwify.com.br/exemplo-checkout';
+const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://pay.cakto.com.br/rdvxqwt';
 
 interface HistoryProps {
   profile: UserProfile;

@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { UserProfile, PlanType } from '../types';
 
-const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://pay.kiwify.com.br/exemplo-checkout';
+const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://pay.cakto.com.br/rdvxqwt';
 
 interface PlansProps {
   profile: UserProfile;
@@ -208,8 +208,11 @@ export default function Plans({ profile, onUpdatePlan, onNavigateToTab }: PlansP
           {/* Price Layout (Big emphasis, beautifully integrated) */}
           <div className="flex items-baseline justify-between py-1 border-b border-primary/10 pb-4">
             <div className="flex items-baseline gap-2 text-left">
-              <span className="text-4xl font-extrabold text-primary tracking-tight">R$ 37,90</span>
+              <span className="text-4xl font-extrabold text-primary tracking-tight">R$ 17,90</span>
               <div className="flex flex-col">
+                <span className="text-[9px] font-bold text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded w-max leading-none mb-1">
+                  Valor do Upgrade
+                </span>
                 <span className="text-xs font-bold text-emerald-400">
                   Acesso Vitalício
                 </span>
@@ -229,13 +232,14 @@ export default function Plans({ profile, onUpdatePlan, onNavigateToTab }: PlansP
               Seu Plano Ativo
             </button>
           ) : (
-            <button
-              type="button"
-              onClick={() => handleSelectPlan('pro')}
-              className="w-full py-3.5 rounded-xl text-xs font-black bg-primary hover:bg-[#c0aeff] text-on-primary border border-primary/30 transition-all duration-200 shadow-[0_4px_12px_rgba(160,120,255,0.15)] hover:shadow-[0_6px_20px_rgba(160,120,255,0.3)] hover:-translate-y-0.5 cursor-pointer text-center"
+            <a
+              href={CHECKOUT_PRO_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-3.5 rounded-xl text-xs font-black bg-primary hover:bg-[#c0aeff] text-on-primary border border-primary/30 transition-all duration-200 shadow-[0_4px_12px_rgba(160,120,255,0.15)] hover:shadow-[0_6px_20px_rgba(160,120,255,0.3)] hover:-translate-y-0.5 cursor-pointer text-center flex items-center justify-center select-none"
             >
               Fazer Upgrade
-            </button>
+            </a>
           )}
 
           {/* Features Checklist */}

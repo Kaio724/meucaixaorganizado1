@@ -7,7 +7,7 @@ import ProGrowthPanel from './ProGrowthPanel';
 import ProInsights from './ProInsights';
 import MonthComparison from './MonthComparison';
 
-const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://pay.kiwify.com.br/exemplo-checkout';
+const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://pay.cakto.com.br/rdvxqwt';
 
 interface DashboardProps {
   profile: UserProfile;
