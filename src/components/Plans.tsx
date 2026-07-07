@@ -33,258 +33,245 @@ export default function Plans({ profile, onUpdatePlan, onNavigateToTab }: PlansP
     }
   };
 
-  const PLANS_INFO = [
-    {
-      id: 'essential' as PlanType,
-      name: 'Essential',
-      price: '19,90',
-      pricePrefix: 'R$',
-      period: 'Pagamento único',
-      subPeriod: 'Acesso Vitalício',
-      badge: 'Básico',
-      description: 'Perfeito para autônomos e MEI estruturarem as bases do controle financeiro.',
-      icon: 'star_outline',
-      color: 'from-slate-500/10 via-slate-500/5 to-transparent',
-      borderColor: 'border-white/10',
-      iconBg: 'bg-white/5 border-white/10 text-slate-400',
-      features: [
-        { name: 'Lançamentos de entrada e saída', status: 'yes' },
-        { name: 'Histórico completo de transações', status: 'yes' },
-        { name: 'Sincronização em nuvem básica', status: 'yes' },
-        { name: 'Controle de categorias e pagamentos', status: 'yes' },
-        { name: 'Painel de resumo e estatísticas', status: 'yes' },
-        { name: 'Relatórios avançados em PDF/Excel', status: 'no', description: 'Exclusivo Pro' },
-        { name: 'Metas e alertas inteligentes', status: 'no', description: 'Exclusivo Pro' },
-        { name: 'Múltiplos caixas / contas', status: 'no', description: 'Exclusivo Pro' },
-      ]
-    },
-    {
-      id: 'pro' as PlanType,
-      name: 'Pro',
-      price: currentPlan === 'essential' ? '18,00' : '37,90',
-      pricePrefix: currentPlan === 'essential' ? 'Por mais R$' : 'R$',
-      period: currentPlan === 'essential' ? 'Upgrade Único' : 'Pagamento único',
-      subPeriod: 'Acesso Vitalício',
-      badge: '🔥 RECOMENDADO',
-      description: 'Desbloqueie relatórios completos, metas automáticas de economia e múltiplos caixas adicionais.',
-      icon: 'workspace_premium',
-      color: 'from-primary/20 via-primary/5 to-transparent',
-      borderColor: 'border-primary/45',
-      iconBg: 'bg-primary/15 border-primary/30 text-primary',
-      features: [
-        { name: 'Lançamentos de entrada e saída', status: 'yes' },
-        { name: 'Histórico completo de transações', status: 'yes' },
-        { name: 'Sincronização em nuvem básica', status: 'yes' },
-        { name: 'Controle de categorias e pagamentos', status: 'yes' },
-        { name: 'Painel de resumo e estatísticas', status: 'yes' },
-        { name: 'Relatórios avançados em PDF/Excel', status: 'yes', highlight: true },
-        { name: 'Metas e alertas inteligentes', status: 'yes', highlight: true },
-        { name: 'Múltiplos caixas / contas', status: 'yes', highlight: true },
-      ]
-    }
-  ];
-
   return (
-    <div className="flex flex-col gap-6 w-full max-w-lg mx-auto pb-24">
+    <div className="flex flex-col gap-8 w-full max-w-lg mx-auto pb-24 px-4 sm:px-0">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <span className="text-[10px] text-primary font-bold tracking-widest uppercase bg-primary/10 border border-primary/20 px-3 py-1 rounded-full">
-            Seu Plano Atual: {currentPlan === 'pro' ? 'Pro' : 'Essential'}
+      <div className="flex items-start justify-between mt-2">
+        <div className="flex flex-col gap-2.5 text-left">
+          <span className="self-start text-[9px] text-primary/90 font-bold tracking-widest uppercase bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-full leading-none">
+            Plano Atual: {currentPlan === 'pro' ? 'Pro' : 'Essencial'}
           </span>
-          <h2 className="text-2xl font-black text-on-surface tracking-tight mt-3">
-            Evolua seu <span className="text-primary bg-clip-text bg-gradient-to-r from-primary to-primary-container">Controle</span>
+          <h2 className="text-xl sm:text-2xl font-light text-on-surface tracking-tight mt-1">
+            Escolha o plano ideal para o seu negócio
           </h2>
-          <p className="text-xs text-on-surface-variant font-medium">
-            Planos sem taxas ocultas, sem assinaturas e sem fidelidade.
+          <p className="text-xs text-on-surface-variant/70 font-normal leading-relaxed max-w-sm">
+            Controle financeiro simples hoje. <br />
+            Recursos inteligentes para crescer amanhã.
           </p>
         </div>
         <button
           onClick={() => onNavigateToTab('dashboard')}
-          className="w-10 h-10 rounded-full bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant/30 flex items-center justify-center cursor-pointer transition-colors"
+          className="w-9 h-9 rounded-full bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant/30 flex items-center justify-center cursor-pointer transition-colors shrink-0 mt-1"
           title="Voltar ao Painel"
         >
-          <span className="material-symbols-outlined text-on-surface text-xl">arrow_back</span>
+          <span className="material-symbols-outlined text-on-surface/80 text-lg">arrow_back</span>
         </button>
       </div>
 
       {/* Plans comparison cards */}
       <div className="flex flex-col gap-6">
-        {PLANS_INFO.map((plan) => {
-          const isActive = currentPlan === plan.id;
-          const isLoading = loadingPlan === plan.id;
-          const isPro = plan.id === 'pro';
-          const isDowngradeDisabled = currentPlan === 'pro' && plan.id === 'essential';
-
-          return (
-            <motion.div
-              key={plan.id}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`glass-card rounded-[28px] p-6 shadow-xl flex flex-col gap-5 border transition-all relative overflow-hidden bg-gradient-to-br ${plan.color} ${
-                isActive 
-                  ? `${plan.borderColor} ring-1 ring-primary/20` 
-                  : isPro 
-                    ? 'border-primary/20 hover:border-primary/45' 
-                    : isDowngradeDisabled
-                      ? 'border-white/5 opacity-80'
-                      : 'border-white/5 hover:border-white/10'
-              }`}
-            >
-              {/* Highlight badge for PRO */}
-              {!isActive && isPro && (
-                <div className="absolute top-0 right-0 bg-gradient-to-l from-primary to-[#8b6eff] text-on-primary font-black text-[9px] tracking-wider px-4 py-1.5 rounded-bl-2xl shadow-sm uppercase select-none">
-                  {plan.badge}
-                </div>
-              )}
-
-              {/* Highlight background glow */}
-              {isPro && (
-                <div className="absolute -top-12 -right-12 w-32 h-32 bg-primary/15 rounded-full filter blur-3xl pointer-events-none"></div>
-              )}
-
-              {/* Card Header */}
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border ${plan.iconBg}`}>
-                    <span className="material-symbols-outlined text-2xl">
-                      {plan.icon}
-                    </span>
-                  </div>
-                  <div className="flex flex-col">
-                    <h3 className="text-lg font-black text-on-surface flex items-center gap-1.5">
-                      {plan.name}
-                      {isActive && (
-                        <span className="text-[9px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full bg-primary/20 border border-primary/30 text-primary">
-                          Ativo
-                        </span>
-                      )}
-                    </h3>
-                    <span className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">
-                      {plan.period}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="text-right flex flex-col items-end">
-                  <div className="flex items-start select-none">
-                    <span className={`text-[10px] font-extrabold uppercase tracking-wider mr-1 mt-0.5 leading-none ${isPro ? 'text-primary/80' : 'text-on-surface-variant'}`}>
-                      {plan.pricePrefix}
-                    </span>
-                    <div className={`text-3xl font-black tracking-tight leading-none ${isPro ? 'text-primary' : 'text-on-surface'}`}>
-                      {plan.price}
-                    </div>
-                  </div>
-                  <div className="text-[10px] text-emerald-400 font-bold px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 mt-1.5 uppercase tracking-wider">
-                    {plan.subPeriod}
-                  </div>
-                </div>
-              </div>
-
-              {/* Description */}
-              <p className="text-xs text-on-surface-variant leading-relaxed font-medium">
-                {plan.description}
-              </p>
-
-              {/* CTA Button */}
-              <button
-                type="button"
-                disabled={isActive || loadingPlan !== null || isDowngradeDisabled}
-                onClick={() => handleSelectPlan(plan.id)}
-                className={`w-full py-3.5 rounded-2xl text-xs font-black transition-all duration-300 flex items-center justify-center gap-2 border select-none ${
-                  isActive
-                    ? 'bg-transparent border-white/10 text-on-surface-variant/40 cursor-default'
-                    : isDowngradeDisabled
-                      ? 'bg-white/5 border-white/5 text-on-surface-variant/35 cursor-not-allowed'
-                      : isPro
-                        ? 'bg-primary hover:bg-[#c0aeff] text-on-primary border-primary/30 shadow-[0_4px_16px_rgba(109,59,215,0.25)] hover:shadow-[0_6px_22px_rgba(109,59,215,0.45)] hover:-translate-y-0.5 cursor-pointer'
-                        : 'bg-surface-container-high hover:bg-surface-container-highest text-on-surface border-outline-variant/30 hover:-translate-y-0.5 cursor-pointer'
-                }`}
-              >
-                {isLoading ? (
-                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                ) : isActive ? (
-                  <>
-                    <span className="material-symbols-outlined text-sm font-black">check</span>
-                    Seu Plano Ativo
-                  </>
-                ) : isDowngradeDisabled ? (
-                  <>
-                    <span className="material-symbols-outlined text-sm">lock</span>
-                    Downgrade Indisponível
-                  </>
-                ) : isPro ? (
-                  <>
-                    <span className="material-symbols-outlined text-sm">workspace_premium</span>
-                    Garantir Acesso PRO Vitalício
-                  </>
-                ) : (
-                  <>
-                    <span className="material-symbols-outlined text-sm">star_outline</span>
-                    Ativar Plano Essential
-                  </>
-                )}
-              </button>
-
-              {/* Features List */}
-              <div className="border-t border-white/5 pt-4 flex flex-col gap-3">
-                <span className="text-[10px] font-extrabold text-on-surface-variant/85 tracking-wider uppercase">
-                  O que está incluso:
+        
+        {/* Card Essencial */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+          className={`glass-card rounded-[24px] p-5.5 sm:p-6 border flex flex-col gap-5 bg-gradient-to-br from-white/[0.01] to-transparent ${
+            currentPlan === 'essential'
+              ? 'border-white/10 ring-1 ring-white/5'
+              : 'border-white/5 opacity-90'
+          }`}
+        >
+          {/* Top Info */}
+          <div className="flex justify-between items-start">
+            <div className="flex flex-col gap-1.5 text-left">
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold text-on-surface">Essencial</h3>
+                <span className="text-[9px] uppercase tracking-wider font-medium px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-on-surface-variant/80">
+                  Plano de Entrada
                 </span>
-                <div className="grid grid-cols-1 gap-2.5">
-                  {plan.features.map((feature, idx) => {
-                    const isIncluded = feature.status === 'yes';
-                    return (
-                      <div key={idx} className="flex items-center justify-between text-xs font-medium">
-                        <div className="flex items-center gap-2.5 text-on-surface-variant">
-                          <span className={`material-symbols-outlined text-base ${
-                            isIncluded 
-                              ? isPro && feature.highlight 
-                                ? 'text-primary' 
-                                : 'text-emerald-400' 
-                              : 'text-on-surface-variant/20'
-                          }`}>
-                            {isIncluded ? 'check_circle' : 'cancel'}
-                          </span>
-                          <span className={`${
-                            isIncluded 
-                              ? isPro && feature.highlight 
-                                ? 'text-on-surface font-semibold' 
-                                : 'text-on-surface' 
-                              : 'text-on-surface-variant/30'
-                          }`}>
-                            {feature.name}
-                          </span>
-                        </div>
-                        {!isIncluded && (
-                          <span className="text-[9px] uppercase font-extrabold text-primary px-2 py-0.5 rounded bg-primary/5 border border-primary/10">
-                            PRO
-                          </span>
-                        )}
-                        {isIncluded && isPro && feature.highlight && (
-                          <span className="text-[8px] uppercase font-extrabold text-amber-300 px-2 py-0.5 rounded bg-amber-400/10 border border-amber-400/20">
-                            EXCLUSIVO
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
               </div>
-            </motion.div>
-          );
-        })}
+              <p className="text-xs text-on-surface-variant/80 leading-relaxed font-normal">
+                Ideal para autônomos, MEIs e pequenos empreendedores que desejam organizar o fluxo de caixa de forma prática.
+              </p>
+            </div>
+          </div>
+
+          {/* Price Layout */}
+          <div className="flex items-baseline gap-2.5 text-left py-1">
+            <span className="text-3xl font-extrabold text-on-surface tracking-tight">R$ 19,90</span>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-medium text-emerald-400 bg-emerald-500/5 border border-emerald-500/10 px-1.5 py-0.5 rounded w-max leading-none">
+                Acesso Vitalício
+              </span>
+              <span className="text-[9px] text-on-surface-variant/60 font-medium mt-1 leading-none">
+                Pagamento único
+              </span>
+            </div>
+          </div>
+
+          {/* Button */}
+          {currentPlan === 'pro' ? (
+            <button
+              disabled
+              className="w-full py-3 rounded-xl text-xs font-semibold bg-white/[0.02] border border-white/5 text-on-surface-variant/40 cursor-not-allowed text-center transition-all"
+            >
+              Seu plano atual oferece recursos superiores.
+            </button>
+          ) : currentPlan === 'essential' ? (
+            <button
+              disabled
+              className="w-full py-3 rounded-xl text-xs font-bold bg-white/5 border border-white/10 text-on-surface-variant/70 cursor-default text-center transition-all"
+            >
+              Seu Plano Ativo
+            </button>
+          ) : (
+            <button
+              onClick={() => handleSelectPlan('essential')}
+              className="w-full py-3 rounded-xl text-xs font-bold bg-surface-container-high hover:bg-surface-container-highest text-on-surface border border-outline-variant/30 hover:-translate-y-0.5 cursor-pointer text-center transition-all"
+            >
+              Ativar Plano Essencial
+            </button>
+          )}
+
+          {/* Division */}
+          <div className="border-t border-white/5" />
+
+          {/* Included Features */}
+          <div className="flex flex-col gap-3">
+            <span className="text-[9px] font-bold text-on-surface-variant/60 tracking-wider uppercase text-left leading-none">
+              Recursos inclusos
+            </span>
+            <div className="flex flex-col gap-2.5 text-left">
+              {[
+                'Dashboard Financeiro',
+                'Entradas e Saídas',
+                'Histórico Completo',
+                'Categorias',
+                'Relatórios Financeiros',
+                'Controle Financeiro',
+                'Acesso Vitalício'
+              ].map((feature, i) => (
+                <div key={i} className="flex items-center gap-2 text-xs text-on-surface-variant">
+                  <span className="material-symbols-outlined text-xs text-emerald-400 select-none">check</span>
+                  <span className="font-normal">{feature}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Divider to premium features lock */}
+          <div className="border-t border-white/5" />
+
+          {/* Locked Pro features (SaaS design, premium look, natural evolution) */}
+          <div className="flex flex-col gap-3">
+            <span className="text-[9px] font-bold text-on-surface-variant/50 tracking-wider uppercase text-left leading-none">
+              Recursos disponíveis apenas no PRO
+            </span>
+            <div className="flex flex-col gap-2.5 text-left opacity-60">
+              {[
+                'Comparativo entre meses',
+                'Metas Financeiras',
+                'Indicador de Saúde Financeira',
+                'Atualizações Vitalícias',
+                'Recursos exclusivos futuros'
+              ].map((feature, i) => (
+                <div key={i} className="flex items-center gap-2 text-xs text-on-surface-variant/75">
+                  <span className="material-symbols-outlined text-xs text-on-surface-variant/40 select-none">arrow_forward</span>
+                  <span className="font-normal">{feature}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </motion.div>
+
+        {/* Card PRO (70% Attention weight, elegant, spacious, quiet sophistication) */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, delay: 0.1 }}
+          className={`glass-card rounded-[24px] p-6.5 sm:p-8 border flex flex-col gap-6 relative overflow-hidden bg-gradient-to-b from-primary/[0.04] to-transparent ${
+            currentPlan === 'pro'
+              ? 'border-primary/45 ring-1 ring-primary/20'
+              : 'border-primary/25 hover:border-primary/45 transition-all duration-300'
+          }`}
+        >
+          {/* Subtle gradient light flare background for the PRO card */}
+          <div className="absolute -top-16 -right-16 w-36 h-36 bg-primary/10 rounded-full filter blur-3xl pointer-events-none"></div>
+
+          {/* Top Info */}
+          <div className="flex justify-between items-start">
+            <div className="flex flex-col gap-2 text-left">
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-bold text-on-surface">Pro</h3>
+                <span className="text-[9px] uppercase tracking-wider font-extrabold px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary">
+                  Recomendado
+                </span>
+              </div>
+              <p className="text-xs text-on-surface-variant leading-relaxed font-normal">
+                Transforme seus lançamentos em informações estratégicas. Acompanhe a evolução do seu negócio, estabeleça metas e tenha acesso permanente às próximas atualizações do MCO.
+              </p>
+            </div>
+          </div>
+
+          {/* Price Layout (Big emphasis, beautifully integrated) */}
+          <div className="flex items-baseline justify-between py-1 border-b border-primary/10 pb-4">
+            <div className="flex items-baseline gap-2 text-left">
+              <span className="text-4xl font-extrabold text-primary tracking-tight">R$ 37,90</span>
+              <div className="flex flex-col">
+                <span className="text-xs font-bold text-emerald-400">
+                  Acesso Vitalício
+                </span>
+                <span className="text-[9px] text-on-surface-variant/70 font-medium mt-0.5">
+                  Pagamento único
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* CTA Upgrade Button */}
+          {currentPlan === 'pro' ? (
+            <button
+              disabled
+              className="w-full py-3.5 rounded-xl text-xs font-bold bg-primary/10 border border-primary/20 text-primary cursor-default text-center transition-all"
+            >
+              Seu Plano Ativo
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => handleSelectPlan('pro')}
+              className="w-full py-3.5 rounded-xl text-xs font-black bg-primary hover:bg-[#c0aeff] text-on-primary border border-primary/30 transition-all duration-200 shadow-[0_4px_12px_rgba(160,120,255,0.15)] hover:shadow-[0_6px_20px_rgba(160,120,255,0.3)] hover:-translate-y-0.5 cursor-pointer text-center"
+            >
+              Fazer Upgrade
+            </button>
+          )}
+
+          {/* Features Checklist */}
+          <div className="flex flex-col gap-3">
+            <span className="text-[9px] font-bold text-primary/80 tracking-wider uppercase text-left leading-none">
+              Tudo do Plano Essencial +
+            </span>
+            <div className="flex flex-col gap-2.5 text-left">
+              {[
+                'Comparativo Financeiro entre Meses',
+                'Metas de Faturamento',
+                'Indicador de Saúde Financeira',
+                'Atualizações Vitalícias',
+                'Novos Recursos Exclusivos',
+                'Prioridade nas próximas funcionalidades'
+              ].map((feature, i) => (
+                <div key={i} className="flex items-center gap-2.5 text-xs text-on-surface">
+                  <span className="material-symbols-outlined text-xs text-primary select-none font-semibold">check_circle</span>
+                  <span className="font-normal leading-tight">{feature}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </motion.div>
       </div>
 
       {/* Trust Signpost / Conversion Guarantee */}
-      <div className="glass-card rounded-[24px] p-5 border border-white/5 flex gap-4 bg-primary/5">
-        <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary flex-shrink-0">
-          <span className="material-symbols-outlined text-lg">verified_user</span>
+      <div className="glass-card rounded-[20px] p-5 border border-white/5 flex gap-4 bg-primary/5 text-left">
+        <div className="w-9 h-9 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary flex-shrink-0">
+          <span className="material-symbols-outlined text-base">verified_user</span>
         </div>
         <div className="flex flex-col gap-1">
-          <span className="text-xs font-black text-on-surface">Garantia de Satisfação Total</span>
-          <p className="text-[11px] text-on-surface-variant/90 leading-relaxed font-medium">
-            Seu pagamento é processado de forma 100% segura. Sem mensalidades perpétuas ou pegadinhas de assinatura recorrente. Uma vez adquirido, o acesso à sua conta é vitalício, incluindo todas as futuras atualizações e novos recursos!
+          <span className="text-xs font-bold text-on-surface">Acesso Permanente Garantido</span>
+          <p className="text-[10px] text-on-surface-variant/85 leading-relaxed font-normal">
+            Seu pagamento é único e processado com segurança integral. Não cobramos mensalidades, assinaturas ou taxas extras futuras. Seu acesso é vitalício, incluindo qualquer melhoria e novos recursos exclusivos desenvolvidos para o MCO.
           </p>
         </div>
       </div>
@@ -296,54 +283,54 @@ export default function Plans({ profile, onUpdatePlan, onNavigateToTab }: PlansP
             initial={{ opacity: 0, scale: 0.95, y: 15 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 15 }}
-            className="w-full max-w-md bg-surface-container-high border border-white/10 rounded-[32px] p-6 text-center shadow-2xl relative overflow-hidden flex flex-col gap-5"
+            className="w-full max-w-md bg-surface-container-high border border-white/10 rounded-[24px] p-6 text-center shadow-2xl relative overflow-hidden flex flex-col gap-5"
           >
             {/* Background premium gradient glow */}
             <div className="absolute -top-24 -left-24 w-48 h-48 bg-primary/20 rounded-full filter blur-3xl pointer-events-none"></div>
             <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-primary/10 rounded-full filter blur-3xl pointer-events-none"></div>
 
             {/* Icon decoration */}
-            <div className="mx-auto w-16 h-16 rounded-3xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary relative">
-              <span className="material-symbols-outlined text-3xl animate-pulse">workspace_premium</span>
-              <span className="absolute -top-1 -right-1 bg-amber-400 text-black text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider scale-90">
+            <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary relative">
+              <span className="material-symbols-outlined text-2xl">workspace_premium</span>
+              <span className="absolute -top-1 -right-1 bg-amber-400 text-black text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider scale-90">
                 PRO
               </span>
             </div>
 
             {/* Warning Message */}
-            <div className="flex flex-col gap-2">
-              <h3 className="text-lg font-black text-on-surface tracking-tight leading-snug">
+            <div className="flex flex-col gap-1.5">
+              <h3 className="text-base font-bold text-on-surface tracking-tight leading-snug">
                 Você ainda não tem acesso ao Plano PRO.
               </h3>
-              <p className="text-xs text-on-surface-variant leading-relaxed font-medium">
+              <p className="text-xs text-on-surface-variant/80 leading-relaxed font-normal">
                 Libere recursos avançados como relatórios completos em PDF/Excel, metas de economia automáticas com IA, múltiplos caixas de controle e suporte prioritário!
               </p>
             </div>
 
             {/* Actions */}
-            <div className="flex flex-col gap-2.5 mt-2">
+            <div className="flex flex-col gap-2.5 mt-1">
               <a
                 href={CHECKOUT_PRO_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setShowProModal(false)}
-                className="w-full py-4 rounded-2xl bg-gradient-to-r from-primary to-[#8b6eff] hover:from-[#8b6eff] hover:to-[#a18cff] text-on-primary font-black text-xs transition-all duration-300 flex items-center justify-center gap-2 border border-primary/30 shadow-[0_6px_24px_rgba(109,59,215,0.35)] hover:shadow-[0_8px_30px_rgba(109,59,215,0.55)] hover:-translate-y-0.5 select-none text-center"
+                className="w-full py-3.5 rounded-xl bg-primary hover:bg-[#c0aeff] text-on-primary font-bold text-xs transition-all duration-200 flex items-center justify-center gap-2 border border-primary/30 shadow-[0_4px_12px_rgba(160,120,255,0.15)] hover:shadow-[0_6px_20px_rgba(160,120,255,0.3)] select-none text-center"
               >
-                <span className="material-symbols-outlined text-base">shopping_bag</span>
-                Quero Acessar o PRO.
+                <span className="material-symbols-outlined text-sm">shopping_bag</span>
+                Quero Acessar o PRO
               </a>
               
               <button
                 type="button"
                 onClick={() => setShowProModal(false)}
-                className="w-full py-3.5 rounded-2xl bg-surface-container-low hover:bg-surface-container-highest text-on-surface-variant hover:text-on-surface border border-outline-variant/20 transition-all duration-200 text-xs font-bold cursor-pointer"
+                className="w-full py-3 rounded-xl bg-surface-container-low hover:bg-surface-container-highest text-on-surface-variant hover:text-on-surface border border-outline-variant/20 transition-all duration-200 text-xs font-bold cursor-pointer"
               >
                 Voltar
               </button>
             </div>
 
             {/* Security Note */}
-            <span className="text-[10px] text-on-surface-variant/60 font-semibold flex items-center justify-center gap-1">
+            <span className="text-[10px] text-on-surface-variant/60 font-semibold flex items-center justify-center gap-1 mt-1">
               <span className="material-symbols-outlined text-xs">lock</span>
               Pagamento 100% seguro & acesso vitalício imediato.
             </span>
