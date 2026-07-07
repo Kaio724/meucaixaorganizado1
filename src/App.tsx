@@ -83,14 +83,15 @@ export default function App() {
     setDbError(null);
     try {
       let dbProfile = await fetchProfile(userId);
-      const isPromoUser = email?.toLowerCase() === 'kaiopatrick42@gmail.com';
+      const isPromoUser = email?.toLowerCase() === 'kaiopatrick42@gmail.com' || email?.toLowerCase() === 'kaioparick42@gmail.com';
       if (dbProfile) {
-        if (isPromoUser && dbProfile.plan !== 'pro') {
-          dbProfile.plan = 'pro';
+        if (isPromoUser && dbProfile.plan !== 'essential') {
+          dbProfile.plan = 'essential';
           try {
             await upsertProfile(userId, dbProfile);
+            localStorage.setItem(`mco_profile_plan_${userId}`, 'essential');
           } catch (e) {
-            console.warn('Silent upgrade profile failed:', e);
+            console.warn('Silent downgrade profile failed:', e);
           }
         }
         setProfile(dbProfile);
@@ -156,9 +157,9 @@ export default function App() {
     setLoading(true);
     setDbError(null);
     try {
-      const isPromoUser = session?.user?.email?.toLowerCase() === 'kaiopatrick42@gmail.com';
+      const isPromoUser = session?.user?.email?.toLowerCase() === 'kaiopatrick42@gmail.com' || session?.user?.email?.toLowerCase() === 'kaioparick42@gmail.com';
       if (isPromoUser) {
-        newProfile.plan = 'pro';
+        newProfile.plan = 'essential';
       }
       await upsertProfile(session.user.id, newProfile);
       setProfile(newProfile);

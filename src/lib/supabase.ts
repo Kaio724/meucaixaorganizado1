@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { UserProfile, Transaction } from '../types';
 
 let supabaseClient: any = null;
+let hasPlanoColumn = typeof window !== 'undefined' && localStorage.getItem('mco_db_has_plano') !== 'false';
 
 export function getSupabaseUrl() {
   return (import.meta as any).env.VITE_SUPABASE_URL || 'https://yfbgauajvijwngvhrkms.supabase.co';
@@ -109,13 +110,22 @@ export async function fetchProfile(userId: string): Promise<UserProfile | null> 
   if (!supabase) return null;
 
   try {
+    const columns = hasPlanoColumn ? '*' : 'id, nome, nome_negocio, tipo_negocio';
     const { data, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select(columns)
       .eq('id', userId)
       .single();
 
     if (error) {
+      const isPlanoError = error.message?.includes('plano') || 
+                            error.message?.includes('schema cache') || 
+                            error.message?.includes('column');
+      if (isPlanoError && hasPlanoColumn) {
+        // Handle gracefully, let catch block manage retry
+        throw error;
+      }
+      
       console.warn('Profile not found or error:', error.message);
       if (error.code === 'PGRST116' || error.message?.includes('JSON object requested, multiple (or no) rows returned')) {
         return null;
@@ -131,11 +141,13 @@ export async function fetchProfile(userId: string): Promise<UserProfile | null> 
     }
     return profile;
   } catch (err: any) {
-    console.error('Error in fetchProfile:', err);
-
     // If it's a schema error or column error, retry with only specific columns
     if (err.message?.includes('plano') || err.message?.includes('schema cache') || err.message?.includes('column')) {
       console.warn('Retrying profile fetch with specific columns...');
+      if (hasPlanoColumn) {
+        hasPlanoColumn = false;
+        localStorage.setItem('mco_db_has_plano', 'false');
+      }
       try {
         const { data, error } = await supabase
           .from('profiles')
@@ -157,6 +169,8 @@ export async function fetchProfile(userId: string): Promise<UserProfile | null> 
       } catch (retryErr) {
         console.error('Retry fetch failed:', retryErr);
       }
+    } else {
+      console.error('Error in fetchProfile:', err);
     }
 
     // Try reading from cache fallback on any error (like TypeError: Failed to fetch)
@@ -170,15 +184,15 @@ export async function fetchProfile(userId: string): Promise<UserProfile | null> 
       }
     }
 
-    // If we have a special case like Kaio, we can return a basic pro profile if we're completely offline
+    // If we have a special case, we can return a basic profile if we're completely offline
     if (userId && userId !== 'local') {
-      const isPromo = userId === 'kaiopatrick42@gmail.com' || localStorage.getItem(`mco_profile_plan_${userId}`) === 'pro';
+      const isPro = localStorage.getItem(`mco_profile_plan_${userId}`) === 'pro';
       return {
         name: 'Usuário MCO',
         businessName: 'Meu Negócio',
         businessType: 'autonomo',
         isOnboarded: true,
-        plan: isPromo ? 'pro' : 'essential',
+        plan: isPro ? 'pro' : 'essential',
       };
     }
 
@@ -200,34 +214,41 @@ export async function upsertProfile(userId: string, profile: UserProfile): Promi
   if (!supabase) return false;
 
   const dbProfile = mapUserProfileToDbProfile(profile, userId);
+  let cleanDbProfile = { ...dbProfile };
+  if (!hasPlanoColumn) {
+    delete (cleanDbProfile as any).plano;
+  }
+
   try {
     const { error } = await supabase
       .from('profiles')
-      .upsert(dbProfile);
+      .upsert(cleanDbProfile);
 
     if (error) {
-      console.error('Error upserting profile:', error.message);
-      
       // If the error is about 'plano' column not in schema cache or missing, retry without it
       const isPlanoError = error.message?.includes('plano') || 
                             error.message?.includes('schema cache') || 
                             error.message?.includes('column');
       if (isPlanoError) {
-        console.warn('Retrying upsert without "plano" column...');
-        const { plano, ...cleanDbProfile } = dbProfile;
+        if (hasPlanoColumn) {
+          console.warn('Database profiles table does not have "plano" column. Marking as unsupported.');
+          hasPlanoColumn = false;
+          localStorage.setItem('mco_db_has_plano', 'false');
+        }
+        
+        const { plano, ...finalDbProfile } = cleanDbProfile;
         const { error: retryError } = await supabase
           .from('profiles')
-          .upsert(cleanDbProfile);
+          .upsert(finalDbProfile);
           
         if (retryError) {
           console.error('Error upserting profile on retry:', retryError.message);
-          // Don't crash, we successfully saved it locally
           return true;
         }
         return true;
       }
       
-      // Don't crash on other errors either, we have local state
+      console.error('Error upserting profile:', error.message);
       return true;
     }
     return true;
