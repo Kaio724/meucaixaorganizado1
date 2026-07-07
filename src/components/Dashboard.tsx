@@ -3,6 +3,9 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Transaction, UserProfile, TransactionType } from '../types';
 import { AVAILABLE_CATEGORIES, PAYMENT_METHODS } from '../initialData';
 import EvolutionCard from './EvolutionCard';
+import ProGrowthPanel from './ProGrowthPanel';
+
+const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://pay.kiwify.com.br/exemplo-checkout';
 
 interface DashboardProps {
   profile: UserProfile;
@@ -14,6 +17,7 @@ interface DashboardProps {
 export default function Dashboard({ profile, transactions, onAddTransaction, onNavigateToTab }: DashboardProps) {
   const isPro = (profile.plan || 'essential') === 'pro';
   const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [showProModal, setShowProModal] = useState(false);
   const [txType, setTxType] = useState<TransactionType>('entrada');
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
@@ -21,12 +25,32 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
   const [paymentMethod, setPaymentMethod] = useState('Pix');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
 
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+
+  // For Essential plan users, main calculations only reflect the current month.
+  // Historical older months are hidden from the dashboard stats.
+  const visibleTransactions = isPro
+    ? transactions
+    : transactions.filter((t) => {
+        const tDate = new Date(t.date + 'T12:00:00');
+        return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
+      });
+
+  // Calculate transactions from other months
+  const previousMonthsTxs = transactions.filter((t) => {
+    const tDate = new Date(t.date + 'T12:00:00');
+    return tDate.getMonth() !== currentMonth || tDate.getFullYear() !== currentYear;
+  });
+  const hasPreviousMonthsTxs = previousMonthsTxs.length > 0;
+
   // Calculations
-  const totalEntradas = transactions
+  const totalEntradas = visibleTransactions
     .filter(t => t.type === 'entrada')
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const totalSaidas = transactions
+  const totalSaidas = visibleTransactions
     .filter(t => t.type === 'saida')
     .reduce((sum, t) => sum + t.amount, 0);
 
@@ -168,6 +192,47 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
           </div>
         </div>
       </motion.div>
+
+      {/* Pro Growth Insights Panel ou Card Compacto PRO */}
+      {isPro ? (
+        <ProGrowthPanel
+          transactions={transactions}
+          isPro={isPro}
+          onUnlockPro={() => setShowProModal(true)}
+        />
+      ) : (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="glass-card rounded-[24px] p-6 shadow-xl flex flex-col gap-4 relative overflow-hidden text-left"
+        >
+          <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full filter blur-lg pointer-events-none"></div>
+          
+          {/* Discret badge in the top right */}
+          <div className="absolute top-6 right-6">
+            <span className="text-[10px] font-black text-white bg-[#6934D1] px-2.5 py-0.5 rounded-full tracking-wider">
+              PRO
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <h3 className="text-base font-black text-on-surface tracking-tight pr-10">
+              Você está utilizando o plano Essencial
+            </h3>
+            <p className="text-xs text-on-surface-variant font-medium leading-relaxed">
+              Desbloqueie recursos exclusivos do MCO PRO e acompanhe a evolução do seu negócio com muito mais inteligência.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowProModal(true)}
+            className="mt-1 w-full py-3.5 rounded-2xl bg-gradient-to-r from-primary to-[#8b6eff] hover:from-[#8b6eff] hover:to-[#a18cff] text-on-primary font-black text-xs transition-all duration-300 flex items-center justify-center gap-2 border border-primary/30 shadow-[0_4px_14px_rgba(109,59,215,0.25)] hover:shadow-[0_4px_20px_rgba(109,59,215,0.45)] cursor-pointer active:scale-95"
+          >
+            Visualizar benefícios do PRO
+          </button>
+        </motion.div>
+      )}
 
       {/* Wide Launch Transaction button */}
       <div className="w-full">
@@ -337,14 +402,115 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
         )}
       </AnimatePresence>
 
-      {/* Insights PRO (Exclusivo PRO) */}
+      {/* Insights PRO (Exclusivo PRO) - apenas se for PRO */}
       {isPro && (
         <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-lg">insights</span>
-            <h3 className="text-sm font-bold text-on-surface">Insights PRO</h3>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-lg">insights</span>
+              <h3 className="text-sm font-bold text-on-surface">Evolução do Negócio</h3>
+            </div>
           </div>
-          <EvolutionCard transactions={transactions} />
+
+          <div className="relative overflow-hidden rounded-[24px]">
+            <EvolutionCard transactions={transactions} />
+          </div>
+        </div>
+      )}
+
+      {/* Modal de confirmação/aquisição do Plano PRO */}
+      {showProModal && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+            className="w-full max-w-md bg-[#131315]/95 border border-white/10 rounded-[28px] p-5 sm:p-6 text-center shadow-2xl relative overflow-hidden flex flex-col gap-4 sm:gap-6 max-h-[92vh] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
+          >
+            {/* Background premium gradient glow */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-primary/10 rounded-full filter blur-3xl pointer-events-none"></div>
+
+            {/* Premium Crown/Star icon decoration with premium purple glow behind it */}
+            <div className="relative mx-auto mt-1 sm:mt-2 shrink-0">
+              <div className="absolute inset-0 bg-primary/35 rounded-full filter blur-xl scale-150 pointer-events-none"></div>
+              <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                <span className="material-symbols-outlined text-xl sm:text-2xl font-black">workspace_premium</span>
+              </div>
+            </div>
+
+            {/* Premium Messaging */}
+            <div className="flex flex-col gap-1 sm:gap-1.5 shrink-0">
+              <h3 className="text-lg sm:text-xl font-black text-on-surface tracking-tight leading-snug">
+                Conheça o MCO PRO
+              </h3>
+              <p className="text-[11px] sm:text-xs text-on-surface-variant leading-relaxed font-bold max-w-[320px] mx-auto">
+                Tudo que você já possui no Essencial, mais:
+              </p>
+            </div>
+
+            {/* Feature Check List (Oriented to benefits with emojis!) */}
+            <div className="flex flex-col gap-2.5 sm:gap-3 text-left bg-white/[0.01] border border-white/5 rounded-2xl p-3.5 sm:p-4">
+              {[
+                { emoji: '📈', text: 'Evolução do Negócio' },
+                { emoji: '🎯', text: 'Objetivos Financeiros' },
+                { emoji: '💜', text: 'Saúde Financeira' },
+                { emoji: '⚡', text: 'Atualizações Vitalícias' },
+                { emoji: '✨', text: 'Novos recursos exclusivos do PRO' }
+              ].map((item, i) => (
+                <div key={i} className="flex items-start gap-2.5 text-xs font-semibold text-on-surface-variant leading-relaxed">
+                  <span className="text-sm shrink-0 leading-none">{item.emoji}</span>
+                  <span className="text-[11px] sm:text-xs">{item.text}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Bottom pricing info formatted as a dedicated high-focus card */}
+            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 sm:p-5 flex flex-col gap-1 items-center justify-center relative overflow-hidden shrink-0">
+              <span className="text-[9px] sm:text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-widest text-center">
+                Upgrade do Plano Essencial
+              </span>
+              <span className="text-xs font-semibold text-on-surface-variant/45 line-through mt-0.5">
+                R$ 37,90
+              </span>
+              <span className="text-[9px] sm:text-[10px] font-bold text-primary uppercase tracking-wider">
+                Upgrade por apenas
+              </span>
+              <span className="text-3xl sm:text-4xl font-black text-on-surface tracking-tight">
+                R$ 18,00
+              </span>
+              <span className="text-[9px] text-on-surface-variant/60 font-black uppercase tracking-wider mt-0.5 bg-white/5 px-2 py-0.5 rounded-full border border-white/5">
+                Pagamento único
+              </span>
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col gap-2 sm:gap-2.5 shrink-0">
+              {/* Trust proof line */}
+              <span className="text-[10px] sm:text-[10.5px] text-on-surface-variant/75 font-semibold flex items-center justify-center gap-1.5">
+                <span className="material-symbols-outlined text-xs text-primary font-black" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                Mais de 300 empreendedores já utilizam o MCO.
+              </span>
+
+              <a
+                href={CHECKOUT_PRO_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setShowProModal(false)}
+                className="w-full py-3 sm:py-3.5 mt-0.5 rounded-2xl bg-gradient-to-r from-primary to-[#8b6eff] hover:from-[#8b6eff] hover:to-[#a18cff] text-on-primary font-black text-xs transition-all duration-300 flex items-center justify-center gap-2 border border-primary/30 shadow-[0_4px_14px_rgba(109,59,215,0.25)] hover:shadow-[0_6px_20px_rgba(109,59,215,0.45)] cursor-pointer active:scale-95 text-center select-none"
+              >
+                <span className="material-symbols-outlined text-sm font-black">lock_open</span>
+                Fazer Upgrade
+              </a>
+              
+              <button
+                type="button"
+                onClick={() => setShowProModal(false)}
+                className="w-full py-3 rounded-2xl bg-surface-container-low hover:bg-surface-container-highest text-on-surface-variant hover:text-on-surface border border-outline-variant/10 transition-all duration-200 text-xs font-bold cursor-pointer"
+              >
+                Agora não
+              </button>
+            </div>
+          </motion.div>
         </div>
       )}
 

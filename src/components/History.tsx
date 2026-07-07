@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Transaction, TransactionType } from '../types';
+import { Transaction, UserProfile, TransactionType } from '../types';
 import { AVAILABLE_CATEGORIES, PAYMENT_METHODS } from '../initialData';
 
+const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://pay.kiwify.com.br/exemplo-checkout';
+
 interface HistoryProps {
+  profile: UserProfile;
   transactions: Transaction[];
   onAddTransaction: (tx: Omit<Transaction, 'id'>) => void;
   onEditTransaction: (tx: Transaction) => void;
@@ -15,7 +18,9 @@ const MONTHS_PT = [
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
 ];
 
-export default function History({ transactions, onAddTransaction, onEditTransaction, onDeleteTransaction }: HistoryProps) {
+export default function History({ profile, transactions, onAddTransaction, onEditTransaction, onDeleteTransaction }: HistoryProps) {
+  const isPro = (profile.plan || 'essential') === 'pro';
+  const [showProModal, setShowProModal] = useState(false);
   const [filterType, setFilterType] = useState<'tudo' | 'entrada' | 'saida'>('tudo');
   const [selectedMonthIndex, setSelectedMonthIndex] = useState(new Date().getMonth()); // default to current month
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -211,97 +216,99 @@ export default function History({ transactions, onAddTransaction, onEditTransact
     }
   };
 
-  return (
-    <div className="flex flex-col gap-6 w-full max-w-lg mx-auto pb-24">
-      {/* Month Selector Header */}
-      <div className="flex items-center justify-between gap-4">
-        <h2 className="text-xl font-bold text-on-surface tracking-tight">Histórico</h2>
-        
-        {/* Month Picker controls */}
-        <div className="flex items-center bg-surface-container-high rounded-full p-1 border border-outline-variant/20">
-          <button 
-            onClick={handlePrevMonth}
-            className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-surface-container-highest text-on-surface transition-colors"
-          >
-            <span className="material-symbols-outlined text-sm font-bold">chevron_left</span>
-          </button>
-          <span className="text-xs font-bold text-on-surface px-3 min-w-[90px] text-center select-none">
-            {MONTHS_PT[selectedMonthIndex]}
-          </span>
-          <button 
-            onClick={handleNextMonth}
-            className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-surface-container-highest text-on-surface transition-colors"
-          >
-            <span className="material-symbols-outlined text-sm font-bold">chevron_right</span>
-          </button>
-        </div>
-      </div>
+      const isCurrentMonth = selectedMonthIndex === new Date().getMonth() && selectedYear === new Date().getFullYear();
 
-      {/* Filter and Search Section */}
-      <div className="flex flex-col gap-3">
-        {/* Search input */}
-        <div className="relative flex items-center bg-surface-container-low rounded-xl border border-outline-variant/30 px-3 py-2.5">
-          <span className="material-symbols-outlined text-on-surface-variant text-lg mr-2">search</span>
-          <input 
-            type="text"
-            placeholder="Buscar por descrição, tipo, pix..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-transparent border-none text-xs text-on-surface focus:outline-none w-full placeholder:text-on-surface-variant/40"
-          />
-          {searchQuery && (
-            <button onClick={() => setSearchQuery('')} className="text-on-surface-variant hover:text-on-surface text-xs">
-              <span className="material-symbols-outlined text-sm">close</span>
-            </button>
-          )}
-        </div>
-
-        {/* Filters pills row */}
-        <div className="flex gap-2 items-center">
-          <button
-            onClick={() => setFilterType('tudo')}
-            className={`px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 ${
-              filterType === 'tudo'
-                ? 'bg-primary text-on-primary shadow-md'
-                : 'bg-surface-container text-on-surface-variant hover:text-on-surface border border-outline-variant/10'
-            }`}
-          >
-            Tudo
-          </button>
-          <button
-            onClick={() => setFilterType('entrada')}
-            className={`px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 ${
-              filterType === 'entrada'
-                ? 'bg-tertiary/20 text-tertiary border border-tertiary/40 shadow-sm'
-                : 'bg-surface-container text-on-surface-variant hover:text-on-surface border border-outline-variant/10'
-            }`}
-          >
-            Entradas
-          </button>
-          <button
-            onClick={() => setFilterType('saida')}
-            className={`px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 ${
-              filterType === 'saida'
-                ? 'bg-error/20 text-error border border-error/40 shadow-sm'
-                : 'bg-surface-container text-on-surface-variant hover:text-on-surface border border-outline-variant/10'
-            }`}
-          >
-            Saídas
-          </button>
-
-          {/* Quick Add Floating Button trigger */}
-          <button
-            onClick={startAdd}
-            className="ml-auto w-8 h-8 rounded-full bg-primary hover:bg-[#c0aeff] text-on-primary flex items-center justify-center transition-all duration-200 shadow-md"
-          >
-            <span className="material-symbols-outlined text-sm font-bold">add</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Main Groups Container */}
-      <div className="flex flex-col gap-6">
-        {Object.keys(grouped).length === 0 ? (
+      return (
+        <div className="flex flex-col gap-6 w-full max-w-lg mx-auto pb-24">
+          {/* Month Selector Header */}
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="text-xl font-bold text-on-surface tracking-tight">Histórico</h2>
+            
+            {/* Month Picker controls */}
+            <div className="flex items-center bg-surface-container-high rounded-full p-1 border border-outline-variant/20">
+              <button 
+                onClick={handlePrevMonth}
+                className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-surface-container-highest text-on-surface transition-colors"
+              >
+                <span className="material-symbols-outlined text-sm font-bold">chevron_left</span>
+              </button>
+              <span className="text-xs font-bold text-on-surface px-3 min-w-[90px] text-center select-none">
+                {MONTHS_PT[selectedMonthIndex]}
+              </span>
+              <button 
+                onClick={handleNextMonth}
+                className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-surface-container-highest text-on-surface transition-colors"
+              >
+                <span className="material-symbols-outlined text-sm font-bold">chevron_right</span>
+              </button>
+            </div>
+          </div>
+    
+          {/* Filter and Search Section */}
+          <div className="flex flex-col gap-3">
+            {/* Search input */}
+            <div className="relative flex items-center bg-surface-container-low rounded-xl border border-outline-variant/30 px-3 py-2.5">
+              <span className="material-symbols-outlined text-on-surface-variant text-lg mr-2">search</span>
+              <input 
+                type="text"
+                placeholder="Buscar por descrição, tipo, pix..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="bg-transparent border-none text-xs text-on-surface focus:outline-none w-full placeholder:text-on-surface-variant/40"
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')} className="text-on-surface-variant hover:text-on-surface text-xs">
+                  <span className="material-symbols-outlined text-sm">close</span>
+                </button>
+              )}
+            </div>
+    
+            {/* Filters pills row */}
+            <div className="flex gap-2 items-center">
+              <button
+                onClick={() => setFilterType('tudo')}
+                className={`px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 ${
+                  filterType === 'tudo'
+                    ? 'bg-primary text-on-primary shadow-md'
+                    : 'bg-surface-container text-on-surface-variant hover:text-on-surface border border-outline-variant/10'
+                }`}
+              >
+                Tudo
+              </button>
+              <button
+                onClick={() => setFilterType('entrada')}
+                className={`px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 ${
+                  filterType === 'entrada'
+                    ? 'bg-tertiary/20 text-tertiary border border-tertiary/40 shadow-sm'
+                    : 'bg-surface-container text-on-surface-variant hover:text-on-surface border border-outline-variant/10'
+                }`}
+              >
+                Entradas
+              </button>
+              <button
+                onClick={() => setFilterType('saida')}
+                className={`px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 ${
+                  filterType === 'saida'
+                    ? 'bg-error/20 text-error border border-error/40 shadow-sm'
+                    : 'bg-surface-container text-on-surface-variant hover:text-on-surface border border-outline-variant/10'
+                }`}
+              >
+                Saídas
+              </button>
+    
+              {/* Quick Add Floating Button trigger */}
+              <button
+                onClick={startAdd}
+                className="ml-auto w-8 h-8 rounded-full bg-primary hover:bg-[#c0aeff] text-on-primary flex items-center justify-center transition-all duration-200 shadow-md"
+              >
+                <span className="material-symbols-outlined text-sm font-bold">add</span>
+              </button>
+            </div>
+          </div>
+    
+          {/* Main Groups Container */}
+          <div className="flex flex-col gap-6 relative min-h-[300px]">
+            {Object.keys(grouped).length === 0 ? (
           <div className="p-12 rounded-3xl bg-surface-container-low border border-outline-variant/10 text-center flex flex-col items-center gap-3">
             <span className="material-symbols-outlined text-on-surface-variant/30 text-5xl">inventory_2</span>
             <div>
@@ -711,6 +718,68 @@ export default function History({ transactions, onAddTransaction, onEditTransact
           );
         })()}
       </AnimatePresence>
+
+      {/* Modal de confirmação/aquisição do Plano PRO */}
+      {showProModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+            className="w-full max-w-md bg-surface-container-high border border-white/10 rounded-[32px] p-6 text-center shadow-2xl relative overflow-hidden flex flex-col gap-5"
+          >
+            {/* Background premium gradient glow */}
+            <div className="absolute -top-24 -left-24 w-48 h-48 bg-primary/20 rounded-full filter blur-3xl pointer-events-none"></div>
+            <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-primary/10 rounded-full filter blur-3xl pointer-events-none"></div>
+
+            {/* Icon decoration */}
+            <div className="mx-auto w-16 h-16 rounded-3xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary relative">
+              <span className="material-symbols-outlined text-3xl animate-pulse">workspace_premium</span>
+              <span className="absolute -top-1 -right-1 bg-amber-400 text-black text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider scale-90">
+                PRO
+              </span>
+            </div>
+
+            {/* Warning Message */}
+            <div className="flex flex-col gap-2">
+              <h3 className="text-lg font-black text-on-surface tracking-tight leading-snug">
+                Você ainda não tem acesso ao Plano PRO.
+              </h3>
+              <p className="text-xs text-on-surface-variant leading-relaxed font-semibold">
+                Libere recursos avançados como relatórios completos em PDF/Excel, metas de economia automáticas com IA, múltiplos caixas de controle e suporte prioritário!
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col gap-2.5 mt-2">
+              <a
+                href={CHECKOUT_PRO_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setShowProModal(false)}
+                className="w-full py-4 rounded-2xl bg-gradient-to-r from-primary to-[#8b6eff] hover:from-[#8b6eff] hover:to-[#a18cff] text-on-primary font-black text-xs transition-all duration-300 flex items-center justify-center gap-2 border border-primary/30 shadow-[0_6px_24px_rgba(109,59,215,0.35)] hover:shadow-[0_8px_30px_rgba(109,59,215,0.55)] hover:-translate-y-0.5 select-none text-center"
+              >
+                <span className="material-symbols-outlined text-base">shopping_bag</span>
+                Quero Acessar o PRO.
+              </a>
+              
+              <button
+                type="button"
+                onClick={() => setShowProModal(false)}
+                className="w-full py-3.5 rounded-2xl bg-surface-container-low hover:bg-surface-container-highest text-on-surface-variant hover:text-on-surface border border-outline-variant/20 transition-all duration-200 text-xs font-bold cursor-pointer"
+              >
+                Voltar
+              </button>
+            </div>
+
+            {/* Security Note */}
+            <span className="text-[10px] text-on-surface-variant/60 font-semibold flex items-center justify-center gap-1">
+              <span className="material-symbols-outlined text-xs">lock</span>
+              Pagamento 100% seguro & acesso vitalício imediato.
+            </span>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

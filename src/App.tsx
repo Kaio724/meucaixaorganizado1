@@ -85,12 +85,12 @@ export default function App() {
       let dbProfile = await fetchProfile(userId);
       const isPromoUser = email?.toLowerCase() === 'kaiopatrick42@gmail.com';
       if (dbProfile) {
-        if (isPromoUser && dbProfile.plan !== 'essential') {
-          dbProfile.plan = 'essential';
+        if (isPromoUser && dbProfile.plan !== 'pro') {
+          dbProfile.plan = 'pro';
           try {
             await upsertProfile(userId, dbProfile);
           } catch (e) {
-            console.warn('Silent downgrade profile failed:', e);
+            console.warn('Silent upgrade profile failed:', e);
           }
         }
         setProfile(dbProfile);
@@ -158,7 +158,7 @@ export default function App() {
     try {
       const isPromoUser = session?.user?.email?.toLowerCase() === 'kaiopatrick42@gmail.com';
       if (isPromoUser) {
-        newProfile.plan = 'essential';
+        newProfile.plan = 'pro';
       }
       await upsertProfile(session.user.id, newProfile);
       setProfile(newProfile);
@@ -773,6 +773,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
 
                   {activeTab === 'historico' && (
                     <History 
+                      profile={profile}
                       transactions={transactions}
                       onAddTransaction={handleAddTransaction}
                       onEditTransaction={handleEditTransaction}
