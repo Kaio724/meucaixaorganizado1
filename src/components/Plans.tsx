@@ -34,10 +34,10 @@ export default function Plans({ profile, onUpdatePlan, onNavigateToTab }: PlansP
   };
 
   return (
-    <div className="flex flex-col gap-8 w-full max-w-lg mx-auto pb-24 px-4 sm:px-0">
+    <div className="flex flex-col gap-8 w-full max-w-lg lg:max-w-full pb-24 lg:pb-0 px-4 sm:px-0">
       {/* Header */}
       <div className="flex items-start justify-between mt-2">
-        <div className="flex flex-col gap-2.5 text-left">
+        <div className="flex flex-col gap-2.5 text-left col-span-12">
           <span className="self-start text-[9px] text-primary/90 font-bold tracking-widest uppercase bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-full leading-none">
             Plano Atual: {currentPlan === 'pro' ? 'Pro' : 'Essencial'}
           </span>
@@ -51,7 +51,7 @@ export default function Plans({ profile, onUpdatePlan, onNavigateToTab }: PlansP
         </div>
         <button
           onClick={() => onNavigateToTab('dashboard')}
-          className="w-9 h-9 rounded-full bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant/30 flex items-center justify-center cursor-pointer transition-colors shrink-0 mt-1"
+          className="w-9 h-9 rounded-full bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant/30 flex items-center justify-center cursor-pointer transition-colors shrink-0 mt-1 lg:hidden"
           title="Voltar ao Painel"
         >
           <span className="material-symbols-outlined text-on-surface/80 text-lg">arrow_back</span>
@@ -59,7 +59,7 @@ export default function Plans({ profile, onUpdatePlan, onNavigateToTab }: PlansP
       </div>
 
       {/* Plans comparison cards */}
-      <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
         {/* Card Essencial */}
         <motion.div

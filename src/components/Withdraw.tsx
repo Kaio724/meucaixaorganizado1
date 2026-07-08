@@ -92,10 +92,10 @@ export default function Withdraw({ transactions, onAddTransaction, onNavigateToT
   };
 
   return (
-    <div className="flex flex-col w-full max-w-lg mx-auto pb-24">
+    <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6 w-full max-w-lg lg:max-w-full pb-24 lg:pb-0 text-left">
       
       {/* Title Header */}
-      <div className="px-1">
+      <div className="px-1 col-span-12">
         <h2 className="text-2xl font-extrabold text-on-surface tracking-tight md:text-3xl font-sans mt-2">
           Quanto posso retirar?
         </h2>
@@ -104,102 +104,108 @@ export default function Withdraw({ transactions, onAddTransaction, onNavigateToT
         </p>
       </div>
 
-      {/* Main Safe Withdrawal Card */}
-      <motion.div
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="glass-card rounded-[32px] p-6 border border-primary/10 flex flex-col items-center text-center gap-4 bg-gradient-to-b from-[#1a1a22]/80 to-[#121217]/90 mt-6 relative overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.3)]"
-      >
-        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full filter blur-xl pointer-events-none"></div>
-        
-        {/* Piggy icon wrapper */}
-        <div className="w-14 h-14 rounded-full bg-primary/15 border border-primary/25 flex items-center justify-center text-primary shadow-[0_0_15px_rgba(109,59,215,0.15)]">
-          <span className="material-symbols-outlined text-2xl font-bold" style={{ fontVariationSettings: "'FILL' 1" }}>
-            savings
-          </span>
-        </div>
+      {/* Left Column (Withdrawal Recommendation Card & Info) */}
+      <div className="col-span-12 lg:col-span-6 flex flex-col gap-6">
+        {/* Main Safe Withdrawal Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass-card rounded-[32px] p-6 border border-primary/10 flex flex-col items-center text-center gap-4 bg-gradient-to-b from-[#1a1a22]/80 to-[#121217]/90 relative overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.3)] w-full"
+        >
+          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full filter blur-xl pointer-events-none"></div>
+          
+          {/* Piggy icon wrapper */}
+          <div className="w-14 h-14 rounded-full bg-primary/15 border border-primary/25 flex items-center justify-center text-primary shadow-[0_0_15px_rgba(109,59,215,0.15)]">
+            <span className="material-symbols-outlined text-2xl font-bold" style={{ fontVariationSettings: "'FILL' 1" }}>
+              savings
+            </span>
+          </div>
 
-        <div className="flex flex-col gap-1.5">
-          <span className="text-sm font-semibold text-on-surface-variant/90">
-            Você pode retirar com segurança até
-          </span>
-          <h1 className="text-4xl md:text-5xl font-extrabold text-white tracking-tight select-all">
-            {formatBRL(aindaPodeRetirar)}
-          </h1>
-        </div>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-semibold text-on-surface-variant/90">
+              Você pode retirar com segurança até
+            </span>
+            <h1 className="text-4xl md:text-5xl font-extrabold text-white tracking-tight select-all">
+              {formatBRL(aindaPodeRetirar)}
+            </h1>
+          </div>
 
-        <p className="text-xs md:text-sm text-on-surface-variant/70 max-w-xs leading-relaxed font-medium">
-          Com base no que sobrou este mês, esse é o valor que você pode tirar sem prejudicar seu negócio.
-        </p>
-      </motion.div>
+          <p className="text-xs md:text-sm text-on-surface-variant/70 max-w-xs leading-relaxed font-medium">
+            Com base no que sobrou este mês, esse é o valor que você pode tirar sem prejudicar seu negócio.
+          </p>
+        </motion.div>
 
-      {/* Detailed Breakdown Card */}
-      <motion.div
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="glass-card rounded-[28px] p-6 border border-outline-variant/10 flex flex-col gap-4 bg-gradient-to-b from-[#181820]/50 to-[#111116]/50 mt-4 shadow-lg"
-      >
-        {/* Row 1 */}
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-semibold text-on-surface-variant/80">
-            Sobrou no negócio este mês
+        {/* Info Warning Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="glass-card rounded-[20px] p-5 border border-outline-variant/10 flex items-start gap-3 bg-white/[0.015] shadow-sm w-full"
+        >
+          <span className="material-symbols-outlined text-on-surface-variant/70 text-xl mt-0.5 select-none">
+            info
           </span>
-          <span className="text-sm font-extrabold text-white">
-            {formatBRL(sobrou)}
-          </span>
-        </div>
+          <p className="text-xs text-on-surface-variant/70 leading-relaxed font-medium">
+            É só uma sugestão pra te ajudar a se pagar sem descapitalizar o negócio. Você decide o valor final.
+          </p>
+        </motion.div>
+      </div>
 
-        {/* Row 2 */}
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-semibold text-on-surface-variant/80">
-            Percentual seguro pra retirada (30%)
-          </span>
-          <span className="text-sm font-extrabold text-white">
-            {formatBRL(valorSugerido)}
-          </span>
-        </div>
+      {/* Right Column (Detailed Breakdown & Main Actions) */}
+      <div className="col-span-12 lg:col-span-6 flex flex-col gap-6">
+        {/* Detailed Breakdown Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="glass-card rounded-[28px] p-6 border border-outline-variant/10 flex flex-col gap-4 bg-gradient-to-b from-[#181820]/50 to-[#111116]/50 shadow-lg w-full"
+        >
+          {/* Row 1 */}
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-on-surface-variant/80">
+              Sobrou no negócio este mês
+            </span>
+            <span className="text-sm font-extrabold text-white">
+              {formatBRL(sobrou)}
+            </span>
+          </div>
 
-        <div className="h-px bg-outline-variant/20 my-1"></div>
+          {/* Row 2 */}
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-on-surface-variant/80">
+              Percentual seguro pra retirada (30%)
+            </span>
+            <span className="text-sm font-extrabold text-white">
+              {formatBRL(valorSugerido)}
+            </span>
+          </div>
 
-        {/* Row 3 */}
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-semibold text-on-surface-variant/80">
-            Ainda pode retirar
+          <div className="h-px bg-outline-variant/20 my-1"></div>
+
+          {/* Row 3 */}
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-on-surface-variant/80">
+              Ainda pode retirar
+            </span>
+            <span className="text-base md:text-lg font-extrabold text-primary shadow-sm">
+              {formatBRL(aindaPodeRetirar)}
+            </span>
+          </div>
+        </motion.div>
+
+        {/* Primary Submit Action Button */}
+        <motion.button
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={handleOpenModal}
+          className="w-full bg-[#6d3bd7] hover:bg-[#8455ef] text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 shadow-[0_4px_14px_rgba(109,59,215,0.25)] hover:shadow-[0_4px_20px_rgba(109,59,215,0.4)] cursor-pointer border border-primary/30 select-none"
+        >
+          <span className="text-sm tracking-wide font-bold">Registrar retirada</span>
+          <span className="material-symbols-outlined text-lg font-bold">
+            arrow_forward
           </span>
-          <span className="text-base md:text-lg font-extrabold text-primary shadow-sm">
-            {formatBRL(aindaPodeRetirar)}
-          </span>
-        </div>
-      </motion.div>
-
-      {/* Info Warning Card */}
-      <motion.div
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-        className="glass-card rounded-[20px] p-5 border border-outline-variant/10 flex items-start gap-3 bg-white/[0.015] mt-4 shadow-sm"
-      >
-        <span className="material-symbols-outlined text-on-surface-variant/70 text-xl mt-0.5 select-none">
-          info
-        </span>
-        <p className="text-xs text-on-surface-variant/70 leading-relaxed font-medium">
-          É só uma sugestão pra te ajudar a se pagar sem descapitalizar o negócio. Você decide o valor final.
-        </p>
-      </motion.div>
-
-      {/* Primary Submit Action Button */}
-      <motion.button
-        whileHover={{ scale: 1.01 }}
-        whileTap={{ scale: 0.98 }}
-        onClick={handleOpenModal}
-        className="w-full bg-[#6d3bd7] hover:bg-[#8455ef] text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 shadow-[0_4px_14px_rgba(109,59,215,0.25)] hover:shadow-[0_4px_20px_rgba(109,59,215,0.4)] cursor-pointer border border-primary/30 mt-6 select-none"
-      >
-        <span className="text-sm tracking-wide font-bold">Registrar retirada</span>
-        <span className="material-symbols-outlined text-lg font-bold">
-          arrow_forward
-        </span>
-      </motion.button>
+        </motion.button>
+      </div>
 
       {/* Registrar Retirada Modal */}
       <AnimatePresence>

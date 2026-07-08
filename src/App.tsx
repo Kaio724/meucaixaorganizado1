@@ -608,24 +608,194 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
       </AnimatePresence>
 
       {/* Main Container */}
-      <div className="w-full max-w-lg mx-auto px-4 z-10 relative flex-1 flex flex-col justify-between">
+      <div className="w-full max-w-lg lg:max-w-7xl xl:max-w-[1440px] mx-auto px-4 lg:px-8 z-10 relative flex-1 flex flex-col lg:flex-row justify-between lg:justify-start lg:gap-8">
         
         {/* Render Auth Screen if not logged in */}
         {!session ? (
-          <div className="flex-1 flex items-center justify-center py-8">
+          <div className="flex-1 flex items-center justify-center py-8 w-full max-w-lg mx-auto">
             <Auth onAuthSuccess={(newSession) => setSession(newSession)} />
           </div>
         ) : !profile || !profile.isOnboarded ? (
           /* Render Onboarding if logged in but profile is missing */
-          <div className="flex-1 flex items-center justify-center py-8">
+          <div className="flex-1 flex items-center justify-center py-8 w-full max-w-lg mx-auto">
             <Onboarding onComplete={handleOnboardingComplete} />
           </div>
         ) : (
           /* Logged In Core Layout */
-          <div className="flex-1 flex flex-col justify-between pb-24">
-            
-            {/* Top Navigation Bar */}
-            <header className="py-4 flex items-center justify-between sticky top-0 bg-transparent z-30 mb-4">
+          <>
+            {/* Sidebar - Visible on Desktop only */}
+            <aside className="hidden lg:flex flex-col w-64 shrink-0 h-screen sticky top-0 py-8 border-r border-white/5 pr-6 z-30 select-none">
+              {/* Logo */}
+              <div className="flex items-center gap-2.5 px-3 py-2 rounded-2xl bg-primary/10 border border-primary/30 shadow-[0_0_15px_rgba(208,188,255,0.25)] mb-8">
+                <span className="material-symbols-outlined text-primary text-xl flex-shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>
+                  account_balance_wallet
+                </span>
+                <span className="text-sm font-extrabold text-primary tracking-wider uppercase font-sans">
+                  MCO
+                </span>
+              </div>
+
+              {/* Menu */}
+              <div className="flex flex-col gap-1.5 mb-auto">
+                {NAV_ITEMS.map((item) => {
+                  const isActive = activeTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        setActiveTab(item.id);
+                        setShowProfileMenu(false);
+                        setShowNotification(false);
+                      }}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold tracking-wide uppercase transition-all duration-200 cursor-pointer ${
+                        isActive
+                          ? 'bg-primary/20 text-primary border border-primary/15'
+                          : 'text-on-surface-variant hover:text-on-surface hover:bg-white/5 border border-transparent'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-lg">{item.icon}</span>
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+                
+                {/* Plans button in side menu */}
+                <button
+                  onClick={() => {
+                    setActiveTab('planos');
+                    setShowProfileMenu(false);
+                    setShowNotification(false);
+                  }}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold tracking-wide uppercase transition-all duration-200 cursor-pointer ${
+                    activeTab === 'planos'
+                      ? 'bg-primary/20 text-primary border border-primary/15'
+                      : 'text-on-surface-variant hover:text-on-surface hover:bg-white/5 border border-transparent'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-lg">workspace_premium</span>
+                  <span>Planos</span>
+                </button>
+              </div>
+
+              {/* Plano Atual & Botão Upgrade */}
+              <div className="bg-surface-container-low rounded-2xl p-4 border border-white/5 mb-4 flex flex-col gap-2.5 text-left">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wider">Plano Atual</span>
+                  <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase border ${
+                    (profile.plan || 'essential') === 'pro'
+                      ? 'bg-primary/20 text-primary border-primary/30'
+                      : 'bg-white/5 text-on-surface-variant/80 border-white/10'
+                  }`}>
+                    {profile.plan || 'essential'}
+                  </span>
+                </div>
+                {(profile.plan || 'essential') !== 'pro' && (
+                  <button
+                    onClick={() => setActiveTab('planos')}
+                    className="w-full py-2.5 rounded-xl bg-primary hover:bg-[#c0aeff] text-on-primary font-black text-xs transition-all duration-200 border border-primary/30 shadow-[0_4px_12px_rgba(160,120,255,0.15)] text-center cursor-pointer"
+                  >
+                    Upgrade para o PRO
+                  </button>
+                )}
+              </div>
+
+              {/* Perfil */}
+              <div className="border-t border-white/5 pt-4 flex items-center justify-between gap-3 relative">
+                <div 
+                  onClick={() => {
+                    if (profile) {
+                      setEditName(profile.name);
+                      setEditBusinessName(profile.businessName);
+                    }
+                    setShowEditProfileModal(true);
+                  }}
+                  className="flex items-center gap-2.5 cursor-pointer min-w-0 flex-1 group text-left"
+                >
+                  <div className="w-9 h-9 rounded-full bg-surface-container-high border border-outline-variant/30 flex items-center justify-center text-on-surface transition-all group-hover:bg-surface-container-highest shrink-0">
+                    <span className="material-symbols-outlined text-lg">person</span>
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-xs font-bold text-on-surface truncate group-hover:text-primary transition-colors">{profile.name}</span>
+                    <span className="text-[10px] text-on-surface-variant truncate">{profile.businessName}</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleLogout}
+                  className="w-8 h-8 rounded-full bg-surface-container hover:bg-error/15 text-on-surface-variant hover:text-error border border-outline-variant/30 flex items-center justify-center transition-all cursor-pointer shrink-0"
+                  title="Sair da Conta"
+                >
+                  <span className="material-symbols-outlined text-sm">logout</span>
+                </button>
+              </div>
+            </aside>
+
+            {/* Core page layout on the right of the sidebar */}
+            <div className="flex-1 flex flex-col justify-between pb-24 lg:pb-8 min-w-0">
+              {/* Desktop Header */}
+              <header className="hidden lg:flex items-center justify-between py-6 border-b border-white/5 mb-8 shrink-0 select-none">
+                <div className="flex flex-col text-left">
+                  <span className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-widest leading-none mb-1">
+                    {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                  </span>
+                  <h2 className="text-xl font-bold text-on-surface tracking-tight leading-none uppercase">
+                    {activeTab === 'dashboard' && 'Dashboard Financeiro'}
+                    {activeTab === 'historico' && 'Histórico de Lançamentos'}
+                    {activeTab === 'retirar' && 'Retirar e Retornos'}
+                    {activeTab === 'resumo' && 'Resumo Financeiro'}
+                    {activeTab === 'planos' && 'Upgrade de Plano'}
+                  </h2>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  {/* Plano atual pill */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-on-surface-variant font-medium tracking-wider uppercase">
+                      Plano Atual
+                    </span>
+                    <span className={`text-[10px] px-2.5 py-0.5 rounded-full uppercase font-extrabold border ${
+                      (profile.plan || 'essential') === 'pro'
+                        ? 'bg-primary/20 text-primary border-primary/30'
+                        : 'bg-white/10 text-on-surface-variant border-white/10'
+                    }`}>
+                      {profile.plan || 'essential'}
+                    </span>
+                  </div>
+
+                  {/* Botão Upgrade if not pro */}
+                  {(profile.plan || 'essential') !== 'pro' && (
+                    <button
+                      onClick={() => setActiveTab('planos')}
+                      className="px-4 py-2 rounded-xl bg-primary hover:bg-[#c0aeff] text-on-primary text-xs font-black transition-all duration-200 shadow-[0_4px_12px_rgba(160,120,255,0.15)] hover:shadow-[0_6px_20px_rgba(160,120,255,0.3)] hover:-translate-y-0.5 cursor-pointer"
+                    >
+                      Fazer Upgrade
+                    </button>
+                  )}
+
+                  {/* Perfil avatar */}
+                  <div 
+                    onClick={() => {
+                      if (profile) {
+                        setEditName(profile.name);
+                        setEditBusinessName(profile.businessName);
+                      }
+                      setShowEditProfileModal(true);
+                    }}
+                    className="flex items-center gap-2.5 pl-3 border-l border-white/5 cursor-pointer group"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-surface-container-high border border-outline-variant/30 flex items-center justify-center text-on-surface group-hover:bg-surface-container-highest transition-colors">
+                      <span className="material-symbols-outlined text-base">person</span>
+                    </div>
+                    <div className="flex flex-col text-left">
+                      <span className="text-xs font-bold text-on-surface group-hover:text-primary transition-colors">{profile.name}</span>
+                      <span className="text-[9px] text-on-surface-variant">{profile.businessName}</span>
+                    </div>
+                  </div>
+                </div>
+              </header>
+
+              {/* Top Navigation Bar */}
+              <header className="py-4 flex items-center justify-between sticky top-0 bg-transparent z-30 mb-4 lg:hidden">
               
               {/* Profile/Settings button */}
               <div className="relative">
@@ -810,7 +980,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
             </main>
 
             {/* Bottom Navigation */}
-            <nav className="fixed bottom-0 left-0 right-0 py-3 bg-[#1c1b1d]/95 backdrop-blur-md border-t border-white/5 z-40 shadow-xl">
+            <nav className="fixed bottom-0 left-0 right-0 py-3 bg-[#1c1b1d]/95 backdrop-blur-md border-t border-white/5 z-40 shadow-xl lg:hidden">
               <div className="max-w-lg mx-auto px-6 flex items-center justify-between">
                 {NAV_ITEMS.map((item) => {
                   const isActive = activeTab === item.id;
@@ -846,6 +1016,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
               </div>
             </nav>
           </div>
+          </>
         )}
       </div>
 

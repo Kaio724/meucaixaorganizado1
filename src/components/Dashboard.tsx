@@ -96,9 +96,9 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
   };
 
   return (
-    <div className="flex flex-col gap-6 w-full max-w-lg mx-auto pb-24">
+    <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6 w-full max-w-lg lg:max-w-full pb-24 lg:pb-0 text-left">
       {/* Top Welcome Bar */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between lg:hidden col-span-12">
         <div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-on-surface-variant font-medium tracking-wider uppercase">
@@ -126,125 +126,131 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
         </div>
       </div>
 
-      {/* Main Financial Dashboard Card */}
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="glass-card rounded-[24px] p-6 shadow-xl flex flex-col gap-6 relative overflow-hidden"
-      >
-        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full filter blur-xl pointer-events-none"></div>
-
-        {/* Sobrou (Net profit) Display */}
-        <div className="flex flex-col gap-1">
-          <span className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
-            Sobrou em Caixa
-          </span>
-          <div className="flex items-baseline gap-2">
-            <h1 className={`text-3xl font-extrabold tracking-tight ${totalSobrou >= 0 ? 'text-on-surface' : 'text-error'}`}>
-              {formatBRL(totalSobrou)}
-            </h1>
-          </div>
-          <div className="flex items-center gap-2 mt-1">
-            <div className="flex-1 bg-surface-container-low h-2 rounded-full overflow-hidden">
-              <div 
-                className="bg-primary h-full transition-all duration-500 rounded-full"
-                style={{ width: `${sobrouPercentage}%` }}
-              ></div>
-            </div>
-            <span className="text-xs font-semibold text-primary">
-              {sobrouPercentage}% guardado
-            </span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 border-t border-white/5 pt-4">
-          {/* Entradas */}
-          <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-xl bg-tertiary/10 flex items-center justify-center border border-tertiary/20">
-              <span className="material-symbols-outlined text-tertiary text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
-                arrow_upward
-              </span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">
-                Entrou
-              </span>
-              <span className="text-sm font-bold text-tertiary">
-                {formatBRL(totalEntradas)}
-              </span>
-            </div>
-          </div>
-
-          {/* Saídas */}
-          <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-xl bg-error/10 flex items-center justify-center border border-error/20">
-              <span className="material-symbols-outlined text-error text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
-                arrow_downward
-              </span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">
-                Saiu
-              </span>
-              <span className="text-sm font-bold text-error">
-                {formatBRL(totalSaidas)}
-              </span>
-            </div>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Pro Growth Insights Panel ou Card Compacto PRO */}
-      {isPro ? (
-        <ProGrowthPanel
-          transactions={transactions}
-          isPro={isPro}
-          onUnlockPro={() => setShowProModal(true)}
-        />
-      ) : (
-        <motion.div
+      {/* Left Column (Main Dashboard Content) */}
+      <div className="col-span-12 lg:col-span-7 flex flex-col gap-6">
+        {/* Main Financial Dashboard Card */}
+        <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="glass-card rounded-[24px] p-6 shadow-xl flex flex-col gap-4 relative overflow-hidden text-left"
+          className="glass-card rounded-[24px] p-6 shadow-xl flex flex-col gap-6 relative overflow-hidden"
         >
-          <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full filter blur-lg pointer-events-none"></div>
-          
-          {/* Discret badge in the top right */}
-          <div className="absolute top-6 right-6">
-            <span className="text-[10px] font-black text-white bg-[#6934D1] px-2.5 py-0.5 rounded-full tracking-wider">
-              PRO
+          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full filter blur-xl pointer-events-none"></div>
+
+          {/* Sobrou (Net profit) Display */}
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+              Sobrou em Caixa
             </span>
+            <div className="flex items-baseline gap-2">
+              <h1 className={`text-3xl font-extrabold tracking-tight ${totalSobrou >= 0 ? 'text-on-surface' : 'text-error'}`}>
+                {formatBRL(totalSobrou)}
+              </h1>
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+              <div className="flex-1 bg-surface-container-low h-2 rounded-full overflow-hidden">
+                <div 
+                  className="bg-primary h-full transition-all duration-500 rounded-full"
+                  style={{ width: `${sobrouPercentage}%` }}
+                ></div>
+              </div>
+              <span className="text-xs font-semibold text-primary">
+                {sobrouPercentage}% guardado
+              </span>
+            </div>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <h3 className="text-base font-black text-on-surface tracking-tight pr-10">
-              Você está utilizando o plano Essencial
-            </h3>
-            <p className="text-xs text-on-surface-variant font-medium leading-relaxed">
-              Desbloqueie recursos exclusivos do MCO PRO e acompanhe a evolução do seu negócio com muito mais inteligência.
-            </p>
-          </div>
+          <div className="grid grid-cols-2 gap-4 border-t border-white/5 pt-4">
+            {/* Entradas */}
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-tertiary/10 flex items-center justify-center border border-tertiary/20">
+                <span className="material-symbols-outlined text-tertiary text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
+                  arrow_upward
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">
+                  Entrou
+                </span>
+                <span className="text-sm font-bold text-tertiary">
+                  {formatBRL(totalEntradas)}
+                </span>
+              </div>
+            </div>
 
-          <button
-            type="button"
-            onClick={() => setShowProModal(true)}
-            className="mt-1 w-full py-3.5 rounded-2xl bg-gradient-to-r from-primary to-[#8b6eff] hover:from-[#8b6eff] hover:to-[#a18cff] text-on-primary font-black text-xs transition-all duration-300 flex items-center justify-center gap-2 border border-primary/30 shadow-[0_4px_14px_rgba(109,59,215,0.25)] hover:shadow-[0_4px_20px_rgba(109,59,215,0.45)] cursor-pointer active:scale-95"
-          >
-            Visualizar benefícios do PRO
-          </button>
+            {/* Saídas */}
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-error/10 flex items-center justify-center border border-error/20">
+                <span className="material-symbols-outlined text-error text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
+                  arrow_downward
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">
+                  Saiu
+                </span>
+                <span className="text-sm font-bold text-error">
+                  {formatBRL(totalSaidas)}
+                </span>
+              </div>
+            </div>
+          </div>
         </motion.div>
-      )}
 
-      {/* Wide Launch Transaction button */}
-      <div className="w-full">
-        <button
-          onClick={() => { setTxType('entrada'); setShowQuickAdd(true); }}
-          className="w-full bg-[#6d3bd7] hover:bg-[#8455ef] text-white font-bold py-4 px-6 rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 shadow-[0_0_20px_rgba(109,59,215,0.4)] hover:shadow-[0_0_30px_rgba(109,59,215,0.6)] cursor-pointer active:scale-[0.98] border border-primary/30"
-        >
-          <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>add_circle</span>
-          <span className="text-sm tracking-wide font-semibold">Lançar Movimentação</span>
-        </button>
+        {/* Wide Launch Transaction button */}
+        <div className="w-full">
+          <button
+            onClick={() => { setTxType('entrada'); setShowQuickAdd(true); }}
+            className="w-full bg-[#6d3bd7] hover:bg-[#8455ef] text-white font-bold py-4 px-6 rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 shadow-[0_0_20px_rgba(109,59,215,0.4)] hover:shadow-[0_0_30px_rgba(109,59,215,0.6)] cursor-pointer active:scale-[0.98] border border-primary/30"
+          >
+            <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>add_circle</span>
+            <span className="text-sm tracking-wide font-semibold">Lançar Movimentação</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Right Column (PRO Insights / Upgrade Card) */}
+      <div className="col-span-12 lg:col-span-5 flex flex-col gap-6">
+        {/* Pro Growth Insights Panel ou Card Compacto PRO */}
+        {isPro ? (
+          <ProGrowthPanel
+            transactions={transactions}
+            isPro={isPro}
+            onUnlockPro={() => setShowProModal(true)}
+          />
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="glass-card rounded-[24px] p-6 shadow-xl flex flex-col gap-4 relative overflow-hidden text-left"
+          >
+            <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full filter blur-lg pointer-events-none"></div>
+            
+            {/* Discret badge in the top right */}
+            <div className="absolute top-6 right-6">
+              <span className="text-[10px] font-black text-white bg-[#6934D1] px-2.5 py-0.5 rounded-full tracking-wider">
+                PRO
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <h3 className="text-base font-black text-on-surface tracking-tight pr-10">
+                Você está utilizando o plano Essencial
+              </h3>
+              <p className="text-xs text-on-surface-variant font-medium leading-relaxed">
+                Desbloqueie recursos exclusivos do MCO PRO e acompanhe a evolução do seu negócio com muito mais inteligência.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowProModal(true)}
+              className="mt-1 w-full py-3.5 rounded-2xl bg-gradient-to-r from-primary to-[#8b6eff] hover:from-[#8b6eff] hover:to-[#a18cff] text-on-primary font-black text-xs transition-all duration-300 flex items-center justify-center gap-2 border border-primary/30 shadow-[0_4px_14px_rgba(109,59,215,0.25)] hover:shadow-[0_4px_20px_rgba(109,59,215,0.45)] cursor-pointer active:scale-95"
+            >
+              Visualizar benefícios do PRO
+            </button>
+          </motion.div>
+        )}
       </div>
 
       {/* Quick Add Dialog (Matches requested layout) */}
@@ -542,7 +548,7 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
       )}
 
       {/* Short list of Recent Transactions */}
-      <div className="flex flex-col gap-3">
+      <div className="col-span-12 flex flex-col gap-4 mt-2">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold text-on-surface flex items-center gap-2">
             <span className="material-symbols-outlined text-primary text-lg">list_alt</span>
@@ -550,7 +556,7 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
           </h3>
           <button 
             onClick={() => onNavigateToTab('historico')}
-            className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
+            className="text-xs font-semibold text-primary hover:underline flex items-center gap-1 cursor-pointer transition-all active:scale-95"
           >
             Ver tudo
             <span className="material-symbols-outlined text-[10px]">arrow_forward</span>
@@ -563,34 +569,73 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
             <span className="text-xs text-on-surface-variant">Nenhum lançamento cadastrado</span>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
-            {transactions.slice(0, 3).map((tx) => (
-              <div 
-                key={tx.id} 
-                className="p-4 rounded-2xl bg-surface-container border border-outline-variant/10 flex items-center justify-between hover:bg-surface-container-high transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center ${
-                    tx.type === 'entrada' ? 'bg-tertiary/10 text-tertiary' : 'bg-error/10 text-error'
-                  }`}>
-                    <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
-                      {tx.type === 'entrada' ? 'arrow_upward' : 'arrow_downward'}
-                    </span>
+          <div className="glass-card rounded-[24px] border border-outline-variant/10 overflow-hidden bg-surface-container/20">
+            <div className="flex flex-col divide-y divide-outline-variant/5">
+              {transactions.slice(0, 3).map((tx) => {
+                // Formatting date nicely
+                const dateObj = tx.date ? new Date(tx.date + 'T12:00:00') : new Date();
+                const formattedDate = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+
+                return (
+                  <div 
+                    key={tx.id} 
+                    className="group px-4 sm:px-6 py-3.5 flex items-center justify-between hover:bg-white/[0.02] transition-all duration-200 select-none min-h-[64px]"
+                  >
+                    {/* Left block: Icon & description */}
+                    <div className="flex items-center gap-3.5 min-w-0 flex-1 lg:flex-initial lg:w-1/3 text-left">
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 duration-200 ${
+                        tx.type === 'entrada' 
+                          ? 'bg-tertiary/10 text-tertiary border border-tertiary/10' 
+                          : 'bg-error/10 text-error border border-error/10'
+                      }`}>
+                        <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
+                          {tx.type === 'entrada' ? 'arrow_upward' : 'arrow_downward'}
+                        </span>
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <h4 className="text-xs sm:text-sm font-semibold text-on-surface truncate tracking-tight leading-tight group-hover:text-primary transition-colors">
+                          {tx.title}
+                        </h4>
+                        {/* Mobile metadata subline */}
+                        <span className="text-[10px] text-on-surface-variant/75 font-medium leading-none mt-1 sm:mt-1.5 lg:hidden">
+                          {tx.paymentMethod} • {tx.category}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Desktop Category column (hidden on mobile) */}
+                    <div className="hidden lg:flex items-center w-1/4 px-2 min-w-0">
+                      <span className="text-xs font-semibold text-on-surface-variant/85 truncate bg-white/[0.03] border border-white/5 rounded-full px-2.5 py-0.5">
+                        {tx.category}
+                      </span>
+                    </div>
+
+                    {/* Desktop Payment Method column (hidden on mobile) */}
+                    <div className="hidden lg:flex items-center w-1/4 px-2 min-w-0">
+                      <span className="text-xs font-medium text-on-surface-variant/75 truncate">
+                        {tx.paymentMethod}
+                      </span>
+                    </div>
+
+                    {/* Desktop Date column (hidden on mobile) */}
+                    <div className="hidden lg:flex items-center w-32 px-2 shrink-0">
+                      <span className="text-xs font-medium text-on-surface-variant/50">
+                        {formattedDate}
+                      </span>
+                    </div>
+
+                    {/* Right block: Amount */}
+                    <div className="text-right shrink-0 pl-3">
+                      <span className={`text-sm font-bold tracking-tight ${
+                        tx.type === 'entrada' ? 'text-tertiary' : 'text-error'
+                      }`}>
+                        {tx.type === 'entrada' ? '+' : '-'} {formatBRL(tx.amount)}
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-on-surface">{tx.title}</h4>
-                    <span className="text-[10px] text-on-surface-variant">
-                      {tx.paymentMethod} • {tx.category}
-                    </span>
-                  </div>
-                </div>
-                <span className={`text-xs font-bold ${
-                  tx.type === 'entrada' ? 'text-tertiary' : 'text-error'
-                }`}>
-                  {tx.type === 'entrada' ? '+' : '-'} {formatBRL(tx.amount)}
-                </span>
-              </div>
-            ))}
+                );
+              })}
+            </div>
           </div>
         )}
       </div>

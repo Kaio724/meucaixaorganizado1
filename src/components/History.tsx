@@ -218,8 +218,10 @@ export default function History({ profile, transactions, onAddTransaction, onEdi
 
       const isCurrentMonth = selectedMonthIndex === new Date().getMonth() && selectedYear === new Date().getFullYear();
 
+      const sortedFilteredTransactions = [...filteredTransactions].sort((a, b) => b.date.localeCompare(a.date));
+
       return (
-        <div className="flex flex-col gap-6 w-full max-w-lg mx-auto pb-24">
+        <div className="flex flex-col gap-6 w-full max-w-lg lg:max-w-full pb-24 lg:pb-0 text-left">
           {/* Month Selector Header */}
           <div className="flex items-center justify-between gap-4">
             <h2 className="text-xl font-bold text-on-surface tracking-tight">Histórico</h2>
@@ -306,8 +308,8 @@ export default function History({ profile, transactions, onAddTransaction, onEdi
             </div>
           </div>
     
-          {/* Main Groups Container */}
-          <div className="flex flex-col gap-6 relative min-h-[300px]">
+          {/* Main Groups Container (Mobile Card List) */}
+          <div className="flex flex-col gap-6 relative min-h-[300px] lg:hidden">
             {Object.keys(grouped).length === 0 ? (
           <div className="p-12 rounded-3xl bg-surface-container-low border border-outline-variant/10 text-center flex flex-col items-center gap-3">
             <span className="material-symbols-outlined text-on-surface-variant/30 text-5xl">inventory_2</span>
@@ -496,6 +498,179 @@ export default function History({ profile, transactions, onAddTransaction, onEdi
               </div>
             </div>
           ))
+        )}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden lg:block min-h-[300px]">
+        {sortedFilteredTransactions.length === 0 ? (
+          <div className="p-16 rounded-3xl bg-surface-container-low border border-outline-variant/10 text-center flex flex-col items-center gap-4">
+            <span className="material-symbols-outlined text-on-surface-variant/30 text-6xl">inventory_2</span>
+            <div>
+              <p className="text-base font-bold text-on-surface">Sem registros para este período</p>
+              <p className="text-xs text-on-surface-variant mt-1.5">Altere o filtro ou adicione um novo lançamento para começar.</p>
+            </div>
+            <button
+              onClick={startAdd}
+              className="mt-2 bg-primary/10 border border-primary/20 hover:bg-primary/20 text-primary font-bold text-xs px-5 py-2.5 rounded-xl transition-colors"
+            >
+              Adicionar Lançamento
+            </button>
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-2xl border border-outline-variant/15 bg-surface-container shadow-xl">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-surface-container-high border-b border-outline-variant/20 select-none">
+                  <th className="p-4 font-bold text-on-surface-variant/80 uppercase tracking-wider">Tipo</th>
+                  <th className="p-4 font-bold text-on-surface-variant/80 uppercase tracking-wider">Data</th>
+                  <th className="p-4 font-bold text-on-surface-variant/80 uppercase tracking-wider">Especificação</th>
+                  <th className="p-4 font-bold text-on-surface-variant/80 uppercase tracking-wider">Categoria</th>
+                  <th className="p-4 font-bold text-on-surface-variant/80 uppercase tracking-wider">Pagamento</th>
+                  <th className="p-4 font-bold text-on-surface-variant/80 uppercase tracking-wider text-right">Valor</th>
+                  <th className="p-4 font-bold text-on-surface-variant/80 uppercase tracking-wider text-center">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-outline-variant/10">
+                {sortedFilteredTransactions.map(tx => {
+                  const isEditingThis = editingTx?.id === tx.id;
+                  const dateObj = new Date(tx.date + 'T12:00:00');
+                  const formattedDate = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+                  if (isEditingThis) {
+                    return (
+                      <tr key={tx.id} className="bg-surface-container-high border-2 border-primary/30">
+                        <td colSpan={7} className="p-5">
+                          <form onSubmit={handleFormSubmit} className="flex flex-col gap-4">
+                            <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                              <span className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
+                                <span className="material-symbols-outlined text-xs">edit</span>
+                                Editando Lançamento
+                              </span>
+                              <button 
+                                type="button" 
+                                onClick={() => setEditingTx(null)}
+                                className="text-xs font-bold text-on-surface-variant hover:text-on-surface"
+                              >
+                                Cancelar
+                              </button>
+                            </div>
+
+                            <div className="grid grid-cols-4 gap-4">
+                              <div className="flex flex-col gap-1">
+                                <label className="text-[10px] font-bold text-on-surface-variant">Especificação</label>
+                                <input 
+                                  type="text"
+                                  required
+                                  value={formTitle}
+                                  onChange={(e) => setFormTitle(e.target.value)}
+                                  className="bg-surface-container-low border border-outline-variant/40 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:border-primary text-on-surface"
+                                />
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                <label className="text-[10px] font-bold text-on-surface-variant">Valor (R$)</label>
+                                <input 
+                                  type="number"
+                                  step="0.01"
+                                  required
+                                  value={formAmount}
+                                  onChange={(e) => setFormAmount(e.target.value)}
+                                  className="bg-surface-container-low border border-outline-variant/40 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:border-primary text-on-surface"
+                                />
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                <label className="text-[10px] font-bold text-on-surface-variant">Categoria</label>
+                                <select 
+                                  value={formCategory}
+                                  onChange={(e) => setFormCategory(e.target.value)}
+                                  className="bg-surface-container-low border border-outline-variant/40 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:border-primary text-on-surface w-full"
+                                >
+                                  {AVAILABLE_CATEGORIES[formType].map(cat => (
+                                    <option key={cat} value={cat}>{cat}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                <label className="text-[10px] font-bold text-on-surface-variant">Pagamento</label>
+                                <select 
+                                  value={formPaymentMethod}
+                                  onChange={(e) => setFormPaymentMethod(e.target.value)}
+                                  className="bg-surface-container-low border border-outline-variant/40 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:border-primary text-on-surface w-full"
+                                >
+                                  {PAYMENT_METHODS.map(m => (
+                                    <option key={m} value={m}>{m}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+
+                            <div className="flex justify-end gap-2 pt-2">
+                              <button
+                                type="button"
+                                onClick={() => setEditingTx(null)}
+                                className="px-4 py-2 bg-surface-container hover:bg-surface-container-highest text-on-surface-variant hover:text-on-surface rounded-xl font-bold transition-all border border-outline-variant/10 text-xs"
+                              >
+                                Cancelar
+                              </button>
+                              <button
+                                type="submit"
+                                className="px-4 py-2 bg-primary hover:bg-[#c0aeff] text-on-primary rounded-xl font-bold transition-all shadow-md text-xs"
+                              >
+                                Salvar Lançamento
+                              </button>
+                            </div>
+                          </form>
+                        </td>
+                      </tr>
+                    );
+                  }
+
+                  return (
+                    <tr key={tx.id} className="hover:bg-surface-container-high transition-colors">
+                      <td className="p-4">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                          tx.type === 'entrada' ? 'bg-tertiary/10 text-tertiary' : 'bg-error/5 text-[#fca5a5]'
+                        }`}>
+                          <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
+                            {getCategoryIcon(tx.category, tx.type)}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="p-4 font-medium text-on-surface-variant/90">{formattedDate}</td>
+                      <td className="p-4 font-bold text-on-surface">{tx.title}</td>
+                      <td className="p-4 font-semibold text-primary/80">{tx.category}</td>
+                      <td className="p-4 text-on-surface-variant/80 font-medium">{tx.paymentMethod}</td>
+                      <td className="p-4 text-right">
+                        <span className={`font-extrabold tracking-tight ${
+                          tx.type === 'entrada' ? 'text-tertiary' : 'text-on-surface'
+                        }`}>
+                          {tx.type === 'entrada' ? '+' : '-'} {formatBRL(tx.amount)}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button 
+                            onClick={() => startEdit(tx)}
+                            className="w-8 h-8 rounded-full bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant/20 flex items-center justify-center text-on-surface-variant hover:text-primary transition-all duration-200"
+                            title="Editar"
+                          >
+                            <span className="material-symbols-outlined text-base">edit</span>
+                          </button>
+                          <button 
+                            onClick={() => setDeletingTxId(tx.id)}
+                            className="w-8 h-8 rounded-full bg-error/10 hover:bg-error/20 flex items-center justify-center text-error transition-all duration-200 cursor-pointer"
+                            title="Excluir"
+                          >
+                            <span className="material-symbols-outlined text-base">delete</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 

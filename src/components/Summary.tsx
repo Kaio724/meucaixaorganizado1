@@ -71,113 +71,56 @@ export default function Summary({ transactions, profile, onNavigateToPlanos }: S
   };
 
   return (
-    <div className="flex flex-col gap-6 w-full max-w-lg mx-auto pb-24">
-      {/* Header */}
-      <div>
+    <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6 w-full max-w-lg lg:max-w-full pb-24 lg:pb-0 text-left">
+      {/* Header - Hidden on Desktop */}
+      <div className="lg:hidden col-span-12">
         <h2 className="text-xl font-bold text-on-surface tracking-tight">Resumo Financeiro</h2>
         <p className="text-xs text-on-surface-variant">
           Visão geral sobre o fluxo de caixa, despesas e origens de faturamento.
         </p>
       </div>
 
-      {/* Main Stats Card */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="glass-card rounded-[24px] p-6 shadow-xl flex flex-col gap-4"
-      >
-        <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Lucro Líquido Real</h3>
-        <div className="flex items-baseline gap-2">
-          <h1 className={`text-3xl font-extrabold tracking-tight ${netBalance >= 0 ? 'text-tertiary' : 'text-error'}`}>
-            {formatBRL(netBalance)}
-          </h1>
-          <span className="text-[10px] text-on-surface-variant bg-white/5 rounded-full px-2.5 py-1">
-            {netBalance >= 0 ? 'Lucro' : 'Prejuízo'}
-          </span>
-        </div>
-
-        {/* Small horizontal percentage visualization */}
-        {totalEntradas > 0 && (
-          <div className="flex flex-col gap-1.5 mt-2">
-            <span className="text-[11px] font-bold text-on-surface-variant uppercase">Estrutura de Gastos</span>
-            <div className="w-full bg-surface-container-low h-3 rounded-full flex overflow-hidden">
-              <div 
-                className="bg-tertiary h-full"
-                style={{ width: `${Math.round(((totalEntradas - totalSaidas) / totalEntradas) * 100)}%` }}
-                title="Lucro Guardado"
-              ></div>
-              <div 
-                className="bg-error h-full"
-                style={{ width: `${Math.round((totalSaidas / totalEntradas) * 100)}%` }}
-                title="Despesas"
-              ></div>
-            </div>
-            <div className="flex items-center justify-between text-[10px] font-semibold text-on-surface-variant mt-0.5">
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-tertiary"></span> Retido</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-error"></span> Gasto</span>
-            </div>
+      {/* Left Column (Main Stats Card & Payment Methods) */}
+      <div className="col-span-12 lg:col-span-5 flex flex-col gap-6">
+        {/* Main Stats Card */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="glass-card rounded-[24px] p-6 shadow-xl flex flex-col gap-4"
+        >
+          <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Lucro Líquido Real</h3>
+          <div className="flex items-baseline gap-2">
+            <h1 className={`text-3xl font-extrabold tracking-tight ${netBalance >= 0 ? 'text-tertiary' : 'text-error'}`}>
+              {formatBRL(netBalance)}
+            </h1>
+            <span className="text-[10px] text-on-surface-variant bg-white/5 rounded-full px-2.5 py-1">
+              {netBalance >= 0 ? 'Lucro' : 'Prejuízo'}
+            </span>
           </div>
-        )}
-      </motion.div>
 
-      {/* Category distribution groups */}
-      <div className="grid grid-cols-1 gap-6">
-        
-        {/* Entradas Group */}
-        <div className="flex flex-col gap-3">
-          <h3 className="text-sm font-bold text-on-surface flex items-center gap-2">
-            <span className="material-symbols-outlined text-tertiary text-lg">trending_up</span>
-            De onde veio o dinheiro? (Entradas)
-          </h3>
-
-          {entradasCategories.length === 0 ? (
-            <div className="p-6 rounded-2xl bg-surface-container border border-outline-variant/10 text-center text-xs text-on-surface-variant">
-              Sem dados de entradas registrados
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2.5 p-4 rounded-2xl bg-surface-container border border-outline-variant/10">
-              {entradasCategories.map(item => (
-                <div key={item.category} className="flex flex-col gap-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-on-surface">{item.category}</span>
-                    <span className="font-extrabold text-tertiary">{formatBRL(item.amount)} ({item.percentage}%)</span>
-                  </div>
-                  <div className="w-full h-1.5 bg-surface-container-low rounded-full overflow-hidden">
-                    <div className="bg-tertiary h-full rounded-full" style={{ width: `${item.percentage}%` }}></div>
-                  </div>
-                </div>
-              ))}
+          {/* Small horizontal percentage visualization */}
+          {totalEntradas > 0 && (
+            <div className="flex flex-col gap-1.5 mt-2">
+              <span className="text-[11px] font-bold text-on-surface-variant uppercase">Estrutura de Gastos</span>
+              <div className="w-full bg-surface-container-low h-3 rounded-full flex overflow-hidden">
+                <div 
+                  className="bg-tertiary h-full"
+                  style={{ width: `${Math.round(((totalEntradas - totalSaidas) / totalEntradas) * 100)}%` }}
+                  title="Lucro Guardado"
+                ></div>
+                <div 
+                  className="bg-error h-full"
+                  style={{ width: `${Math.round((totalSaidas / totalEntradas) * 100)}%` }}
+                  title="Despesas"
+                ></div>
+              </div>
+              <div className="flex items-center justify-between text-[10px] font-semibold text-on-surface-variant mt-0.5">
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-tertiary"></span> Retido</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-error"></span> Gasto</span>
+              </div>
             </div>
           )}
-        </div>
-
-        {/* Saidas Group */}
-        <div className="flex flex-col gap-3">
-          <h3 className="text-sm font-bold text-on-surface flex items-center gap-2">
-            <span className="material-symbols-outlined text-error text-lg">trending_down</span>
-            Para onde foi o dinheiro? (Saídas)
-          </h3>
-
-          {saidasCategories.length === 0 ? (
-            <div className="p-6 rounded-2xl bg-surface-container border border-outline-variant/10 text-center text-xs text-on-surface-variant">
-              Sem dados de saídas registrados
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2.5 p-4 rounded-2xl bg-surface-container border border-outline-variant/10">
-              {saidasCategories.map(item => (
-                <div key={item.category} className="flex flex-col gap-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-on-surface">{item.category}</span>
-                    <span className="font-extrabold text-error">{formatBRL(item.amount)} ({item.percentage}%)</span>
-                  </div>
-                  <div className="w-full h-1.5 bg-surface-container-low rounded-full overflow-hidden">
-                    <div className="bg-error h-full rounded-full" style={{ width: `${item.percentage}%` }}></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        </motion.div>
 
         {/* Payment Methods breakdown */}
         <div className="flex flex-col gap-3">
@@ -205,6 +148,69 @@ export default function Summary({ transactions, profile, onNavigateToPlanos }: S
               ))}
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Right Column (Categories Distribution & Projections) */}
+      <div className="col-span-12 lg:col-span-7 flex flex-col gap-6">
+        {/* Category distribution groups */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          {/* Entradas Group */}
+          <div className="flex flex-col gap-3">
+            <h3 className="text-sm font-bold text-on-surface flex items-center gap-2">
+              <span className="material-symbols-outlined text-tertiary text-lg">trending_up</span>
+              De onde veio o dinheiro? (Entradas)
+            </h3>
+
+            {entradasCategories.length === 0 ? (
+              <div className="p-6 rounded-2xl bg-surface-container border border-outline-variant/10 text-center text-xs text-on-surface-variant">
+                Sem dados de entradas registrados
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2.5 p-4 rounded-2xl bg-surface-container border border-outline-variant/10">
+                {entradasCategories.map(item => (
+                  <div key={item.category} className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-on-surface">{item.category}</span>
+                      <span className="font-extrabold text-tertiary">{formatBRL(item.amount)} ({item.percentage}%)</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-surface-container-low rounded-full overflow-hidden">
+                      <div className="bg-tertiary h-full rounded-full" style={{ width: `${item.percentage}%` }}></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Saidas Group */}
+          <div className="flex flex-col gap-3">
+            <h3 className="text-sm font-bold text-on-surface flex items-center gap-2">
+              <span className="material-symbols-outlined text-error text-lg">trending_down</span>
+              Para onde foi o dinheiro? (Saídas)
+            </h3>
+
+            {saidasCategories.length === 0 ? (
+              <div className="p-6 rounded-2xl bg-surface-container border border-outline-variant/10 text-center text-xs text-on-surface-variant">
+                Sem dados de saídas registrados
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2.5 p-4 rounded-2xl bg-surface-container border border-outline-variant/10">
+                {saidasCategories.map(item => (
+                  <div key={item.category} className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-on-surface">{item.category}</span>
+                      <span className="font-extrabold text-error">{formatBRL(item.amount)} ({item.percentage}%)</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-surface-container-low rounded-full overflow-hidden">
+                      <div className="bg-error h-full rounded-full" style={{ width: `${item.percentage}%` }}></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Seção Estruturada para Projeções / Funcionalidade futura PRO */}
@@ -262,7 +268,6 @@ export default function Summary({ transactions, profile, onNavigateToPlanos }: S
             </div>
           )}
         </div>
-
       </div>
     </div>
   );
