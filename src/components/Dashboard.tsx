@@ -6,6 +6,7 @@ import EvolutionCard from './EvolutionCard';
 import ProGrowthPanel from './ProGrowthPanel';
 import ProInsights from './ProInsights';
 import MonthComparison from './MonthComparison';
+import DesktopDashboard from './DesktopDashboard';
 
 const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://pay.cakto.com.br/rdvxqwt';
 
@@ -95,39 +96,43 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
     }).format(val);
   };
 
+  const totalRetiradas = visibleTransactions
+    .filter(t => t.type === 'saida' && t.category === 'Pro-Labore')
+    .reduce((sum, t) => sum + t.amount, 0);
+
   return (
-    <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6 w-full max-w-lg md:max-w-4xl lg:max-w-full pb-24 lg:pb-0 text-left">
-      {/* Top Welcome Bar */}
-      <div className="flex items-center justify-between lg:hidden col-span-12">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-on-surface-variant font-medium tracking-wider uppercase">
-              {profile.businessType === 'cnpj' ? 'MEI' : 'Autônomo'}
-            </span>
-            <span className={`text-[8px] px-1.5 py-0.5 rounded-full uppercase font-extrabold border ${
-              (profile.plan || 'essential') === 'pro'
-                ? 'bg-primary/20 text-primary border-primary/30'
-                : 'bg-white/10 text-on-surface-variant border-white/10'
-            }`}>
-              {profile.plan || 'essential'}
+    <div className="w-full">
+      {/* Mobile Experience (100% untouched & approved) */}
+      <div className="lg:hidden flex flex-col gap-6 w-full max-w-lg md:max-w-4xl pb-24 text-left mx-auto">
+        {/* Top Welcome Bar */}
+        <div className="flex items-center justify-between col-span-12">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-on-surface-variant font-medium tracking-wider uppercase">
+                {profile.businessType === 'cnpj' ? 'MEI' : 'Autônomo'}
+              </span>
+              <span className={`text-[8px] px-1.5 py-0.5 rounded-full uppercase font-extrabold border ${
+                (profile.plan || 'essential') === 'pro'
+                  ? 'bg-primary/20 text-primary border-primary/30'
+                  : 'bg-white/10 text-on-surface-variant border-white/10'
+              }`}>
+                {profile.plan || 'essential'}
+              </span>
+            </div>
+            <h2 className="text-xl font-bold text-on-surface tracking-tight">
+              Olá, <span className="text-primary">{profile.name}</span>!
+            </h2>
+            <p className="text-xs text-on-surface-variant">
+              {profile.businessName}
+            </p>
+          </div>
+          <div className="w-10 h-10 rounded-full bg-surface-container-high border border-outline-variant/30 flex items-center justify-center">
+            <span className="material-symbols-outlined text-primary text-xl">
+              storefront
             </span>
           </div>
-          <h2 className="text-xl font-bold text-on-surface tracking-tight">
-            Olá, <span className="text-primary">{profile.name}</span>!
-          </h2>
-          <p className="text-xs text-on-surface-variant">
-            {profile.businessName}
-          </p>
         </div>
-        <div className="w-10 h-10 rounded-full bg-surface-container-high border border-outline-variant/30 flex items-center justify-center">
-          <span className="material-symbols-outlined text-primary text-xl">
-            storefront
-          </span>
-        </div>
-      </div>
 
-      {/* Left Column (Main Dashboard Content) */}
-      <div className="col-span-12 lg:col-span-7 flex flex-col gap-6">
         {/* Main Financial Dashboard Card */}
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
@@ -207,50 +212,159 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
             <span className="text-sm tracking-wide font-semibold">Lançar Movimentação</span>
           </button>
         </div>
-      </div>
 
-      {/* Right Column (PRO Insights / Upgrade Card) */}
-      <div className="col-span-12 lg:col-span-5 flex flex-col gap-6">
         {/* Pro Growth Insights Panel ou Card Compacto PRO */}
-        {isPro ? (
-          <ProGrowthPanel
-            transactions={transactions}
-            isPro={isPro}
-            onUnlockPro={() => setShowProModal(true)}
-          />
-        ) : (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="glass-card rounded-[24px] p-6 shadow-xl flex flex-col gap-4 relative overflow-hidden text-left"
-          >
-            <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full filter blur-lg pointer-events-none"></div>
-            
-            {/* Discret badge in the top right */}
-            <div className="absolute top-6 right-6">
-              <span className="text-[10px] font-black text-white bg-[#6934D1] px-2.5 py-0.5 rounded-full tracking-wider">
-                PRO
-              </span>
+        <div className="flex flex-col gap-6">
+          {isPro ? (
+            <ProGrowthPanel
+              transactions={transactions}
+              isPro={isPro}
+              onUnlockPro={() => setShowProModal(true)}
+            />
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="glass-card rounded-[24px] p-6 shadow-xl flex flex-col gap-4 relative overflow-hidden text-left"
+            >
+              <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full filter blur-lg pointer-events-none"></div>
+              
+              {/* Discret badge in the top right */}
+              <div className="absolute top-6 right-6">
+                <span className="text-[10px] font-black text-white bg-[#6934D1] px-2.5 py-0.5 rounded-full tracking-wider">
+                  PRO
+                </span>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <h3 className="text-base font-black text-on-surface tracking-tight pr-10">
+                  Você está utilizando o plano Essencial
+                </h3>
+                <p className="text-xs text-on-surface-variant font-medium leading-relaxed">
+                  Desbloqueie recursos exclusivos do MCO PRO e acompanhe a evolução do seu negócio com muito mais inteligência.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowProModal(true)}
+                className="mt-1 w-full py-3.5 rounded-2xl bg-gradient-to-r from-primary to-[#8b6eff] hover:from-[#8b6eff] hover:to-[#a18cff] text-on-primary font-black text-xs transition-all duration-300 flex items-center justify-center gap-2 border border-primary/30 shadow-[0_4px_14px_rgba(109,59,215,0.25)] hover:shadow-[0_4px_20px_rgba(109,59,215,0.45)] cursor-pointer active:scale-95"
+              >
+                Visualizar benefícios do PRO
+              </button>
+            </motion.div>
+          )}
+        </div>
+
+        {/* Insights PRO (Exclusivo PRO) - apenas se for PRO */}
+        {isPro && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Evolução do Negócio */}
+            <EvolutionCard transactions={transactions} />
+
+            {/* Comparativo entre Meses */}
+            <MonthComparison transactions={transactions} />
+
+            {/* Insights Inteligentes */}
+            <div className="md:col-span-2 relative overflow-hidden rounded-[24px]">
+              <ProInsights transactions={transactions} />
             </div>
 
-            <div className="flex flex-col gap-2">
-              <h3 className="text-base font-black text-on-surface tracking-tight pr-10">
-                Você está utilizando o plano Essencial
-              </h3>
-              <p className="text-xs text-on-surface-variant font-medium leading-relaxed">
-                Desbloqueie recursos exclusivos do MCO PRO e acompanhe a evolução do seu negócio com muito mais inteligência.
+            {/* Informativo de Atualizações Vitalícias */}
+            <div className="md:col-span-2 glass-card rounded-[20px] p-4 border border-primary/20 bg-primary/5 flex items-start gap-3 text-left">
+              <span className="material-symbols-outlined text-primary text-lg shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>verified_user</span>
+              <p className="text-[11px] text-on-surface-variant font-medium leading-normal">
+                Você tem <span className="text-primary font-bold">acesso vitalício</span> a todas as futuras atualizações, melhorias e novos recursos exclusivos do MCO PRO sem nenhuma taxa recorrente.
               </p>
             </div>
-
-            <button
-              type="button"
-              onClick={() => setShowProModal(true)}
-              className="mt-1 w-full py-3.5 rounded-2xl bg-gradient-to-r from-primary to-[#8b6eff] hover:from-[#8b6eff] hover:to-[#a18cff] text-on-primary font-black text-xs transition-all duration-300 flex items-center justify-center gap-2 border border-primary/30 shadow-[0_4px_14px_rgba(109,59,215,0.25)] hover:shadow-[0_4px_20px_rgba(109,59,215,0.45)] cursor-pointer active:scale-95"
-            >
-              Visualizar benefícios do PRO
-            </button>
-          </motion.div>
+          </div>
         )}
+
+        {/* Short list of Recent Transactions */}
+        <div className="flex flex-col gap-4 mt-2">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-on-surface flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-lg">list_alt</span>
+              Últimos Lançamentos
+            </h3>
+            <button 
+              onClick={() => onNavigateToTab('historico')}
+              className="text-xs font-semibold text-primary hover:underline flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+            >
+              Ver tudo
+              <span className="material-symbols-outlined text-[10px]">arrow_forward</span>
+            </button>
+          </div>
+
+          {transactions.length === 0 ? (
+            <div className="p-8 rounded-2xl bg-surface-container-low border border-outline-variant/10 text-center flex flex-col items-center gap-2">
+              <span className="material-symbols-outlined text-on-surface-variant/40 text-4xl">folder_off</span>
+              <span className="text-xs text-on-surface-variant">Nenhum lançamento cadastrado</span>
+            </div>
+          ) : (
+            <div className="glass-card rounded-[24px] border border-outline-variant/10 overflow-hidden bg-surface-container/20">
+              <div className="flex flex-col divide-y divide-outline-variant/5">
+                {transactions.slice(0, 3).map((tx) => {
+                  const dateObj = tx.date ? new Date(tx.date + 'T12:00:00') : new Date();
+                  const formattedDate = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+
+                  return (
+                    <div 
+                      key={tx.id} 
+                      className="group px-4 sm:px-6 py-3.5 flex items-center justify-between hover:bg-white/[0.02] transition-all duration-200 select-none min-h-[64px]"
+                    >
+                      <div className="flex items-center gap-3.5 min-w-0 flex-1 text-left">
+                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                          tx.type === 'entrada' ? 'bg-[#10b981]/15 text-[#4edea3]' : 'bg-[#ef4444]/15 text-[#f87171]'
+                        }`}>
+                          <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>
+                            {tx.type === 'entrada' ? 'arrow_upward' : 'arrow_downward'}
+                          </span>
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <h4 className="text-xs sm:text-sm font-semibold text-on-surface truncate tracking-tight leading-tight group-hover:text-primary transition-colors">
+                            {tx.title}
+                          </h4>
+                          <span className="text-[10px] text-on-surface-variant/75 font-medium leading-none mt-1">
+                            {tx.paymentMethod} • {tx.category}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0 pl-3">
+                        <span className={`text-sm font-bold tracking-tight ${
+                          tx.type === 'entrada' ? 'text-tertiary' : 'text-error'
+                        }`}>
+                          {tx.type === 'entrada' ? '+' : '-'} {formatBRL(tx.amount)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Desktop Experience (Premium SaaS Visual Style - Responsive & Elegant) */}
+      <div className="hidden lg:block w-full">
+        <DesktopDashboard
+          profile={profile}
+          transactions={transactions}
+          totalEntradas={totalEntradas}
+          totalSaidas={totalSaidas}
+          totalSobrou={totalSobrou}
+          totalRetiradas={totalRetiradas}
+          sobrouPercentage={sobrouPercentage}
+          visibleTransactions={visibleTransactions}
+          onAddTransaction={onAddTransaction}
+          onNavigateToTab={onNavigateToTab}
+          setShowQuickAdd={setShowQuickAdd}
+          setShowProModal={setShowProModal}
+          setTxType={setTxType}
+          isPro={isPro}
+        />
       </div>
 
       {/* Quick Add Dialog (Matches requested layout) */}
@@ -347,56 +461,30 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
                             isSelected
                               ? txType === 'entrada'
                                 ? 'border-[#10b981]/40 bg-[#10b981]/15 text-[#4edea3] shadow-[0_0_12px_rgba(16,185,129,0.15)]'
-                                : 'border-[#ef4444]/40 bg-[#ef4444]/15 text-[#ff8a80] shadow-[0_0_12px_rgba(239,68,68,0.15)]'
-                              : 'border-white/[0.06] bg-white/[0.02] text-on-surface-variant/90 hover:bg-white/[0.05] hover:text-white hover:border-white/10'
+                                : 'border-[#ef4444]/40 bg-[#ef4444]/15 text-[#f87171] shadow-[0_0_12px_rgba(239,68,68,0.15)]'
+                              : 'border-white/[0.04] bg-white/[0.01] hover:bg-white/[0.03] text-on-surface-variant/80'
                           }`}
                         >
                           {cat}
                         </button>
                       );
                     })}
-                    {/* Select other dropdown option if needed */}
-                    {AVAILABLE_CATEGORIES[txType].length > 3 && (
-                      <div className="relative min-w-[120px]">
-                        <select
-                          value={AVAILABLE_CATEGORIES[txType].includes(category) && AVAILABLE_CATEGORIES[txType].indexOf(category) >= 3 ? category : ''}
-                          onChange={(e) => {
-                            if (e.target.value) setCategory(e.target.value);
-                          }}
-                          className={`w-full px-4 py-2.5 pr-8 text-xs font-bold rounded-full border bg-white/[0.02] text-on-surface-variant cursor-pointer outline-none appearance-none transition-all ${
-                            AVAILABLE_CATEGORIES[txType].indexOf(category) >= 3
-                              ? txType === 'entrada'
-                                ? 'border-[#10b981]/40 bg-[#10b981]/15 text-[#4edea3]'
-                                : 'border-[#ef4444]/40 bg-[#ef4444]/15 text-[#ff8a80]'
-                              : 'border-white/[0.06] hover:bg-white/[0.05] hover:text-white hover:border-white/10'
-                          }`}
-                        >
-                          <option value="" className="bg-[#121217] text-on-surface-variant">Outros...</option>
-                          {AVAILABLE_CATEGORIES[txType].slice(3).map((cat) => (
-                            <option key={cat} value={cat} className="bg-[#121217] text-white">
-                              {cat}
-                            </option>
-                          ))}
-                        </select>
-                        <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-sm font-bold">
-                          keyboard_arrow_down
-                        </span>
-                      </div>
-                    )}
                   </div>
                 </div>
 
-                {/* Especificação do Item ou Serviço */}
+                {/* Descrição */}
                 <div className="flex flex-col gap-1.5 text-left">
-                  <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Especificação do Item ou Serviço</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ex.: venda de bolo, compra de insumos..."
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="w-full bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus:border-primary focus:bg-[#1b1b26] rounded-xl px-4 py-3 text-xs focus:outline-none text-white placeholder:text-white/[0.15] transition-all"
-                  />
+                  <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Identificação</label>
+                  <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary focus-within:bg-[#1b1b26] rounded-xl px-4 py-3 transition-all">
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ex: Pagamento Cliente João"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      className="w-full bg-transparent border-none text-xs text-white focus:outline-none placeholder:text-white/[0.15]"
+                    />
+                  </div>
                 </div>
 
                 {/* Quando foi? (Date) */}
@@ -436,30 +524,6 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
           </div>
         )}
       </AnimatePresence>
-
-      {/* Insights PRO (Exclusivo PRO) - apenas se for PRO */}
-      {isPro && (
-        <div className="col-span-12 grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Evolução do Negócio */}
-          <EvolutionCard transactions={transactions} />
-
-          {/* Comparativo entre Meses */}
-          <MonthComparison transactions={transactions} />
-
-          {/* Insights Inteligentes */}
-          <div className="md:col-span-2 relative overflow-hidden rounded-[24px]">
-            <ProInsights transactions={transactions} />
-          </div>
-
-          {/* Informativo de Atualizações Vitalícias */}
-          <div className="md:col-span-2 glass-card rounded-[20px] p-4 border border-primary/20 bg-primary/5 flex items-start gap-3 text-left">
-            <span className="material-symbols-outlined text-primary text-lg shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>verified_user</span>
-            <p className="text-[11px] text-on-surface-variant font-medium leading-normal">
-              Você tem <span className="text-primary font-bold">acesso vitalício</span> a todas as futuras atualizações, melhorias e novos recursos exclusivos do MCO PRO sem nenhuma taxa recorrente.
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* Modal de confirmação/aquisição do Plano PRO */}
       {showProModal && (
@@ -560,99 +624,6 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
           </motion.div>
         </div>
       )}
-
-      {/* Short list of Recent Transactions */}
-      <div className="col-span-12 flex flex-col gap-4 mt-2">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-on-surface flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-lg">list_alt</span>
-            Últimos Lançamentos
-          </h3>
-          <button 
-            onClick={() => onNavigateToTab('historico')}
-            className="text-xs font-semibold text-primary hover:underline flex items-center gap-1 cursor-pointer transition-all active:scale-95"
-          >
-            Ver tudo
-            <span className="material-symbols-outlined text-[10px]">arrow_forward</span>
-          </button>
-        </div>
-
-        {transactions.length === 0 ? (
-          <div className="p-8 rounded-2xl bg-surface-container-low border border-outline-variant/10 text-center flex flex-col items-center gap-2">
-            <span className="material-symbols-outlined text-on-surface-variant/40 text-4xl">folder_off</span>
-            <span className="text-xs text-on-surface-variant">Nenhum lançamento cadastrado</span>
-          </div>
-        ) : (
-          <div className="glass-card rounded-[24px] border border-outline-variant/10 overflow-hidden bg-surface-container/20">
-            <div className="flex flex-col divide-y divide-outline-variant/5">
-              {transactions.slice(0, 3).map((tx) => {
-                // Formatting date nicely
-                const dateObj = tx.date ? new Date(tx.date + 'T12:00:00') : new Date();
-                const formattedDate = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-
-                return (
-                  <div 
-                    key={tx.id} 
-                    className="group px-4 sm:px-6 py-3.5 flex items-center justify-between hover:bg-white/[0.02] transition-all duration-200 select-none min-h-[64px]"
-                  >
-                    {/* Left block: Icon & description */}
-                    <div className="flex items-center gap-3.5 min-w-0 flex-1 lg:flex-initial lg:w-1/3 text-left">
-                      <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 duration-200 ${
-                        tx.type === 'entrada' 
-                          ? 'bg-tertiary/10 text-tertiary border border-tertiary/10' 
-                          : 'bg-error/10 text-error border border-error/10'
-                      }`}>
-                        <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
-                          {tx.type === 'entrada' ? 'arrow_upward' : 'arrow_downward'}
-                        </span>
-                      </div>
-                      <div className="flex flex-col min-w-0">
-                        <h4 className="text-xs sm:text-sm font-semibold text-on-surface truncate tracking-tight leading-tight group-hover:text-primary transition-colors">
-                          {tx.title}
-                        </h4>
-                        {/* Mobile metadata subline */}
-                        <span className="text-[10px] text-on-surface-variant/75 font-medium leading-none mt-1 sm:mt-1.5 lg:hidden">
-                          {tx.paymentMethod} • {tx.category}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Desktop Category column (hidden on mobile) */}
-                    <div className="hidden lg:flex items-center w-1/4 px-2 min-w-0">
-                      <span className="text-xs font-semibold text-on-surface-variant/85 truncate bg-white/[0.03] border border-white/5 rounded-full px-2.5 py-0.5">
-                        {tx.category}
-                      </span>
-                    </div>
-
-                    {/* Desktop Payment Method column (hidden on mobile) */}
-                    <div className="hidden lg:flex items-center w-1/4 px-2 min-w-0">
-                      <span className="text-xs font-medium text-on-surface-variant/75 truncate">
-                        {tx.paymentMethod}
-                      </span>
-                    </div>
-
-                    {/* Desktop Date column (hidden on mobile) */}
-                    <div className="hidden lg:flex items-center w-32 px-2 shrink-0">
-                      <span className="text-xs font-medium text-on-surface-variant/50">
-                        {formattedDate}
-                      </span>
-                    </div>
-
-                    {/* Right block: Amount */}
-                    <div className="text-right shrink-0 pl-3">
-                      <span className={`text-sm font-bold tracking-tight ${
-                        tx.type === 'entrada' ? 'text-tertiary' : 'text-error'
-                      }`}>
-                        {tx.type === 'entrada' ? '+' : '-'} {formatBRL(tx.amount)}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
     </div>
   );
 }

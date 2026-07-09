@@ -626,12 +626,12 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
             {/* Sidebar - Visible on Desktop only */}
             <aside className="hidden lg:flex flex-col w-64 shrink-0 h-screen sticky top-0 py-8 border-r border-white/5 pr-6 z-30 select-none">
               {/* Logo */}
-              <div className="flex items-center gap-2.5 px-3 py-2 rounded-2xl bg-primary/10 border border-primary/30 shadow-[0_0_15px_rgba(208,188,255,0.25)] mb-8">
+              <div className="flex items-center gap-2.5 px-3 py-2 rounded-2xl bg-primary/10 border border-primary/30 shadow-[0_0_15px_rgba(208,188,255,0.25)] mb-8 max-w-full">
                 <span className="material-symbols-outlined text-primary text-xl flex-shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>
                   account_balance_wallet
                 </span>
-                <span className="text-sm font-extrabold text-primary tracking-wider uppercase font-sans">
-                  MCO
+                <span className="text-xs font-extrabold text-primary tracking-wider uppercase font-sans truncate select-none">
+                  Meu Caixa Organizado
                 </span>
               </div>
 
