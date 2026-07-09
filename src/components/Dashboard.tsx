@@ -256,157 +256,184 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
       {/* Quick Add Dialog (Matches requested layout) */}
       <AnimatePresence>
         {showQuickAdd && (
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            className="glass-card rounded-[32px] p-6 shadow-2xl border border-primary/20 flex flex-col gap-6"
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between">
-              <h3 className="text-xl font-bold text-on-surface">
-                Novo lançamento
-              </h3>
-              <button 
-                onClick={() => setShowQuickAdd(false)}
-                className="w-10 h-10 rounded-full bg-surface-container-high hover:bg-surface-container-highest flex items-center justify-center transition-colors cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-on-surface-variant">close</span>
-              </button>
-            </div>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ type: "spring", duration: 0.4 }}
+              className="glass-card rounded-[28px] p-6 sm:p-8 border border-white/[0.08] w-full max-w-lg flex flex-col gap-6 relative bg-gradient-to-b from-[#181822]/98 to-[#0f0f14]/98 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.8)]"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full filter blur-2xl pointer-events-none"></div>
 
-            <form onSubmit={handleQuickAddSubmit} className="flex flex-col gap-5">
-              
-              {/* Segmented Toggles: Entrou vs Saiu */}
-              <div className="grid grid-cols-2 p-1 bg-surface-container-low rounded-2xl border border-outline-variant/20">
-                <button
-                  type="button"
-                  onClick={() => setTxType('entrada')}
-                  className={`py-3 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                    txType === 'entrada' 
-                      ? 'bg-[#143e2e] text-[#4edea3] border border-[#10b981]/20' 
-                      : 'text-on-surface-variant hover:text-on-surface'
-                  }`}
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-white/[0.06] pb-4">
+                <div className="flex flex-col gap-1">
+                  <h3 className="text-lg sm:text-xl font-extrabold text-white tracking-tight flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>add_circle</span>
+                    Lançar Movimentação
+                  </h3>
+                  <p className="text-[11px] sm:text-xs text-on-surface-variant/70 font-medium">
+                    Registre uma movimentação no caixa do seu negócio
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setShowQuickAdd(false)}
+                  className="w-9 h-9 rounded-full bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] flex items-center justify-center transition-all cursor-pointer text-on-surface-variant hover:text-white"
                 >
-                  <span className="material-symbols-outlined text-sm font-bold">trending_up</span>
-                  Entrou
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTxType('saida')}
-                  className={`py-3 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                    txType === 'saida' 
-                      ? 'bg-[#4c1d24] text-[#ffb4ab] border border-[#ffb4ab]/20' 
-                      : 'text-on-surface-variant hover:text-on-surface'
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-sm font-bold">trending_down</span>
-                  Saiu
+                  <span className="material-symbols-outlined text-lg">close</span>
                 </button>
               </div>
 
-              {/* Quanto foi? */}
-              <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold text-on-surface-variant/90">Quanto foi?</label>
-                <div className="relative flex items-center bg-surface-container-low border-2 border-primary/60 rounded-2xl px-4 py-3.5 focus-within:shadow-[0_0_15px_rgba(160,120,255,0.25)] transition-all">
-                  <span className="text-xl font-bold text-on-surface-variant/60 mr-2">R$</span>
+              <form onSubmit={handleQuickAddSubmit} className="flex flex-col gap-5">
+                
+                {/* Segmented Toggles: Entrou vs Saiu */}
+                <div className="grid grid-cols-2 p-1 bg-[#0d0d12] rounded-2xl border border-white/[0.06]">
+                  <button
+                    type="button"
+                    onClick={() => setTxType('entrada')}
+                    className={`py-3 text-xs font-extrabold rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer select-none ${
+                      txType === 'entrada' 
+                        ? 'bg-tertiary text-on-primary shadow-[0_2px_8px_rgba(16,185,129,0.2)] border border-white/10' 
+                        : 'text-on-surface-variant/80 hover:text-white hover:bg-white/[0.02]'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-sm font-bold" style={{ fontVariationSettings: "'FILL' 1" }}>trending_up</span>
+                    Receita (Entrou)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTxType('saida')}
+                    className={`py-3 text-xs font-extrabold rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer select-none ${
+                      txType === 'saida' 
+                        ? 'bg-error text-on-primary shadow-[0_2px_8px_rgba(239,68,68,0.2)] border border-white/10' 
+                        : 'text-on-surface-variant/80 hover:text-white hover:bg-white/[0.02]'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-sm font-bold" style={{ fontVariationSettings: "'FILL' 1" }}>trending_down</span>
+                    Despesa (Saiu)
+                  </button>
+                </div>
+
+                {/* Quanto foi? (Amount) */}
+                <div className="flex flex-col gap-1.5 text-left">
+                  <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Quanto foi?</label>
+                  <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary/60 rounded-xl px-4 py-3.5 focus-within:bg-[#1b1b26] focus-within:shadow-[0_0_20px_rgba(109,59,215,0.15)] transition-all">
+                    <span className="text-lg font-extrabold text-on-surface-variant/50 mr-2 select-none">R$</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      placeholder="0,00"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      className="w-full bg-transparent border-none text-white font-extrabold text-lg focus:outline-none placeholder:text-white/[0.15] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Categoria */}
+                <div className="flex flex-col gap-2 text-left">
+                  <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Categoria</label>
+                  <div className="flex flex-wrap gap-2">
+                    {AVAILABLE_CATEGORIES[txType].slice(0, 3).map((cat) => {
+                      const isSelected = category === cat;
+                      return (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => setCategory(cat)}
+                          className={`px-4 py-2.5 rounded-full text-xs font-bold border transition-all cursor-pointer ${
+                            isSelected
+                              ? txType === 'entrada'
+                                ? 'border-[#10b981]/40 bg-[#10b981]/15 text-[#4edea3] shadow-[0_0_12px_rgba(16,185,129,0.15)]'
+                                : 'border-[#ef4444]/40 bg-[#ef4444]/15 text-[#ff8a80] shadow-[0_0_12px_rgba(239,68,68,0.15)]'
+                              : 'border-white/[0.06] bg-white/[0.02] text-on-surface-variant/90 hover:bg-white/[0.05] hover:text-white hover:border-white/10'
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                      );
+                    })}
+                    {/* Select other dropdown option if needed */}
+                    {AVAILABLE_CATEGORIES[txType].length > 3 && (
+                      <div className="relative min-w-[120px]">
+                        <select
+                          value={AVAILABLE_CATEGORIES[txType].includes(category) && AVAILABLE_CATEGORIES[txType].indexOf(category) >= 3 ? category : ''}
+                          onChange={(e) => {
+                            if (e.target.value) setCategory(e.target.value);
+                          }}
+                          className={`w-full px-4 py-2.5 pr-8 text-xs font-bold rounded-full border bg-white/[0.02] text-on-surface-variant cursor-pointer outline-none appearance-none transition-all ${
+                            AVAILABLE_CATEGORIES[txType].indexOf(category) >= 3
+                              ? txType === 'entrada'
+                                ? 'border-[#10b981]/40 bg-[#10b981]/15 text-[#4edea3]'
+                                : 'border-[#ef4444]/40 bg-[#ef4444]/15 text-[#ff8a80]'
+                              : 'border-white/[0.06] hover:bg-white/[0.05] hover:text-white hover:border-white/10'
+                          }`}
+                        >
+                          <option value="" className="bg-[#121217] text-on-surface-variant">Outros...</option>
+                          {AVAILABLE_CATEGORIES[txType].slice(3).map((cat) => (
+                            <option key={cat} value={cat} className="bg-[#121217] text-white">
+                              {cat}
+                            </option>
+                          ))}
+                        </select>
+                        <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-sm font-bold">
+                          keyboard_arrow_down
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Especificação do Item ou Serviço */}
+                <div className="flex flex-col gap-1.5 text-left">
+                  <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Especificação do Item ou Serviço</label>
                   <input
-                    type="number"
-                    step="0.01"
+                    type="text"
                     required
-                    placeholder="0,00"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="w-full bg-transparent border-none text-on-surface font-extrabold text-xl focus:outline-none placeholder:text-on-surface-variant/30 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    placeholder="Ex.: venda de bolo, compra de insumos..."
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="w-full bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus:border-primary focus:bg-[#1b1b26] rounded-xl px-4 py-3 text-xs focus:outline-none text-white placeholder:text-white/[0.15] transition-all"
                   />
                 </div>
-              </div>
 
-              {/* Categoria */}
-              <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold text-on-surface-variant/90">Categoria</label>
-                <div className="flex flex-wrap gap-2">
-                  {AVAILABLE_CATEGORIES[txType].slice(0, 3).map((cat) => {
-                    const isSelected = category === cat;
-                    return (
-                      <button
-                        key={cat}
-                        type="button"
-                        onClick={() => setCategory(cat)}
-                        className={`px-4 py-2.5 rounded-full text-xs font-bold border transition-all cursor-pointer ${
-                          isSelected
-                            ? 'border-primary bg-primary/10 text-primary'
-                            : 'border-outline-variant/30 bg-surface-container text-on-surface-variant hover:text-on-surface'
-                        }`}
-                      >
-                        {cat}
-                      </button>
-                    );
-                  })}
-                  {/* Select other dropdown option if needed */}
-                  {AVAILABLE_CATEGORIES[txType].length > 3 && (
-                    <div className="relative">
-                      <select
-                        value={AVAILABLE_CATEGORIES[txType].includes(category) && AVAILABLE_CATEGORIES[txType].indexOf(category) >= 3 ? category : ''}
-                        onChange={(e) => {
-                          if (e.target.value) setCategory(e.target.value);
-                        }}
-                        className={`px-4 py-2 text-xs font-bold rounded-full border bg-surface-container text-on-surface-variant cursor-pointer outline-none ${
-                          AVAILABLE_CATEGORIES[txType].indexOf(category) >= 3
-                            ? 'border-primary bg-primary/10 text-primary'
-                            : 'border-outline-variant/30'
-                        }`}
-                      >
-                        <option value="">Outros...</option>
-                        {AVAILABLE_CATEGORIES[txType].slice(3).map((cat) => (
-                          <option key={cat} value={cat}>
-                            {cat}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
+                {/* Quando foi? (Date) */}
+                <div className="flex flex-col gap-1.5 text-left">
+                  <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Quando foi?</label>
+                  <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary focus-within:bg-[#1b1b26] rounded-xl px-4 py-3 transition-all">
+                    <input
+                      type="date"
+                      required
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
+                      className="w-full bg-transparent border-none text-xs text-white focus:outline-none cursor-pointer scheme-dark"
+                    />
+                    <span className="material-symbols-outlined absolute right-4 text-on-surface-variant/70 pointer-events-none text-base">calendar_today</span>
+                  </div>
                 </div>
-              </div>
 
-              {/* Especificação do Item ou Serviço */}
-              <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold text-on-surface-variant/90">Especificação do Item ou Serviço</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ex.: corte de cabelo, compra de insumos..."
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="w-full bg-surface-container-low border border-outline-variant/40 rounded-2xl px-4 py-3 text-xs focus:outline-none focus:border-primary text-on-surface placeholder:text-on-surface-variant/30"
-                />
-              </div>
-
-              {/* Quando foi? */}
-              <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold text-on-surface-variant/90">Quando foi?</label>
-                <div className="relative flex items-center bg-surface-container-low border border-outline-variant/40 rounded-2xl px-4 py-3 focus-within:border-primary transition-all">
-                  <input
-                    type="date"
-                    required
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className="w-full bg-transparent border-none text-xs text-on-surface focus:outline-none"
-                  />
-                  <span className="material-symbols-outlined absolute right-4 text-on-surface-variant pointer-events-none text-lg">calendar_today</span>
+                {/* CTA Buttons */}
+                <div className="flex gap-3 pt-4 border-t border-white/[0.06] mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowQuickAdd(false)}
+                    className="flex-1 py-3.5 bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] rounded-xl text-xs sm:text-sm font-extrabold text-white transition-all active:scale-[0.98] cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-3.5 bg-primary hover:bg-[#8455ef] text-white font-extrabold rounded-xl text-xs sm:text-sm transition-all duration-300 shadow-[0_4px_14px_rgba(109,59,215,0.25)] hover:shadow-[0_4px_20px_rgba(109,59,215,0.45)] active:scale-[0.98] border border-primary/30 flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-sm font-bold">done</span>
+                    Salvar lançamento
+                  </button>
                 </div>
-              </div>
-
-              {/* Submit button matching visual style */}
-              <button
-                type="submit"
-                className="w-full bg-[#6d3bd7] hover:bg-[#8455ef] text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 shadow-[0_4px_14px_rgba(109,59,215,0.25)] active:scale-[0.98] border border-primary/30 mt-3 cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-sm font-bold">done</span>
-                <span className="text-sm">Salvar lançamento</span>
-              </button>
-            </form>
-          </motion.div>
+              </form>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 

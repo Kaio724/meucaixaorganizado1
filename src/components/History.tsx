@@ -677,142 +677,168 @@ export default function History({ profile, transactions, onAddTransaction, onEdi
       {/* Add Transaction Dialog / Modal */}
       <AnimatePresence>
         {showAddModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="glass-card rounded-[24px] p-6 shadow-2xl border border-primary/20 w-full max-w-md flex flex-col gap-4 relative"
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ type: "spring", duration: 0.4 }}
+              className="glass-card rounded-[28px] p-6 sm:p-8 border border-white/[0.08] w-full max-w-lg flex flex-col gap-6 relative bg-gradient-to-b from-[#181822]/98 to-[#0f0f14]/98 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.8)]"
             >
-              <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                <h3 className="text-base font-bold text-on-surface flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary">add_box</span>
-                  Registrar Lançamento
-                </h3>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full filter blur-2xl pointer-events-none"></div>
+
+              <div className="flex items-center justify-between border-b border-white/[0.06] pb-4">
+                <div className="flex flex-col gap-1 text-left">
+                  <h3 className="text-lg sm:text-xl font-extrabold text-white tracking-tight flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>add_box</span>
+                    Registrar Lançamento
+                  </h3>
+                  <p className="text-[11px] sm:text-xs text-on-surface-variant/70 font-medium">
+                    Adicione uma receita ou despesa ao histórico de movimentações
+                  </p>
+                </div>
                 <button 
                   onClick={() => setShowAddModal(false)}
-                  className="w-8 h-8 rounded-full bg-surface-container hover:bg-surface-container-highest flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors"
+                  className="w-9 h-9 rounded-full bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] flex items-center justify-center transition-all cursor-pointer text-on-surface-variant hover:text-white"
                 >
-                  <span className="material-symbols-outlined text-sm">close</span>
+                  <span className="material-symbols-outlined text-lg">close</span>
                 </button>
               </div>
 
-              <form onSubmit={handleFormSubmit} className="flex flex-col gap-4">
+              <form onSubmit={handleFormSubmit} className="flex flex-col gap-5 text-left">
                 {/* Type Selection */}
-                <div className="grid grid-cols-2 p-1 bg-surface-container-low rounded-xl border border-outline-variant/30">
+                <div className="grid grid-cols-2 p-1 bg-[#0d0d12] rounded-2xl border border-white/[0.06]">
                   <button
                     type="button"
                     onClick={() => setFormType('entrada')}
-                    className={`py-2 text-xs font-bold rounded-lg transition-all ${
+                    className={`py-3 text-xs font-extrabold rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer select-none ${
                       formType === 'entrada' 
-                        ? 'bg-tertiary/10 text-tertiary border border-tertiary/20' 
-                        : 'text-on-surface-variant hover:text-on-surface'
+                        ? 'bg-tertiary text-on-primary shadow-[0_2px_8px_rgba(16,185,129,0.2)] border border-white/10' 
+                        : 'text-on-surface-variant/80 hover:text-white hover:bg-white/[0.02]'
                     }`}
                   >
-                    Entrada (+)
+                    <span className="material-symbols-outlined text-sm font-bold" style={{ fontVariationSettings: "'FILL' 1" }}>trending_up</span>
+                    Receita (Entrada)
                   </button>
                   <button
                     type="button"
                     onClick={() => setFormType('saida')}
-                    className={`py-2 text-xs font-bold rounded-lg transition-all ${
+                    className={`py-3 text-xs font-extrabold rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer select-none ${
                       formType === 'saida' 
-                        ? 'bg-error/10 text-error border border-error/20' 
-                        : 'text-on-surface-variant hover:text-on-surface'
+                        ? 'bg-error text-on-primary shadow-[0_2px_8px_rgba(239,68,68,0.2)] border border-white/10' 
+                        : 'text-on-surface-variant/80 hover:text-white hover:bg-white/[0.02]'
                     }`}
                   >
-                    Saída (-)
+                    <span className="material-symbols-outlined text-sm font-bold" style={{ fontVariationSettings: "'FILL' 1" }}>trending_down</span>
+                    Despesa (Saiu)
                   </button>
                 </div>
 
                 {/* Title */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs text-on-surface-variant font-medium">Especificação do Item ou Serviço</label>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Especificação do Item ou Serviço</label>
                   <input
                     type="text"
                     required
                     placeholder="Ex: Venda de Bolo, Compra de Insumos..."
                     value={formTitle}
                     onChange={(e) => setFormTitle(e.target.value)}
-                    className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-primary text-on-surface placeholder:text-on-surface-variant/30"
+                    className="w-full bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus:border-primary focus:bg-[#1b1b26] rounded-xl px-4 py-3 text-xs sm:text-sm focus:outline-none text-white placeholder:text-white/[0.15] transition-all"
                   />
                 </div>
 
                 {/* Amount */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs text-on-surface-variant font-medium">Valor (R$)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    placeholder="0,00"
-                    value={formAmount}
-                    onChange={(e) => setFormAmount(e.target.value)}
-                    className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-primary text-on-surface placeholder:text-on-surface-variant/30"
-                  />
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Valor (R$)</label>
+                  <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary/60 rounded-xl px-4 py-3 focus-within:bg-[#1b1b26] focus-within:shadow-[0_0_20px_rgba(109,59,215,0.15)] transition-all">
+                    <span className="text-sm font-extrabold text-on-surface-variant/50 mr-2 select-none">R$</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      placeholder="0,00"
+                      value={formAmount}
+                      onChange={(e) => setFormAmount(e.target.value)}
+                      className="w-full bg-transparent border-none text-white font-extrabold text-sm focus:outline-none placeholder:text-white/[0.15] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                  </div>
                 </div>
 
                 {/* Category & Payment Method row */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs text-on-surface-variant font-medium">Categoria</label>
-                    <select
-                      value={formCategory}
-                      onChange={(e) => setFormCategory(e.target.value)}
-                      className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-primary text-on-surface"
-                    >
-                      {AVAILABLE_CATEGORIES[formType].map((cat) => (
-                        <option key={cat} value={cat}>
-                          {cat}
-                        </option>
-                      ))}
-                    </select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Categoria</label>
+                    <div className="relative">
+                      <select
+                        value={formCategory}
+                        onChange={(e) => setFormCategory(e.target.value)}
+                        className="w-full bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus:border-primary focus:bg-[#1b1b26] rounded-xl px-4 py-3 text-xs sm:text-sm focus:outline-none text-white cursor-pointer appearance-none pr-8 transition-all"
+                      >
+                        {AVAILABLE_CATEGORIES[formType].map((cat) => (
+                          <option key={cat} value={cat} className="bg-[#121217] text-white">
+                            {cat}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/70 pointer-events-none text-base">
+                        keyboard_arrow_down
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs text-on-surface-variant font-medium">Forma de Pagamento</label>
-                    <select
-                      value={formPaymentMethod}
-                      onChange={(e) => setFormPaymentMethod(e.target.value)}
-                      className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-primary text-on-surface"
-                    >
-                      {PAYMENT_METHODS.map((method) => (
-                        <option key={method} value={method}>
-                          {method}
-                        </option>
-                      ))}
-                    </select>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Forma de Pagamento</label>
+                    <div className="relative">
+                      <select
+                        value={formPaymentMethod}
+                        onChange={(e) => setFormPaymentMethod(e.target.value)}
+                        className="w-full bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus:border-primary focus:bg-[#1b1b26] rounded-xl px-4 py-3 text-xs sm:text-sm focus:outline-none text-white cursor-pointer appearance-none pr-8 transition-all"
+                      >
+                        {PAYMENT_METHODS.map((method) => (
+                          <option key={method} value={method} className="bg-[#121217] text-white">
+                            {method}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/70 pointer-events-none text-base">
+                        keyboard_arrow_down
+                      </span>
+                    </div>
                   </div>
                 </div>
 
                 {/* Date */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs text-on-surface-variant font-medium">Data</label>
-                  <input
-                    type="date"
-                    required
-                    value={formDate}
-                    onChange={(e) => setFormDate(e.target.value)}
-                    className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-primary text-on-surface"
-                  />
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Data</label>
+                  <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary focus-within:bg-[#1b1b26] rounded-xl px-4 py-3 transition-all">
+                    <input
+                      type="date"
+                      required
+                      value={formDate}
+                      onChange={(e) => setFormDate(e.target.value)}
+                      className="w-full bg-transparent border-none text-xs sm:text-sm text-white focus:outline-none cursor-pointer scheme-dark"
+                    />
+                    <span className="material-symbols-outlined absolute right-4 text-on-surface-variant/70 pointer-events-none text-base">calendar_today</span>
+                  </div>
                 </div>
 
                 {/* CTA Buttons */}
-                <div className="flex gap-3 pt-3 border-t border-white/5 mt-1">
+                <div className="flex gap-3 pt-4 border-t border-white/[0.06] mt-2">
                   <button
                     type="button"
                     onClick={() => setShowAddModal(false)}
-                    className="flex-1 py-3 bg-surface-container rounded-xl text-sm font-bold text-on-surface hover:bg-surface-container-highest border border-outline-variant/20 transition-all"
+                    className="flex-1 py-3.5 bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] rounded-xl text-xs sm:text-sm font-extrabold text-white transition-all active:scale-[0.98] cursor-pointer"
                   >
                     Voltar
                   </button>
                   <button
                     type="submit"
-                    className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all duration-200 flex items-center justify-center gap-1 ${
+                    className={`flex-1 py-3.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all duration-300 flex items-center justify-center gap-1.5 cursor-pointer shadow-md ${
                       formType === 'entrada' 
-                        ? 'bg-tertiary hover:bg-[#3bc691] text-on-primary' 
-                        : 'bg-error hover:bg-[#ffa095] text-on-primary'
+                        ? 'bg-tertiary hover:bg-[#3bc691] text-on-primary border border-tertiary/25 shadow-[0_4px_12px_rgba(16,185,129,0.2)]' 
+                        : 'bg-error hover:bg-[#ffa095] text-on-primary border border-error/25 shadow-[0_4px_12px_rgba(239,68,68,0.2)]'
                     }`}
                   >
-                    <span className="material-symbols-outlined text-sm">done</span>
+                    <span className="material-symbols-outlined text-sm font-bold">done</span>
                     Confirmar
                   </button>
                 </div>
