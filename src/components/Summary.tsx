@@ -71,7 +71,7 @@ export default function Summary({ transactions, profile, onNavigateToPlanos }: S
   };
 
   return (
-    <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6 w-full max-w-lg lg:max-w-full pb-24 lg:pb-0 text-left">
+    <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6 w-full max-w-lg md:max-w-4xl lg:max-w-full pb-24 lg:pb-0 text-left">
       {/* Header - Hidden on Desktop */}
       <div className="lg:hidden col-span-12">
         <h2 className="text-xl font-bold text-on-surface tracking-tight">Resumo Financeiro</h2>

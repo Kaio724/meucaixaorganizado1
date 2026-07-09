@@ -608,7 +608,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
       </AnimatePresence>
 
       {/* Main Container */}
-      <div className="w-full max-w-lg lg:max-w-7xl xl:max-w-[1440px] mx-auto px-4 lg:px-8 z-10 relative flex-1 flex flex-col lg:flex-row justify-between lg:justify-start lg:gap-8">
+      <div className="w-full max-w-lg md:max-w-4xl lg:max-w-7xl xl:max-w-[1440px] mx-auto px-4 lg:px-8 z-10 relative flex-1 flex flex-col lg:flex-row justify-between lg:justify-start lg:gap-8">
         
         {/* Render Auth Screen if not logged in */}
         {!session ? (

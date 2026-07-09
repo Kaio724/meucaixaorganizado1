@@ -96,7 +96,7 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
   };
 
   return (
-    <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6 w-full max-w-lg lg:max-w-full pb-24 lg:pb-0 text-left">
+    <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6 w-full max-w-lg md:max-w-4xl lg:max-w-full pb-24 lg:pb-0 text-left">
       {/* Top Welcome Bar */}
       <div className="flex items-center justify-between lg:hidden col-span-12">
         <div>
@@ -439,33 +439,20 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
 
       {/* Insights PRO (Exclusivo PRO) - apenas se for PRO */}
       {isPro && (
-        <div className="flex flex-col gap-6">
-          {/* Evolução do Negócio (Evolução do Lucro) */}
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary text-lg">insights</span>
-                <h3 className="text-sm font-bold text-on-surface">Evolução do Negócio</h3>
-              </div>
-            </div>
-
-            <div className="relative overflow-hidden rounded-[24px]">
-              <EvolutionCard transactions={transactions} />
-            </div>
-          </div>
+        <div className="col-span-12 grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Evolução do Negócio */}
+          <EvolutionCard transactions={transactions} />
 
           {/* Comparativo entre Meses */}
-          <div className="relative overflow-hidden rounded-[24px]">
-            <MonthComparison transactions={transactions} />
-          </div>
+          <MonthComparison transactions={transactions} />
 
           {/* Insights Inteligentes */}
-          <div className="relative overflow-hidden rounded-[24px]">
+          <div className="md:col-span-2 relative overflow-hidden rounded-[24px]">
             <ProInsights transactions={transactions} />
           </div>
 
           {/* Informativo de Atualizações Vitalícias */}
-          <div className="glass-card rounded-[20px] p-4 border border-primary/20 bg-primary/5 flex items-start gap-3 text-left">
+          <div className="md:col-span-2 glass-card rounded-[20px] p-4 border border-primary/20 bg-primary/5 flex items-start gap-3 text-left">
             <span className="material-symbols-outlined text-primary text-lg shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>verified_user</span>
             <p className="text-[11px] text-on-surface-variant font-medium leading-normal">
               Você tem <span className="text-primary font-bold">acesso vitalício</span> a todas as futuras atualizações, melhorias e novos recursos exclusivos do MCO PRO sem nenhuma taxa recorrente.

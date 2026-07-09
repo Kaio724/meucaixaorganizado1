@@ -221,7 +221,7 @@ export default function History({ profile, transactions, onAddTransaction, onEdi
       const sortedFilteredTransactions = [...filteredTransactions].sort((a, b) => b.date.localeCompare(a.date));
 
       return (
-        <div className="flex flex-col gap-6 w-full max-w-lg lg:max-w-full pb-24 lg:pb-0 text-left">
+        <div className="flex flex-col gap-6 w-full max-w-lg md:max-w-4xl lg:max-w-full pb-24 lg:pb-0 text-left">
           {/* Month Selector Header */}
           <div className="flex items-center justify-between gap-4">
             <h2 className="text-xl font-bold text-on-surface tracking-tight">Histórico</h2>

@@ -111,9 +111,11 @@ export default function MonthComparison({ transactions }: MonthComparisonProps) 
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="glass-card rounded-[24px] p-5 shadow-xl border border-white/5 flex flex-col gap-5 relative overflow-hidden bg-gradient-to-b from-surface-container/60 to-surface-container-low/40">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full filter blur-2xl pointer-events-none"></div>
+
       {/* Title & Toggle */}
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 relative z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-left">
             <span className="material-symbols-outlined text-primary text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>equalizer</span>
@@ -162,7 +164,7 @@ export default function MonthComparison({ transactions }: MonthComparisonProps) 
       </div>
 
       {/* Main Container */}
-      <div className="bg-black/15 border border-white/5 rounded-2xl p-4.5 flex flex-col gap-4">
+      <div className="bg-black/15 border border-white/5 rounded-2xl p-4.5 flex flex-col gap-4 relative z-10">
         <AnimatePresence mode="wait">
           {activeView === 'comparativo' && (
             <motion.div

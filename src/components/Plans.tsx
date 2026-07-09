@@ -34,7 +34,7 @@ export default function Plans({ profile, onUpdatePlan, onNavigateToTab }: PlansP
   };
 
   return (
-    <div className="flex flex-col gap-8 w-full max-w-lg lg:max-w-full pb-24 lg:pb-0 px-4 sm:px-0">
+    <div className="flex flex-col gap-8 w-full max-w-lg md:max-w-4xl lg:max-w-full pb-24 lg:pb-0 px-4 sm:px-0">
       {/* Header */}
       <div className="flex items-start justify-between mt-2">
         <div className="flex flex-col gap-2.5 text-left col-span-12">
