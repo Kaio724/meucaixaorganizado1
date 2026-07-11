@@ -3,6 +3,7 @@ import { UserProfile, Transaction } from '../types';
 
 let supabaseClient: any = null;
 let hasPlanoColumn = typeof window !== 'undefined' && localStorage.getItem('mco_db_has_plano') !== 'false';
+let hasContaColumn = typeof window !== 'undefined' && localStorage.getItem('mco_db_has_conta') !== 'false';
 
 export function getSupabaseUrl() {
   return (import.meta as any).env.VITE_SUPABASE_URL || 'https://yfbgauajvijwngvhrkms.supabase.co';
@@ -74,12 +75,13 @@ export function mapDbToTransaction(row: any): Transaction {
     paymentMethod: row.forma_pagamento || 'Pix',
     category: row.categoria || 'Outros',
     description: row.descricao || '',
+    account: row.conta || undefined,
   };
 }
 
 // Map Transaction to db row
 export function mapTransactionToDb(tx: any, userId: string) {
-  return {
+  const row: any = {
     id: tx.id || undefined,
     user_id: userId,
     tipo: tx.type,
@@ -90,6 +92,10 @@ export function mapTransactionToDb(tx: any, userId: string) {
     descricao: tx.description || null,
     data: tx.date,
   };
+  if (hasContaColumn && tx.account) {
+    row.conta = tx.account;
+  }
+  return row;
 }
 
 // Database APIs
@@ -167,10 +173,10 @@ export async function fetchProfile(userId: string): Promise<UserProfile | null> 
           return profile;
         }
       } catch (retryErr) {
-        console.error('Retry fetch failed:', retryErr);
+        console.warn('Retry fetch failed:', retryErr);
       }
     } else {
-      console.error('Error in fetchProfile:', err);
+      console.warn('Error in fetchProfile:', err);
     }
 
     // Try reading from cache fallback on any error (like TypeError: Failed to fetch)
@@ -242,18 +248,18 @@ export async function upsertProfile(userId: string, profile: UserProfile): Promi
           .upsert(finalDbProfile);
           
         if (retryError) {
-          console.error('Error upserting profile on retry:', retryError.message);
+          console.warn('Error upserting profile on retry:', retryError.message);
           return true;
         }
         return true;
       }
       
-      console.error('Error upserting profile:', error.message);
+      console.warn('Error upserting profile:', error.message);
       return true;
     }
     return true;
   } catch (err) {
-    console.error('Catch error in upsertProfile:', err);
+    console.warn('Catch error in upsertProfile:', err);
     // Silent success since we successfully cached it locally
     return true;
   }
@@ -284,7 +290,7 @@ export async function fetchTransactions(userId: string): Promise<Transaction[]> 
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching transactions:', error.message);
+      console.warn('Error fetching transactions:', error.message);
       throw error;
     }
 
@@ -293,7 +299,7 @@ export async function fetchTransactions(userId: string): Promise<Transaction[]> 
     localStorage.setItem(`mco_cached_transactions_${userId}`, JSON.stringify(txs));
     return txs;
   } catch (err: any) {
-    console.error('Error in fetchTransactions:', err);
+    console.warn('Error in fetchTransactions:', err);
     // Read from cache fallback on any error (like TypeError: Failed to fetch)
     const cached = localStorage.getItem(`mco_cached_transactions_${userId}`);
     if (cached) {
@@ -334,7 +340,7 @@ export async function insertTransaction(userId: string, tx: Omit<Transaction, 'i
     list.unshift(fallbackTx);
     localStorage.setItem(`mco_cached_transactions_${userId}`, JSON.stringify(list));
   } catch (e) {
-    console.error('Error caching new transaction locally:', e);
+    console.warn('Error caching new transaction locally:', e);
   }
 
   if (!supabase) return fallbackTx;
@@ -348,6 +354,25 @@ export async function insertTransaction(userId: string, tx: Omit<Transaction, 'i
       .single();
 
     if (error) {
+      if (error.message?.includes('conta') || error.message?.includes('column')) {
+        console.warn('Database lancamentos table does not have "conta" column. Marking as unsupported.');
+        hasContaColumn = false;
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('mco_db_has_conta', 'false');
+        }
+        const retryDbTx = { ...dbTx };
+        delete retryDbTx.conta;
+        const { data: retryData, error: retryError } = await supabase
+          .from('lancamentos')
+          .insert(retryDbTx)
+          .select()
+          .single();
+        if (retryError) {
+          console.warn('Supabase retry insert failed, running with local fallback:', retryError.message);
+          return fallbackTx;
+        }
+        return mapDbToTransaction(retryData);
+      }
       console.warn('Supabase insert failed, running with local fallback:', error.message);
       return fallbackTx;
     }
@@ -388,7 +413,7 @@ export async function updateTransaction(userId: string, tx: Transaction): Promis
       localStorage.setItem(`mco_cached_transactions_${userId}`, JSON.stringify(list));
     }
   } catch (e) {
-    console.error('Error caching transaction update:', e);
+    console.warn('Error caching transaction update:', e);
   }
 
   const supabase = getSupabase();
@@ -405,6 +430,27 @@ export async function updateTransaction(userId: string, tx: Transaction): Promis
       .single();
 
     if (error) {
+      if (error.message?.includes('conta') || error.message?.includes('column')) {
+        console.warn('Database lancamentos table does not have "conta" column on update. Marking as unsupported.');
+        hasContaColumn = false;
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('mco_db_has_conta', 'false');
+        }
+        const retryDbTx = { ...dbTx };
+        delete retryDbTx.conta;
+        const { data: retryData, error: retryError } = await supabase
+          .from('lancamentos')
+          .update(retryDbTx)
+          .eq('id', tx.id)
+          .eq('user_id', userId)
+          .select()
+          .single();
+        if (retryError) {
+          console.warn('Supabase retry update failed, running with local fallback:', retryError.message);
+          return tx;
+        }
+        return mapDbToTransaction(retryData);
+      }
       console.warn('Supabase update failed, running with local fallback:', error.message);
       return tx;
     }
@@ -434,7 +480,7 @@ export async function deleteTransaction(userId: string, txId: string): Promise<b
       localStorage.setItem(`mco_cached_transactions_${userId}`, JSON.stringify(list));
     }
   } catch (e) {
-    console.error('Error caching transaction deletion:', e);
+    console.warn('Error caching transaction deletion:', e);
   }
 
   const supabase = getSupabase();

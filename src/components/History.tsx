@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Transaction, UserProfile, TransactionType } from '../types';
-import { AVAILABLE_CATEGORIES, PAYMENT_METHODS } from '../initialData';
+import { AVAILABLE_CATEGORIES, PAYMENT_METHODS, ACCOUNT_OPTIONS } from '../initialData';
 
 const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://pay.cakto.com.br/rdvxqwt';
 
@@ -38,6 +38,7 @@ export default function History({ profile, transactions, onAddTransaction, onEdi
   const [formCategory, setFormCategory] = useState('');
   const [formPaymentMethod, setFormPaymentMethod] = useState('Pix');
   const [formDate, setFormDate] = useState(new Date().toISOString().split('T')[0]);
+  const [formAccount, setFormAccount] = useState<string | undefined>(undefined);
 
   // Handle month switching
   const handlePrevMonth = () => {
@@ -136,6 +137,7 @@ export default function History({ profile, transactions, onAddTransaction, onEdi
     setFormCategory(tx.category);
     setFormPaymentMethod(tx.paymentMethod);
     setFormDate(tx.date);
+    setFormAccount(tx.account);
   };
 
   // Open Add Form
@@ -147,6 +149,7 @@ export default function History({ profile, transactions, onAddTransaction, onEdi
     setFormCategory(AVAILABLE_CATEGORIES.entrada[0]);
     setFormPaymentMethod('Pix');
     setFormDate(new Date().toISOString().split('T')[0]);
+    setFormAccount(undefined);
     setShowAddModal(true);
   };
 
@@ -161,7 +164,8 @@ export default function History({ profile, transactions, onAddTransaction, onEdi
       type: formType,
       date: formDate,
       category: formCategory,
-      paymentMethod: formPaymentMethod
+      paymentMethod: formPaymentMethod,
+      account: formAccount
     };
 
     if (editingTx) {
@@ -199,18 +203,23 @@ export default function History({ profile, transactions, onAddTransaction, onEdi
   const getCategoryIcon = (category: string, type: TransactionType) => {
     if (type === 'entrada') {
       switch (category) {
-        case 'Venda': return 'local_mall';
-        case 'Cliente Avulso': return 'person';
-        case 'Sinal': return 'handshake';
-        case 'Serviço': return 'construction';
+        case 'Vendas': return 'shopping_bag';
+        case 'Serviços prestados': return 'construction';
+        case 'Aportes / Empréstimos': return 'handshake';
+        case 'Rendimentos': return 'show_chart';
+        case 'Outras receitas': return 'add_circle';
         default: return 'arrow_upward';
       }
     } else {
       switch (category) {
-        case 'Transporte': return 'local_gas_station';
-        case 'Materiais': return 'inventory_2';
-        case 'Aluguel': return 'home';
-        case 'Impostos': return 'description';
+        case 'Fornecedores': return 'local_shipping';
+        case 'Insumos / Mercadorias': return 'inventory_2';
+        case 'Aluguel / Condomínio / Luz / Água': return 'home';
+        case 'Salários / Pró-labore': return 'payments';
+        case 'Ferramentas / Equipamentos': return 'build';
+        case 'Marketing / Anúncios': return 'campaign';
+        case 'Impostos / Taxas': return 'description';
+        case 'Outras despesas': return 'remove_circle';
         default: return 'arrow_downward';
       }
     }
@@ -361,6 +370,7 @@ export default function History({ profile, transactions, onAddTransaction, onEdi
                               <h4 className="text-sm font-bold text-on-surface leading-tight">{tx.title}</h4>
                               <p className="text-[11px] text-on-surface-variant/80 mt-0.5">
                                 {tx.paymentMethod} • {tx.category}
+                                {tx.account && ` (${tx.account})`}
                               </p>
                             </div>
                           </div>
@@ -449,6 +459,7 @@ export default function History({ profile, transactions, onAddTransaction, onEdi
                                 ))}
                               </select>
                             </div>
+                          <div className="grid grid-cols-2 gap-3">
                             <div className="flex flex-col gap-1">
                               <label className="text-[10px] font-bold text-on-surface-variant">Método</label>
                               <select 
@@ -461,6 +472,22 @@ export default function History({ profile, transactions, onAddTransaction, onEdi
                                 ))}
                               </select>
                             </div>
+                            <div className="flex flex-col gap-1">
+                              <label className="text-[10px] font-bold text-on-surface-variant">
+                                {formType === 'entrada' ? 'Conta Destino' : 'Conta Origem'}
+                              </label>
+                              <select 
+                                value={formAccount || ''}
+                                onChange={(e) => setFormAccount(e.target.value || undefined)}
+                                className="bg-surface-container-low border border-outline-variant/40 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:border-primary text-on-surface w-full"
+                              >
+                                <option value="">Não especificada</option>
+                                {ACCOUNT_OPTIONS.map(acc => (
+                                  <option key={acc} value={acc}>{acc}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
                           </div>
 
                           <div className="flex flex-col gap-1">
@@ -556,8 +583,8 @@ export default function History({ profile, transactions, onAddTransaction, onEdi
                               </button>
                             </div>
 
-                            <div className="grid grid-cols-4 gap-4">
-                              <div className="flex flex-col gap-1">
+                             <div className="grid grid-cols-5 gap-4">
+                              <div className="flex flex-col gap-1 col-span-2">
                                 <label className="text-[10px] font-bold text-on-surface-variant">Especificação</label>
                                 <input 
                                   type="text"
@@ -604,6 +631,34 @@ export default function History({ profile, transactions, onAddTransaction, onEdi
                               </div>
                             </div>
 
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="flex flex-col gap-1">
+                                <label className="text-[10px] font-bold text-on-surface-variant">Data</label>
+                                <input 
+                                  type="date"
+                                  required
+                                  value={formDate}
+                                  onChange={(e) => setFormDate(e.target.value)}
+                                  className="bg-surface-container-low border border-outline-variant/40 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:border-primary text-on-surface"
+                                />
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                <label className="text-[10px] font-bold text-on-surface-variant">
+                                  {formType === 'entrada' ? 'Conta de Destino' : 'Conta de Origem'}
+                                </label>
+                                <select 
+                                  value={formAccount || ''}
+                                  onChange={(e) => setFormAccount(e.target.value || undefined)}
+                                  className="bg-surface-container-low border border-outline-variant/40 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:border-primary text-on-surface w-full"
+                                >
+                                  <option value="">Não especificada</option>
+                                  {ACCOUNT_OPTIONS.map(acc => (
+                                    <option key={acc} value={acc}>{acc}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+
                             <div className="flex justify-end gap-2 pt-2">
                               <button
                                 type="button"
@@ -639,7 +694,15 @@ export default function History({ profile, transactions, onAddTransaction, onEdi
                       <td className="p-4 font-medium text-on-surface-variant/90">{formattedDate}</td>
                       <td className="p-4 font-bold text-on-surface">{tx.title}</td>
                       <td className="p-4 font-semibold text-primary/80">{tx.category}</td>
-                      <td className="p-4 text-on-surface-variant/80 font-medium">{tx.paymentMethod}</td>
+                      <td className="p-4 text-on-surface-variant/80 font-medium">
+                        <div>{tx.paymentMethod}</div>
+                        {tx.account && (
+                          <div className="text-[10px] text-on-surface-variant/50 flex items-center gap-0.5 mt-0.5">
+                            <span className="material-symbols-outlined text-[10px]">account_balance_wallet</span>
+                            {tx.account}
+                          </div>
+                        )}
+                      </td>
                       <td className="p-4 text-right">
                         <span className={`font-extrabold tracking-tight ${
                           tx.type === 'entrada' ? 'text-tertiary' : 'text-on-surface'
@@ -803,6 +866,30 @@ export default function History({ profile, transactions, onAddTransaction, onEdi
                         keyboard_arrow_down
                       </span>
                     </div>
+                  </div>
+                </div>
+
+                {/* Conta de Origem/Destino */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">
+                    {formType === 'entrada' ? 'Conta de Destino (Opcional)' : 'Conta de Origem (Opcional)'}
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={formAccount || ''}
+                      onChange={(e) => setFormAccount(e.target.value || undefined)}
+                      className="w-full bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus:border-primary focus:bg-[#1b1b26] rounded-xl px-4 py-3 text-xs sm:text-sm focus:outline-none text-white cursor-pointer appearance-none pr-8 transition-all"
+                    >
+                      <option value="" className="bg-[#121217] text-on-surface-variant/50">Não especificada</option>
+                      {ACCOUNT_OPTIONS.map((acc) => (
+                        <option key={acc} value={acc} className="bg-[#121217] text-white">
+                          {acc}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/70 pointer-events-none text-base">
+                      keyboard_arrow_down
+                    </span>
                   </div>
                 </div>
 

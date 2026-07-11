@@ -60,7 +60,7 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
         setMode('login');
       }
     } catch (err: any) {
-      console.error('Auth error:', err);
+      console.warn('Auth error:', err);
       // Translate typical Supabase errors to friendly Portuguese
       let friendlyMsg = err.message || 'Ocorreu um erro, tente novamente.';
       if (err.message?.includes('Invalid login credentials')) {

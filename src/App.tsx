@@ -35,6 +35,21 @@ export default function App() {
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [editName, setEditName] = useState('');
   const [editBusinessName, setEditBusinessName] = useState('');
+
+  // Password alteration states
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordStatus, setPasswordStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
+  const closeEditProfileModal = () => {
+    setShowEditProfileModal(false);
+    setOldPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setPasswordStatus({ type: null, message: '' });
+  };
   
   // Migration states
   const [showMigrationModal, setShowMigrationModal] = useState(false);
@@ -130,12 +145,12 @@ export default function App() {
               setEditBusinessName(parsed.businessName || '');
             }
           } catch (e) {
-            console.error(e);
+            console.warn(e);
           }
         }
       }
     } catch (error: any) {
-      console.error('Error loading cloud data:', error);
+      console.warn('Error loading cloud data:', error);
       const isSchemaError = error.message?.includes('profiles') || 
                             error.message?.includes('lancamentos') || 
                             error.message?.includes('schema cache') || 
@@ -175,7 +190,7 @@ export default function App() {
             migrated = true;
           }
         } catch (e) {
-          console.error(e);
+          console.warn(e);
         }
       }
 
@@ -188,14 +203,14 @@ export default function App() {
           const cloudTxs = await fetchTransactions(session.user.id);
           setTransactions(cloudTxs);
         } catch (err) {
-          console.error('Error inserting initial transactions:', err);
+          console.warn('Error inserting initial transactions:', err);
           setTransactions([]);
         }
       }
 
       setActiveTab('dashboard');
     } catch (err: any) {
-      console.error('Error on onboarding:', err);
+      console.warn('Error on onboarding:', err);
       const isSchemaError = err.message?.includes('profiles') || 
                             err.message?.includes('lancamentos') || 
                             err.message?.includes('schema cache') || 
@@ -260,9 +275,64 @@ export default function App() {
       };
       await upsertProfile(session.user.id, updatedProfile);
       setProfile(updatedProfile);
-      setShowEditProfileModal(false);
+      closeEditProfileModal();
     } catch (err) {
       setDbError('Sem conexão, tente novamente');
+    }
+  };
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!session?.user) return;
+    if (newPassword !== confirmPassword) {
+      setPasswordStatus({ type: 'error', message: 'A nova senha e a confirmação não conferem.' });
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPasswordStatus({ type: 'error', message: 'A nova senha deve ter pelo menos 6 caracteres.' });
+      return;
+    }
+
+    setPasswordLoading(true);
+    setPasswordStatus({ type: null, message: '' });
+
+    const supabase = getSupabase();
+    if (!supabase) {
+      setPasswordStatus({ type: 'error', message: 'Erro de conexão com o servidor.' });
+      setPasswordLoading(false);
+      return;
+    }
+
+    try {
+      // 1. Verify old password by attempting a silent sign-in
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: session.user.email!,
+        password: oldPassword,
+      });
+
+      if (signInError) {
+        setPasswordStatus({ type: 'error', message: 'A senha atual está incorreta.' });
+        setPasswordLoading(false);
+        return;
+      }
+
+      // 2. Update user credentials securely
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (updateError) {
+        setPasswordStatus({ type: 'error', message: updateError.message });
+      } else {
+        setPasswordStatus({ type: 'success', message: 'Senha atualizada com sucesso!' });
+        setOldPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      }
+    } catch (err) {
+      setPasswordStatus({ type: 'error', message: 'Ocorreu um erro ao atualizar a senha.' });
+    } finally {
+      setPasswordLoading(false);
     }
   };
 
@@ -284,7 +354,7 @@ export default function App() {
         localStorage.setItem('mco_profile', JSON.stringify(updatedProfile));
       }
     } catch (err: any) {
-      console.error('Error updating plan:', err);
+      console.warn('Error updating plan:', err);
       const isSchemaError = err.message?.includes('profiles') || 
                             err.message?.includes('schema cache') || 
                             err.message?.includes('plano') ||
@@ -330,7 +400,7 @@ export default function App() {
       
       setShowNotification(true);
     } catch (err) {
-      console.error('Migration failed:', err);
+      console.warn('Migration failed:', err);
       setDbError('Falha ao migrar dados. Sem conexão, tente novamente.');
     } finally {
       setLoading(false);
@@ -387,7 +457,8 @@ export default function App() {
   if (dbSchemaError) {
     const upgradeScript = `-- ATUALIZAÇÃO SÓ DE COLUNAS (Se você já tem as tabelas criadas)
 -- Use isso para corrigir o erro 'plano column' ou 'policy already exists'
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS plano TEXT DEFAULT 'essential' CHECK (plano IN ('essential', 'pro'));`;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS plano TEXT DEFAULT 'essential' CHECK (plano IN ('essential', 'pro'));
+ALTER TABLE public.lancamentos ADD COLUMN IF NOT EXISTS conta TEXT;`;
 
     const sqlScript = `-- 1. Criar a tabela de perfis (profiles) vinculada ao auth.users
 CREATE TABLE IF NOT EXISTS public.profiles (
@@ -410,6 +481,7 @@ CREATE TABLE IF NOT EXISTS public.lancamentos (
     forma_pagamento TEXT NOT NULL,
     descricao TEXT,
     data DATE NOT NULL,
+    conta TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -1026,7 +1098,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
           <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
             
             {/* Backdrop click closer */}
-            <div className="absolute inset-0 cursor-default" onClick={() => setShowEditProfileModal(false)} />
+            <div className="absolute inset-0 cursor-default" onClick={closeEditProfileModal} />
 
             <motion.div
               initial={{ opacity: 0, y: 50, scale: 0.95 }}
@@ -1049,7 +1121,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                     </p>
                   </div>
                   <button 
-                    onClick={() => setShowEditProfileModal(false)}
+                    onClick={closeEditProfileModal}
                     className="w-10 h-10 rounded-full bg-surface-container-high hover:bg-surface-container-highest flex items-center justify-center transition-colors cursor-pointer select-none"
                   >
                     <span className="material-symbols-outlined text-on-surface-variant">close</span>
@@ -1094,6 +1166,81 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                   </button>
 
                 </form>
+
+                <div className="h-px bg-white/[0.06] my-1" />
+
+                <div className="flex flex-col gap-4 text-left">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary text-lg">lock</span>
+                    <h4 className="text-sm font-bold text-on-surface">Alterar Senha</h4>
+                  </div>
+
+                  <form onSubmit={handleUpdatePassword} className="flex flex-col gap-4">
+                    {passwordStatus.type && (
+                      <div className={`p-3 rounded-xl text-xs font-bold border ${
+                        passwordStatus.type === 'success' 
+                          ? 'bg-tertiary/15 text-tertiary border-tertiary/20' 
+                          : 'bg-error/15 text-error border-error/20'
+                      }`}>
+                        {passwordStatus.message}
+                      </div>
+                    )}
+
+                    {/* Senha Atual */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-bold text-on-surface-variant/85 uppercase tracking-widest leading-none">Senha Atual</label>
+                      <input
+                        type="password"
+                        required
+                        value={oldPassword}
+                        onChange={(e) => setOldPassword(e.target.value)}
+                        placeholder="Sua senha de login atual"
+                        className="w-full bg-surface-container-low border border-outline-variant/40 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-primary text-on-surface placeholder:text-on-surface-variant/20 font-semibold"
+                      />
+                    </div>
+
+                    {/* Nova Senha */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-bold text-on-surface-variant/85 uppercase tracking-widest leading-none">Nova Senha</label>
+                      <input
+                        type="password"
+                        required
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Mínimo de 6 caracteres"
+                        className="w-full bg-surface-container-low border border-outline-variant/40 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-primary text-on-surface placeholder:text-on-surface-variant/20 font-semibold"
+                      />
+                    </div>
+
+                    {/* Confirmar Nova Senha */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-bold text-on-surface-variant/85 uppercase tracking-widest leading-none">Confirmar Nova Senha</label>
+                      <input
+                        type="password"
+                        required
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Confirme sua nova senha"
+                        className="w-full bg-surface-container-low border border-outline-variant/40 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-primary text-on-surface placeholder:text-on-surface-variant/20 font-semibold"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={passwordLoading}
+                      className="w-full bg-white/[0.04] hover:bg-white/[0.08] text-white border border-white/[0.08] hover:border-white/[0.15] font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 transition-all cursor-pointer text-xs select-none disabled:opacity-50"
+                    >
+                      {passwordLoading ? (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        <>
+                          <span className="material-symbols-outlined text-sm font-bold">shield</span>
+                          <span>Atualizar Senha</span>
+                        </>
+                      )}
+                    </button>
+                  </form>
+                </div>
               </div>
 
             </motion.div>

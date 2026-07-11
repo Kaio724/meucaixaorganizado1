@@ -27,7 +27,7 @@ export default function Plans({ profile, onUpdatePlan, onNavigateToTab }: PlansP
     try {
       await onUpdatePlan(plan);
     } catch (e) {
-      console.error(e);
+      console.warn(e);
     } finally {
       setLoadingPlan(null);
     }

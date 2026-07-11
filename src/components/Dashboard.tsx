@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Transaction, UserProfile, TransactionType } from '../types';
-import { AVAILABLE_CATEGORIES, PAYMENT_METHODS } from '../initialData';
+import { AVAILABLE_CATEGORIES, PAYMENT_METHODS, ACCOUNT_OPTIONS } from '../initialData';
 import EvolutionCard from './EvolutionCard';
 import ProGrowthPanel from './ProGrowthPanel';
 import ProInsights from './ProInsights';
@@ -27,6 +27,7 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
   const [category, setCategory] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('Pix');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [account, setAccount] = useState<string | undefined>(undefined);
 
   const now = new Date();
   const currentMonth = now.getMonth();
@@ -79,12 +80,15 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
       type: txType,
       date,
       category,
-      paymentMethod
+      paymentMethod,
+      account
     });
 
     // Reset Form
     setTitle('');
     setAmount('');
+    setPaymentMethod('Pix');
+    setAccount(undefined);
     setShowQuickAdd(false);
   };
 
@@ -376,37 +380,37 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               transition={{ type: "spring", duration: 0.4 }}
-              className="glass-card rounded-[28px] p-6 sm:p-8 border border-white/[0.08] w-full max-w-lg flex flex-col gap-6 relative bg-gradient-to-b from-[#181822]/98 to-[#0f0f14]/98 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.8)]"
+              className="glass-card rounded-[28px] p-5 sm:p-6 border border-white/[0.08] w-full max-w-xl flex flex-col gap-4 relative bg-gradient-to-b from-[#181822]/98 to-[#0f0f14]/98 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.8)] max-h-[95vh] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10"
             >
               <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full filter blur-2xl pointer-events-none"></div>
 
               {/* Header */}
-              <div className="flex items-center justify-between border-b border-white/[0.06] pb-4">
-                <div className="flex flex-col gap-1">
-                  <h3 className="text-lg sm:text-xl font-extrabold text-white tracking-tight flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>add_circle</span>
+              <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
+                <div className="flex flex-col gap-0.5">
+                  <h3 className="text-base sm:text-lg font-extrabold text-white tracking-tight flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>add_circle</span>
                     Lançar Movimentação
                   </h3>
-                  <p className="text-[11px] sm:text-xs text-on-surface-variant/70 font-medium">
+                  <p className="text-[10px] sm:text-xs text-on-surface-variant/70 font-medium">
                     Registre uma movimentação no caixa do seu negócio
                   </p>
                 </div>
                 <button 
                   onClick={() => setShowQuickAdd(false)}
-                  className="w-9 h-9 rounded-full bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] flex items-center justify-center transition-all cursor-pointer text-on-surface-variant hover:text-white"
+                  className="w-8 h-8 rounded-full bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] flex items-center justify-center transition-all cursor-pointer text-on-surface-variant hover:text-white"
                 >
-                  <span className="material-symbols-outlined text-lg">close</span>
+                  <span className="material-symbols-outlined text-base">close</span>
                 </button>
               </div>
 
-              <form onSubmit={handleQuickAddSubmit} className="flex flex-col gap-5">
+              <form onSubmit={handleQuickAddSubmit} className="flex flex-col gap-4">
                 
                 {/* Segmented Toggles: Entrou vs Saiu */}
                 <div className="grid grid-cols-2 p-1 bg-[#0d0d12] rounded-2xl border border-white/[0.06]">
                   <button
                     type="button"
                     onClick={() => setTxType('entrada')}
-                    className={`py-3 text-xs font-extrabold rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer select-none ${
+                    className={`py-2.5 text-xs font-extrabold rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer select-none ${
                       txType === 'entrada' 
                         ? 'bg-tertiary text-on-primary shadow-[0_2px_8px_rgba(16,185,129,0.2)] border border-white/10' 
                         : 'text-on-surface-variant/80 hover:text-white hover:bg-white/[0.02]'
@@ -418,7 +422,7 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
                   <button
                     type="button"
                     onClick={() => setTxType('saida')}
-                    className={`py-3 text-xs font-extrabold rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer select-none ${
+                    className={`py-2.5 text-xs font-extrabold rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer select-none ${
                       txType === 'saida' 
                         ? 'bg-error text-on-primary shadow-[0_2px_8px_rgba(239,68,68,0.2)] border border-white/10' 
                         : 'text-on-surface-variant/80 hover:text-white hover:bg-white/[0.02]'
@@ -429,91 +433,137 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
                   </button>
                 </div>
 
-                {/* Quanto foi? (Amount) */}
-                <div className="flex flex-col gap-1.5 text-left">
-                  <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Quanto foi?</label>
-                  <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary/60 rounded-xl px-4 py-3.5 focus-within:bg-[#1b1b26] focus-within:shadow-[0_0_20px_rgba(109,59,215,0.15)] transition-all">
-                    <span className="text-lg font-extrabold text-on-surface-variant/50 mr-2 select-none">R$</span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      required
-                      placeholder="0,00"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      className="w-full bg-transparent border-none text-white font-extrabold text-lg focus:outline-none placeholder:text-white/[0.15] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    />
-                  </div>
-                </div>
+                {/* 2-Column Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  
+                  {/* Left Column */}
+                  <div className="flex flex-col gap-4">
+                    {/* Quanto foi? (Amount) */}
+                    <div className="flex flex-col gap-1.5 text-left">
+                      <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Quanto foi?</label>
+                      <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary/60 rounded-xl px-4 py-2.5 focus-within:bg-[#1b1b26] focus-within:shadow-[0_0_20px_rgba(109,59,215,0.15)] transition-all">
+                        <span className="text-sm font-extrabold text-on-surface-variant/50 mr-2 select-none">R$</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          required
+                          placeholder="0,00"
+                          value={amount}
+                          onChange={(e) => setAmount(e.target.value)}
+                          className="w-full bg-transparent border-none text-white font-extrabold text-sm focus:outline-none placeholder:text-white/[0.15] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                      </div>
+                    </div>
 
-                {/* Categoria */}
-                <div className="flex flex-col gap-2 text-left">
-                  <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Categoria</label>
-                  <div className="flex flex-wrap gap-2">
-                    {AVAILABLE_CATEGORIES[txType].slice(0, 3).map((cat) => {
-                      const isSelected = category === cat;
-                      return (
-                        <button
-                          key={cat}
-                          type="button"
-                          onClick={() => setCategory(cat)}
-                          className={`px-4 py-2.5 rounded-full text-xs font-bold border transition-all cursor-pointer ${
-                            isSelected
-                              ? txType === 'entrada'
-                                ? 'border-[#10b981]/40 bg-[#10b981]/15 text-[#4edea3] shadow-[0_0_12px_rgba(16,185,129,0.15)]'
-                                : 'border-[#ef4444]/40 bg-[#ef4444]/15 text-[#f87171] shadow-[0_0_12px_rgba(239,68,68,0.15)]'
-                              : 'border-white/[0.04] bg-white/[0.01] hover:bg-white/[0.03] text-on-surface-variant/80'
-                          }`}
+                    {/* Categoria */}
+                    <div className="flex flex-col gap-1.5 text-left">
+                      <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Categoria</label>
+                      <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary focus-within:bg-[#1b1b26] rounded-xl px-4 py-2.5 transition-all">
+                        <select
+                          value={category}
+                          onChange={(e) => setCategory(e.target.value)}
+                          required
+                          className="w-full bg-transparent border-none text-xs text-white focus:outline-none cursor-pointer appearance-none pr-8"
                         >
-                          {cat}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+                          {AVAILABLE_CATEGORIES[txType].map((cat) => (
+                            <option key={cat} value={cat} className="bg-[#131315] text-white">
+                              {cat}
+                            </option>
+                          ))}
+                        </select>
+                        <span className="material-symbols-outlined absolute right-4 text-on-surface-variant/70 pointer-events-none text-base">category</span>
+                      </div>
+                    </div>
 
-                {/* Descrição */}
-                <div className="flex flex-col gap-1.5 text-left">
-                  <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Identificação</label>
-                  <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary focus-within:bg-[#1b1b26] rounded-xl px-4 py-3 transition-all">
-                    <input
-                      type="text"
-                      required
-                      placeholder="Ex: Pagamento Cliente João"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      className="w-full bg-transparent border-none text-xs text-white focus:outline-none placeholder:text-white/[0.15]"
-                    />
+                    {/* Forma de Pagamento */}
+                    <div className="flex flex-col gap-1.5 text-left">
+                      <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Forma de Pagamento</label>
+                      <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary focus-within:bg-[#1b1b26] rounded-xl px-4 py-2.5 transition-all">
+                        <select
+                          value={paymentMethod}
+                          onChange={(e) => setPaymentMethod(e.target.value)}
+                          className="w-full bg-transparent border-none text-xs text-white focus:outline-none cursor-pointer appearance-none pr-8"
+                        >
+                          {PAYMENT_METHODS.map((method) => (
+                            <option key={method} value={method} className="bg-[#131315] text-white">
+                              {method}
+                            </option>
+                          ))}
+                        </select>
+                        <span className="material-symbols-outlined absolute right-4 text-on-surface-variant/70 pointer-events-none text-base">payments</span>
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                {/* Quando foi? (Date) */}
-                <div className="flex flex-col gap-1.5 text-left">
-                  <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Quando foi?</label>
-                  <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary focus-within:bg-[#1b1b26] rounded-xl px-4 py-3 transition-all">
-                    <input
-                      type="date"
-                      required
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                      className="w-full bg-transparent border-none text-xs text-white focus:outline-none cursor-pointer scheme-dark"
-                    />
-                    <span className="material-symbols-outlined absolute right-4 text-on-surface-variant/70 pointer-events-none text-base">calendar_today</span>
+                  {/* Right Column */}
+                  <div className="flex flex-col gap-4">
+                    {/* Quando foi? (Date) */}
+                    <div className="flex flex-col gap-1.5 text-left">
+                      <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Data</label>
+                      <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary focus-within:bg-[#1b1b26] rounded-xl px-4 py-2.5 transition-all">
+                        <input
+                          type="date"
+                          required
+                          value={date}
+                          onChange={(e) => setDate(e.target.value)}
+                          className="w-full bg-transparent border-none text-xs text-white focus:outline-none cursor-pointer scheme-dark"
+                        />
+                        <span className="material-symbols-outlined absolute right-4 text-on-surface-variant/70 pointer-events-none text-base">calendar_today</span>
+                      </div>
+                    </div>
+
+                    {/* Descrição */}
+                    <div className="flex flex-col gap-1.5 text-left">
+                      <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Identificação</label>
+                      <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary focus-within:bg-[#1b1b26] rounded-xl px-4 py-2.5 transition-all">
+                        <input
+                          type="text"
+                          required
+                          placeholder="Ex: Pagamento Cliente João"
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value)}
+                          className="w-full bg-transparent border-none text-xs text-white focus:outline-none placeholder:text-white/[0.15]"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Conta de Origem/Destino */}
+                    <div className="flex flex-col gap-1.5 text-left">
+                      <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">
+                        {txType === 'entrada' ? 'Conta de Destino (Opcional)' : 'Conta de Origem (Opcional)'}
+                      </label>
+                      <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary focus-within:bg-[#1b1b26] rounded-xl px-4 py-2.5 transition-all">
+                        <select
+                          value={account || ''}
+                          onChange={(e) => setAccount(e.target.value || undefined)}
+                          className="w-full bg-transparent border-none text-xs text-white focus:outline-none cursor-pointer appearance-none pr-8"
+                        >
+                          <option value="" className="bg-[#131315] text-on-surface-variant/50">Não especificada</option>
+                          {ACCOUNT_OPTIONS.map((acc) => (
+                            <option key={acc} value={acc} className="bg-[#131315] text-white">
+                              {acc}
+                            </option>
+                          ))}
+                        </select>
+                        <span className="material-symbols-outlined absolute right-4 text-on-surface-variant/70 pointer-events-none text-base">account_balance_wallet</span>
+                      </div>
+                    </div>
                   </div>
+
                 </div>
 
                 {/* CTA Buttons */}
-                <div className="flex gap-3 pt-4 border-t border-white/[0.06] mt-2">
+                <div className="flex gap-3 pt-3 border-t border-white/[0.06] mt-1">
                   <button
                     type="button"
                     onClick={() => setShowQuickAdd(false)}
-                    className="flex-1 py-3.5 bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] rounded-xl text-xs sm:text-sm font-extrabold text-white transition-all active:scale-[0.98] cursor-pointer"
+                    className="flex-1 py-3 bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] rounded-xl text-xs sm:text-sm font-extrabold text-white transition-all active:scale-[0.98] cursor-pointer"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-3.5 bg-primary hover:bg-[#8455ef] text-white font-extrabold rounded-xl text-xs sm:text-sm transition-all duration-300 shadow-[0_4px_14px_rgba(109,59,215,0.25)] hover:shadow-[0_4px_20px_rgba(109,59,215,0.45)] active:scale-[0.98] border border-primary/30 flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="flex-1 py-3 bg-primary hover:bg-[#8455ef] text-white font-extrabold rounded-xl text-xs sm:text-sm transition-all duration-300 shadow-[0_4px_14px_rgba(109,59,215,0.25)] hover:shadow-[0_4px_20px_rgba(109,59,215,0.45)] active:scale-[0.98] border border-primary/30 flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <span className="material-symbols-outlined text-sm font-bold">done</span>
                     Salvar lançamento

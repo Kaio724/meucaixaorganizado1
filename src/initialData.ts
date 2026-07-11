@@ -55,8 +55,40 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
 ];
 
 export const AVAILABLE_CATEGORIES = {
-  entrada: ['Venda de produto', 'Prestação de serviço', 'Sinal', 'Encomenda', 'Investimento', 'Outros'],
-  saida: ['Materiais', 'Transporte', 'Aluguel', 'Impostos', 'Marketing', 'Fornecedores', 'Outros']
+  entrada: [
+    'Vendas',
+    'Serviços prestados',
+    'Aportes / Empréstimos',
+    'Rendimentos',
+    'Outras receitas'
+  ],
+  saida: [
+    'Fornecedores',
+    'Insumos / Mercadorias',
+    'Aluguel / Condomínio / Luz / Água',
+    'Salários / Pró-labore',
+    'Ferramentas / Equipamentos',
+    'Marketing / Anúncios',
+    'Impostos / Taxas',
+    'Outras despesas'
+  ]
 };
 
-export const PAYMENT_METHODS = ['Pix', 'Dinheiro', 'Cartão de Crédito', 'Débito', 'Transferência Bancária'];
+export const PAYMENT_METHODS = [
+  'Pix',
+  'Dinheiro',
+  'Cartão de Débito',
+  'Cartão de Crédito',
+  'Transferência Bancária',
+  'Boleto',
+  'Dinheiro em Caixa',
+  'Outro'
+];
+
+export const ACCOUNT_OPTIONS = [
+  'Dinheiro (Caixa físico)',
+  'Conta Corrente (Principal)',
+  'Poupança',
+  'Cartão de Crédito (Uso empresarial)',
+  'Outro'
+];
