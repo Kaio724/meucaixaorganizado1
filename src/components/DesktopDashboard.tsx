@@ -21,6 +21,7 @@ interface DesktopDashboardProps {
   setShowProModal: (show: boolean) => void;
   setTxType: (type: TransactionType) => void;
   isPro: boolean;
+  onOpenImport: () => void;
 }
 
 export default function DesktopDashboard({
@@ -38,6 +39,7 @@ export default function DesktopDashboard({
   setShowProModal,
   setTxType,
   isPro,
+  onOpenImport,
 }: DesktopDashboardProps) {
   const formatBRL = (val: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -73,8 +75,16 @@ export default function DesktopDashboard({
           </p>
         </div>
 
-        {/* Small, Elegant "Lançar Movimentação" Button */}
-        <div>
+        {/* Small, Elegant Buttons */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onOpenImport}
+            className="bg-white/[0.04] hover:bg-white/[0.08] text-white font-extrabold text-xs tracking-wider uppercase py-3.5 px-6 rounded-2xl flex items-center gap-2 transition-all duration-300 border border-white/[0.08] cursor-pointer active:scale-[0.98]"
+          >
+            <span className="material-symbols-outlined text-sm text-primary font-black animate-pulse" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+            Importação Inteligente
+          </button>
+          
           <button
             onClick={() => { setTxType('entrada'); setShowQuickAdd(true); }}
             className="bg-primary hover:bg-[#8455ef] text-white font-extrabold text-xs tracking-wider uppercase py-3.5 px-6 rounded-2xl flex items-center gap-2 transition-all duration-300 shadow-[0_4px_14px_rgba(109,59,215,0.25)] hover:shadow-[0_6px_22px_rgba(109,59,215,0.45)] cursor-pointer active:scale-[0.98] border border-primary/30"

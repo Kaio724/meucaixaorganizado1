@@ -7,6 +7,7 @@ import ProGrowthPanel from './ProGrowthPanel';
 import ProInsights from './ProInsights';
 import MonthComparison from './MonthComparison';
 import DesktopDashboard from './DesktopDashboard';
+import ImportModal from './ImportModal';
 
 const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://pay.cakto.com.br/rdvxqwt';
 
@@ -18,6 +19,7 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ profile, transactions, onAddTransaction, onNavigateToTab }: DashboardProps) {
+  const [showImportModal, setShowImportModal] = useState(false);
   const isPro = (profile.plan || 'essential') === 'pro';
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [showProModal, setShowProModal] = useState(false);
@@ -206,14 +208,22 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
           </div>
         </motion.div>
 
-        {/* Wide Launch Transaction button */}
-        <div className="w-full">
+        {/* Wide Action Buttons */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
           <button
             onClick={() => { setTxType('entrada'); setShowQuickAdd(true); }}
-            className="w-full bg-[#6d3bd7] hover:bg-[#8455ef] text-white font-bold py-4 px-6 rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 shadow-[0_0_20px_rgba(109,59,215,0.4)] hover:shadow-[0_0_30px_rgba(109,59,215,0.6)] cursor-pointer active:scale-[0.98] border border-primary/30"
+            className="w-full bg-[#6d3bd7] hover:bg-[#8455ef] text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 shadow-[0_0_20px_rgba(109,59,215,0.4)] hover:shadow-[0_0_30px_rgba(109,59,215,0.6)] cursor-pointer active:scale-[0.98] border border-primary/30"
           >
             <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>add_circle</span>
-            <span className="text-sm tracking-wide font-semibold">Lançar Movimentação</span>
+            <span className="text-xs sm:text-sm tracking-wide font-semibold">Lançar Movimentação</span>
+          </button>
+          
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="w-full bg-white/[0.04] hover:bg-white/[0.08] text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 border border-white/[0.08] cursor-pointer active:scale-[0.98]"
+          >
+            <span className="material-symbols-outlined text-lg text-primary animate-pulse" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+            <span className="text-xs sm:text-sm tracking-wide font-semibold">Importação Inteligente</span>
           </button>
         </div>
 
@@ -368,6 +378,7 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
           setShowProModal={setShowProModal}
           setTxType={setTxType}
           isPro={isPro}
+          onOpenImport={() => setShowImportModal(true)}
         />
       </div>
 
@@ -673,6 +684,19 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
             </div>
           </motion.div>
         </div>
+      )}
+      {/* Import Modal */}
+      {showImportModal && (
+        <ImportModal
+          isOpen={showImportModal}
+          onClose={() => setShowImportModal(false)}
+          profile={profile}
+          onAddTransaction={onAddTransaction}
+          onUpgradePlan={() => {
+            setShowImportModal(false);
+            setShowProModal(true);
+          }}
+        />
       )}
     </div>
   );
