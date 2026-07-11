@@ -34,7 +34,7 @@ interface ParsedTransaction {
 
 export default function ImportModal({ isOpen, onClose, profile, onAddTransaction, onUpgradePlan }: ImportModalProps) {
   const isPro = (profile.plan || 'essential') === 'pro';
-  const dailyLimit = isPro ? 50 : 20;
+  const monthlyLimit = isPro ? 50 : 20;
 
   // Flow State
   const [step, setStep] = useState<'upload' | 'processing' | 'review' | 'success' | 'limit_exceeded'>('upload');
@@ -43,7 +43,7 @@ export default function ImportModal({ isOpen, onClose, profile, onAddTransaction
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Remaining Credits State
-  const [remainingCredits, setRemainingCredits] = useState(dailyLimit);
+  const [remainingCredits, setRemainingCredits] = useState(monthlyLimit);
 
   // Parsing & Review State
   const [progress, setProgress] = useState(0);
@@ -60,23 +60,24 @@ export default function ImportModal({ isOpen, onClose, profile, onAddTransaction
   // Calculate remaining credits
   useEffect(() => {
     if (isOpen) {
-      const today = new Date().toLocaleDateString('pt-BR');
-      const creditsKey = `mco_credits_${profile.name || 'default'}`;
+      const date = new Date();
+      const currentMonth = `${date.getMonth() + 1}/${date.getFullYear()}`;
+      const creditsKey = `mco_credits_monthly_${profile.name || 'default'}`;
       const stored = localStorage.getItem(creditsKey);
       let count = 0;
       if (stored) {
         try {
           const parsed = JSON.parse(stored);
-          if (parsed.date === today) {
+          if (parsed.month === currentMonth) {
             count = parsed.count;
           }
         } catch (e) {
           // ignore
         }
       }
-      setRemainingCredits(Math.max(0, dailyLimit - count));
+      setRemainingCredits(Math.max(0, monthlyLimit - count));
     }
-  }, [isOpen, dailyLimit, profile.name]);
+  }, [isOpen, monthlyLimit, profile.name]);
 
   // Handle Drag Over
   const handleDragOver = (e: React.DragEvent) => {
@@ -91,14 +92,15 @@ export default function ImportModal({ isOpen, onClose, profile, onAddTransaction
 
   // Check and consume credit
   const consumeCredit = (): boolean => {
-    const today = new Date().toLocaleDateString('pt-BR');
-    const creditsKey = `mco_credits_${profile.name || 'default'}`;
+    const date = new Date();
+    const currentMonth = `${date.getMonth() + 1}/${date.getFullYear()}`;
+    const creditsKey = `mco_credits_monthly_${profile.name || 'default'}`;
     const stored = localStorage.getItem(creditsKey);
     let count = 0;
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        if (parsed.date === today) {
+        if (parsed.month === currentMonth) {
           count = parsed.count;
         }
       } catch (e) {
@@ -106,13 +108,13 @@ export default function ImportModal({ isOpen, onClose, profile, onAddTransaction
       }
     }
 
-    if (count + 5 > dailyLimit) {
+    if (count + 5 > monthlyLimit) {
       setStep('limit_exceeded');
       return false;
     }
 
-    localStorage.setItem(creditsKey, JSON.stringify({ date: today, count: count + 5 }));
-    setRemainingCredits(dailyLimit - (count + 5));
+    localStorage.setItem(creditsKey, JSON.stringify({ month: currentMonth, count: count + 5 }));
+    setRemainingCredits(monthlyLimit - (count + 5));
     return true;
   };
 
@@ -407,7 +409,7 @@ export default function ImportModal({ isOpen, onClose, profile, onAddTransaction
                   <div>
                     <h4 className="text-sm font-bold text-on-surface">Upgrade para MCO PRO</h4>
                     <p className="text-xs text-on-surface-variant leading-relaxed mt-0.5">
-                      No plano Essencial você possui limite de 20 importações diárias. No **PRO** você tem **50 importações por dia**, e-mail marketing, inteligência avançada e relatórios expansivos.
+                      No plano Essencial você possui limite de 20 créditos mensais. No **PRO** você tem **50 créditos mensais**, e-mail marketing, inteligência avançada e relatórios expansivos.
                     </p>
                   </div>
                   <button 
@@ -423,10 +425,10 @@ export default function ImportModal({ isOpen, onClose, profile, onAddTransaction
               <div className="flex items-center justify-between px-2">
                 <span className="text-xs text-on-surface-variant font-medium flex items-center gap-1.5">
                   <Clock className="w-4 h-4 text-primary" />
-                  Seu limite de créditos diários:
+                  Seu limite de créditos mensais:
                 </span>
                 <span className="text-xs font-bold text-on-surface bg-white/5 border border-white/5 px-2.5 py-1 rounded-lg">
-                  <span className="text-primary">{remainingCredits}</span> / {dailyLimit} créditos restantes hoje <span className="text-[10px] text-on-surface-variant font-normal ml-1">(Consumo: 5 por importação)</span>
+                  <span className="text-primary">{remainingCredits}</span> / {monthlyLimit} créditos restantes este mês <span className="text-[10px] text-on-surface-variant font-normal ml-1">(Consumo: 5 por importação)</span>
                 </span>
               </div>
 
@@ -598,20 +600,20 @@ export default function ImportModal({ isOpen, onClose, profile, onAddTransaction
               </div>
 
               <div className="flex flex-col gap-2">
-                <h4 className="text-xl font-bold text-on-surface">Limite Diário Atingido!</h4>
+                <h4 className="text-xl font-bold text-on-surface">Limite Mensal Atingido!</h4>
                 <p className="text-xs text-on-surface-variant leading-relaxed">
-                  Você já atingiu seu limite diário de importações com inteligência artificial hoje. Seu saldo será renovado amanhã às 00:00!
+                  Você já atingiu seu limite mensal de créditos para importações inteligentes este mês. Seu saldo de créditos será renovado no próximo mês!
                 </p>
               </div>
 
               <div className="w-full bg-white/[0.02] border border-white/5 rounded-2xl p-4 flex flex-col gap-3">
                 <div className="flex justify-between text-xs border-b border-white/5 pb-2">
                   <span className="text-on-surface-variant">Seu Limite Atual</span>
-                  <span className="font-bold text-on-surface">{dailyLimit} / dia ({isPro ? 'Plano PRO' : 'Plano Essencial'})</span>
+                  <span className="font-bold text-on-surface">{monthlyLimit} créditos / mês ({isPro ? 'Plano PRO' : 'Plano Essencial'})</span>
                 </div>
                 {!isPro && (
                   <p className="text-[11px] text-primary font-medium leading-normal">
-                    💡 Faça o upgrade para o **Plano PRO** agora mesmo e aumente seu limite para **50 importações por dia**, além de desbloquear todos os gráficos de análise avançada do fluxo de caixa!
+                    💡 Faça o upgrade para o **Plano PRO** agora mesmo e aumente seu limite para **50 créditos mensais**, além de desbloquear todos os gráficos de análise avançada do fluxo de caixa!
                   </p>
                 )}
               </div>
