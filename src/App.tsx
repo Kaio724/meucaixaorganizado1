@@ -98,7 +98,10 @@ export default function App() {
     setDbError(null);
     try {
       let dbProfile = await fetchProfile(userId);
-      const isPromoUser = email?.toLowerCase() === 'kaiopatrick42@gmail.com' || email?.toLowerCase() === 'kaioparick42@gmail.com';
+      const isPromoUser = 
+        email?.toLowerCase() === 'kaiopatrick42@gmail.com' || 
+        email?.toLowerCase() === 'kaioparick42@gmail.com' ||
+        email?.toLowerCase() === 'joaorodriguesamancio@gmail.com';
       if (dbProfile) {
         if (isPromoUser && dbProfile.plan !== 'pro') {
           dbProfile.plan = 'pro';
@@ -172,7 +175,10 @@ export default function App() {
     setLoading(true);
     setDbError(null);
     try {
-      const isPromoUser = session?.user?.email?.toLowerCase() === 'kaiopatrick42@gmail.com' || session?.user?.email?.toLowerCase() === 'kaioparick42@gmail.com';
+      const isPromoUser = 
+        session?.user?.email?.toLowerCase() === 'kaiopatrick42@gmail.com' || 
+        session?.user?.email?.toLowerCase() === 'kaioparick42@gmail.com' ||
+        session?.user?.email?.toLowerCase() === 'joaorodriguesamancio@gmail.com';
       if (isPromoUser) {
         newProfile.plan = 'pro';
       }
