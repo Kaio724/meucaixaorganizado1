@@ -57,20 +57,30 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
 export const AVAILABLE_CATEGORIES = {
   entrada: [
     'Vendas',
-    'Serviços prestados',
-    'Aportes / Empréstimos',
-    'Rendimentos',
-    'Outras receitas'
+    'Prestação de Serviços',
+    'Comissão',
+    'Investimentos',
+    'Outros'
   ],
   saida: [
+    'Alimentação',
+    'Transporte',
+    'Marketing',
+    'Tráfego Pago',
+    'Streaming',
+    'Softwares',
+    'Internet',
+    'Energia',
+    'Água',
+    'Aluguel',
+    'Funcionários',
+    'Impostos',
+    'Educação',
+    'Saúde',
+    'Equipamentos',
+    'Manutenção',
     'Fornecedores',
-    'Insumos / Mercadorias',
-    'Aluguel / Condomínio / Luz / Água',
-    'Salários / Pró-labore',
-    'Ferramentas / Equipamentos',
-    'Marketing / Anúncios',
-    'Impostos / Taxas',
-    'Outras despesas'
+    'Outros'
   ]
 };
 

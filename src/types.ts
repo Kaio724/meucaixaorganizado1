@@ -22,5 +22,5 @@ export interface Transaction {
   account?: string; // Account origin/destination (Dinheiro, Conta Corrente, Poupança, Cartão de Crédito, Outro)
 }
 
-export type ActiveTab = 'dashboard' | 'historico' | 'retirar' | 'resumo' | 'planos';
+export type ActiveTab = 'dashboard' | 'historico' | 'retirar' | 'resumo' | 'planos' | 'categorias';
 

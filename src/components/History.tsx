@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Transaction, UserProfile, TransactionType } from '../types';
 import { AVAILABLE_CATEGORIES, PAYMENT_METHODS, ACCOUNT_OPTIONS } from '../initialData';
+import { getCategoryNamesByType, getCategoryInfo } from '../lib/categories';
 
 const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://pay.cakto.com.br/rdvxqwt';
 
 interface HistoryProps {
   profile: UserProfile;
+  userId?: string;
   transactions: Transaction[];
   onAddTransaction: (tx: Omit<Transaction, 'id'>) => void;
   onEditTransaction: (tx: Transaction) => void;
@@ -18,7 +20,7 @@ const MONTHS_PT = [
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
 ];
 
-export default function History({ profile, transactions, onAddTransaction, onEditTransaction, onDeleteTransaction }: HistoryProps) {
+export default function History({ profile, userId = 'default_user', transactions, onAddTransaction, onEditTransaction, onDeleteTransaction }: HistoryProps) {
   const isPro = (profile.plan || 'essential') === 'pro';
   const [showProModal, setShowProModal] = useState(false);
   const [filterType, setFilterType] = useState<'tudo' | 'entrada' | 'saida'>('tudo');
@@ -146,7 +148,7 @@ export default function History({ profile, transactions, onAddTransaction, onEdi
     setFormType('entrada');
     setFormTitle('');
     setFormAmount('');
-    setFormCategory(AVAILABLE_CATEGORIES.entrada[0]);
+    setFormCategory(getCategoryNamesByType(userId, 'entrada')[0] || 'Outros');
     setFormPaymentMethod('Pix');
     setFormDate(new Date().toISOString().split('T')[0]);
     setFormAccount(undefined);
@@ -187,9 +189,10 @@ export default function History({ profile, transactions, onAddTransaction, onEdi
   // Set category dropdown when type shifts
   React.useEffect(() => {
     if (!editingTx) {
-      setFormCategory(AVAILABLE_CATEGORIES[formType][0]);
+      const cats = getCategoryNamesByType(userId, formType);
+      setFormCategory(cats[0] || 'Outros');
     }
-  }, [formType, editingTx]);
+  }, [formType, editingTx, userId]);
 
   // Format currency
   const formatBRL = (val: number) => {
@@ -201,28 +204,7 @@ export default function History({ profile, transactions, onAddTransaction, onEdi
 
   // Category specific icon mapping for a personalized touch
   const getCategoryIcon = (category: string, type: TransactionType) => {
-    if (type === 'entrada') {
-      switch (category) {
-        case 'Vendas': return 'shopping_bag';
-        case 'Serviços prestados': return 'construction';
-        case 'Aportes / Empréstimos': return 'handshake';
-        case 'Rendimentos': return 'show_chart';
-        case 'Outras receitas': return 'add_circle';
-        default: return 'arrow_upward';
-      }
-    } else {
-      switch (category) {
-        case 'Fornecedores': return 'local_shipping';
-        case 'Insumos / Mercadorias': return 'inventory_2';
-        case 'Aluguel / Condomínio / Luz / Água': return 'home';
-        case 'Salários / Pró-labore': return 'payments';
-        case 'Ferramentas / Equipamentos': return 'build';
-        case 'Marketing / Anúncios': return 'campaign';
-        case 'Impostos / Taxas': return 'description';
-        case 'Outras despesas': return 'remove_circle';
-        default: return 'arrow_downward';
-      }
-    }
+    return getCategoryInfo(category, type, userId).icon;
   };
 
       const isCurrentMonth = selectedMonthIndex === new Date().getMonth() && selectedYear === new Date().getFullYear();
@@ -359,17 +341,21 @@ export default function History({ profile, transactions, onAddTransaction, onEdi
                       {!isEditingThis ? (
                         <div className="flex items-center justify-between gap-4">
                           <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                              tx.type === 'entrada' ? 'bg-tertiary/10 text-tertiary' : 'bg-error/5 text-[#fca5a5]'
-                            }`}>
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${getCategoryInfo(tx.category, tx.type, userId).bgColor} ${getCategoryInfo(tx.category, tx.type, userId).color}`}>
                               <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
                                 {getCategoryIcon(tx.category, tx.type)}
                               </span>
                             </div>
                             <div>
                               <h4 className="text-sm font-bold text-on-surface leading-tight">{tx.title}</h4>
-                              <p className="text-[11px] text-on-surface-variant/80 mt-0.5">
-                                {tx.paymentMethod} • {tx.category}
+                              <p className="text-[11px] text-on-surface-variant/80 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                                {tx.paymentMethod} • 
+                                <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/[0.03] border border-white/[0.06] ${getCategoryInfo(tx.category, tx.type, userId).color}`}>
+                                  <span className="material-symbols-outlined text-[10px] leading-none" style={{ fontVariationSettings: "'FILL' 1" }}>
+                                    {getCategoryIcon(tx.category, tx.type)}
+                                  </span>
+                                  <span>{tx.category}</span>
+                                </span>
                                 {tx.account && ` (${tx.account})`}
                               </p>
                             </div>
@@ -454,7 +440,7 @@ export default function History({ profile, transactions, onAddTransaction, onEdi
                                 onChange={(e) => setFormCategory(e.target.value)}
                                 className="bg-surface-container-low border border-outline-variant/40 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:border-primary text-on-surface"
                               >
-                                {AVAILABLE_CATEGORIES[formType].map(cat => (
+                                {getCategoryNamesByType(userId, formType).map(cat => (
                                   <option key={cat} value={cat}>{cat}</option>
                                 ))}
                               </select>
@@ -612,7 +598,7 @@ export default function History({ profile, transactions, onAddTransaction, onEdi
                                   onChange={(e) => setFormCategory(e.target.value)}
                                   className="bg-surface-container-low border border-outline-variant/40 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:border-primary text-on-surface w-full"
                                 >
-                                  {AVAILABLE_CATEGORIES[formType].map(cat => (
+                                  {getCategoryNamesByType(userId, formType).map(cat => (
                                     <option key={cat} value={cat}>{cat}</option>
                                   ))}
                                 </select>
@@ -683,9 +669,7 @@ export default function History({ profile, transactions, onAddTransaction, onEdi
                   return (
                     <tr key={tx.id} className="hover:bg-surface-container-high transition-colors">
                       <td className="p-4">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          tx.type === 'entrada' ? 'bg-tertiary/10 text-tertiary' : 'bg-error/5 text-[#fca5a5]'
-                        }`}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${getCategoryInfo(tx.category, tx.type, userId).bgColor} ${getCategoryInfo(tx.category, tx.type, userId).color}`}>
                           <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
                             {getCategoryIcon(tx.category, tx.type)}
                           </span>
@@ -693,7 +677,14 @@ export default function History({ profile, transactions, onAddTransaction, onEdi
                       </td>
                       <td className="p-4 font-medium text-on-surface-variant/90">{formattedDate}</td>
                       <td className="p-4 font-bold text-on-surface">{tx.title}</td>
-                      <td className="p-4 font-semibold text-primary/80">{tx.category}</td>
+                      <td className="p-4">
+                        <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 bg-white/[0.03] border border-white/[0.06] rounded-full ${getCategoryInfo(tx.category, tx.type, userId).color}`}>
+                          <span className="material-symbols-outlined text-sm leading-none shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>
+                            {getCategoryIcon(tx.category, tx.type)}
+                          </span>
+                          <span>{tx.category}</span>
+                        </span>
+                      </td>
                       <td className="p-4 text-on-surface-variant/80 font-medium">
                         <div>{tx.paymentMethod}</div>
                         {tx.account && (
@@ -837,7 +828,7 @@ export default function History({ profile, transactions, onAddTransaction, onEdi
                         onChange={(e) => setFormCategory(e.target.value)}
                         className="w-full bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus:border-primary focus:bg-[#1b1b26] rounded-xl px-4 py-3 text-xs sm:text-sm focus:outline-none text-white cursor-pointer appearance-none pr-8 transition-all"
                       >
-                        {AVAILABLE_CATEGORIES[formType].map((cat) => (
+                        {getCategoryNamesByType(userId, formType).map((cat) => (
                           <option key={cat} value={cat} className="bg-[#121217] text-white">
                             {cat}
                           </option>

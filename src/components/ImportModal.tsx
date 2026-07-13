@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Transaction, UserProfile } from '../types';
 import { AVAILABLE_CATEGORIES, PAYMENT_METHODS } from '../initialData';
+import { getCategoryNamesByType } from '../lib/categories';
 import * as XLSX from 'xlsx';
 
 // Plan URL
@@ -16,6 +17,7 @@ interface ImportModalProps {
   isOpen: boolean;
   onClose: () => void;
   profile: UserProfile;
+  userId?: string;
   onAddTransaction: (tx: Omit<Transaction, 'id'>) => Promise<void> | void;
   onUpgradePlan?: () => void;
 }
@@ -32,7 +34,7 @@ interface ParsedTransaction {
   selected: boolean;
 }
 
-export default function ImportModal({ isOpen, onClose, profile, onAddTransaction, onUpgradePlan }: ImportModalProps) {
+export default function ImportModal({ isOpen, onClose, profile, userId = 'default_user', onAddTransaction, onUpgradePlan }: ImportModalProps) {
   const isPro = (profile.plan || 'essential') === 'pro';
   const monthlyLimit = isPro ? 50 : 20;
 
@@ -768,12 +770,12 @@ export default function ImportModal({ isOpen, onClose, profile, onAddTransaction
                               >
                                 <option value="Não identificada" className="bg-[#121217] text-red-400">Não identificada</option>
                                 <optgroup label="Entradas" className="bg-[#121217] text-on-surface-variant">
-                                  {AVAILABLE_CATEGORIES.entrada.map(cat => (
+                                  {getCategoryNamesByType(userId, 'entrada').map(cat => (
                                     <option key={cat} value={cat} className="bg-[#121217] text-on-surface font-semibold">{cat}</option>
                                   ))}
                                 </optgroup>
                                 <optgroup label="Saídas" className="bg-[#121217] text-on-surface-variant">
-                                  {AVAILABLE_CATEGORIES.saida.map(cat => (
+                                  {getCategoryNamesByType(userId, 'saida').map(cat => (
                                     <option key={cat} value={cat} className="bg-[#121217] text-on-surface font-semibold">{cat}</option>
                                   ))}
                                 </optgroup>

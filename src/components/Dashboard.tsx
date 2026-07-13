@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Transaction, UserProfile, TransactionType } from '../types';
 import { AVAILABLE_CATEGORIES, PAYMENT_METHODS, ACCOUNT_OPTIONS } from '../initialData';
+import { getCategoryNamesByType, getCategoryInfo } from '../lib/categories';
 import EvolutionCard from './EvolutionCard';
 import ProGrowthPanel from './ProGrowthPanel';
 import ProInsights from './ProInsights';
@@ -13,12 +14,13 @@ const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://pay.c
 
 interface DashboardProps {
   profile: UserProfile;
+  userId?: string;
   transactions: Transaction[];
   onAddTransaction: (tx: Omit<Transaction, 'id'>) => void;
   onNavigateToTab: (tab: 'dashboard' | 'historico' | 'retirar' | 'resumo') => void;
 }
 
-export default function Dashboard({ profile, transactions, onAddTransaction, onNavigateToTab }: DashboardProps) {
+export default function Dashboard({ profile, userId = 'default_user', transactions, onAddTransaction, onNavigateToTab }: DashboardProps) {
   const [showImportModal, setShowImportModal] = useState(false);
   const isPro = (profile.plan || 'essential') === 'pro';
   const [showQuickAdd, setShowQuickAdd] = useState(false);
@@ -69,8 +71,9 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
 
   // Change quick add category based on type
   React.useEffect(() => {
-    setCategory(AVAILABLE_CATEGORIES[txType][0]);
-  }, [txType]);
+    const cats = getCategoryNamesByType(userId, txType);
+    setCategory(cats[0] || 'Outros');
+  }, [txType, userId]);
 
   const handleQuickAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -339,8 +342,14 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
                           <h4 className="text-xs sm:text-sm font-semibold text-on-surface truncate tracking-tight leading-tight group-hover:text-primary transition-colors">
                             {tx.title}
                           </h4>
-                          <span className="text-[10px] text-on-surface-variant/75 font-medium leading-none mt-1">
-                            {tx.paymentMethod} • {tx.category}
+                          <span className="text-[10px] text-on-surface-variant/75 font-medium leading-none mt-1 flex items-center gap-1.5 flex-wrap">
+                            {tx.paymentMethod} • 
+                            <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/[0.03] border border-white/[0.06] ${getCategoryInfo(tx.category, tx.type, userId).color}`}>
+                              <span className="material-symbols-outlined text-[10px] leading-none" style={{ fontVariationSettings: "'FILL' 1" }}>
+                                {getCategoryInfo(tx.category, tx.type, userId).icon}
+                              </span>
+                              <span>{tx.category}</span>
+                            </span>
                           </span>
                         </div>
                       </div>
@@ -365,6 +374,7 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
       <div className="hidden lg:block w-full">
         <DesktopDashboard
           profile={profile}
+          userId={userId}
           transactions={transactions}
           totalEntradas={totalEntradas}
           totalSaidas={totalSaidas}
@@ -476,7 +486,7 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
                           required
                           className="w-full bg-transparent border-none text-xs text-white focus:outline-none cursor-pointer appearance-none pr-8"
                         >
-                          {AVAILABLE_CATEGORIES[txType].map((cat) => (
+                          {getCategoryNamesByType(userId, txType).map((cat) => (
                             <option key={cat} value={cat} className="bg-[#131315] text-white">
                               {cat}
                             </option>
@@ -691,6 +701,7 @@ export default function Dashboard({ profile, transactions, onAddTransaction, onN
           isOpen={showImportModal}
           onClose={() => setShowImportModal(false)}
           profile={profile}
+          userId={userId}
           onAddTransaction={onAddTransaction}
           onUpgradePlan={() => {
             setShowImportModal(false);

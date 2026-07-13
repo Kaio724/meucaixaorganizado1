@@ -5,6 +5,7 @@ import EvolutionCard from './EvolutionCard';
 import ProGrowthPanel from './ProGrowthPanel';
 import ProInsights from './ProInsights';
 import MonthComparison from './MonthComparison';
+import { getCategoryInfo } from '../lib/categories';
 
 interface DesktopDashboardProps {
   profile: UserProfile;
@@ -22,10 +23,12 @@ interface DesktopDashboardProps {
   setTxType: (type: TransactionType) => void;
   isPro: boolean;
   onOpenImport: () => void;
+  userId?: string;
 }
 
 export default function DesktopDashboard({
   profile,
+  userId = 'default_user',
   transactions,
   totalEntradas,
   totalSaidas,
@@ -457,8 +460,11 @@ export default function DesktopDashboard({
                         </div>
 
                         <div className="flex items-center w-1/4 px-2 min-w-0 text-left">
-                          <span className="text-xs font-bold text-on-surface-variant/80 truncate bg-white/[0.03] border border-white/[0.06] rounded-full px-3 py-1">
-                            {tx.category}
+                          <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 bg-white/[0.03] border border-white/[0.06] rounded-full truncate ${getCategoryInfo(tx.category, tx.type, userId).color}`}>
+                            <span className="material-symbols-outlined text-[13px] leading-none shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>
+                              {getCategoryInfo(tx.category, tx.type, userId).icon}
+                            </span>
+                            <span className="truncate">{tx.category}</span>
                           </span>
                         </div>
 

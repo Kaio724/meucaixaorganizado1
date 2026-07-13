@@ -11,6 +11,7 @@ import Withdraw from './components/Withdraw';
 import Summary from './components/Summary';
 import Auth from './components/Auth';
 import Plans from './components/Plans';
+import Categories from './components/Categories';
 
 // Supabase Helpers
 import { 
@@ -657,6 +658,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
     { id: 'historico' as ActiveTab, label: 'Histórico', icon: 'history' },
     { id: 'retirar' as ActiveTab, label: 'Retirar', icon: 'payments' },
     { id: 'resumo' as ActiveTab, label: 'Resumo', icon: 'pie_chart' },
+    { id: 'categorias' as ActiveTab, label: 'Categorias', icon: 'category' },
   ];
 
   return (
@@ -822,6 +824,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                     {activeTab === 'retirar' && 'Retirar e Retornos'}
                     {activeTab === 'resumo' && 'Resumo Financeiro'}
                     {activeTab === 'planos' && 'Upgrade de Plano'}
+                    {activeTab === 'categorias' && 'Categorias'}
                   </h2>
                 </div>
 
@@ -1023,6 +1026,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                   {activeTab === 'historico' && (
                     <History 
                       profile={profile}
+                      userId={session?.user?.id || 'default_user'}
                       transactions={transactions}
                       onAddTransaction={handleAddTransaction}
                       onEditTransaction={handleEditTransaction}
@@ -1051,6 +1055,14 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                       profile={profile}
                       onUpdatePlan={handleUpdatePlan}
                       onNavigateToTab={setActiveTab}
+                    />
+                  )}
+
+                  {activeTab === 'categorias' && (
+                    <Categories 
+                      profile={profile}
+                      userId={session?.user?.id || 'default_user'}
+                      onNavigateToPlanos={() => setActiveTab('planos')}
                     />
                   )}
                 </motion.div>
