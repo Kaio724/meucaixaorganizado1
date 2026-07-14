@@ -28,6 +28,35 @@ export default function History({ profile, userId = 'default_user', transactions
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [searchQuery, setSearchQuery] = useState('');
   
+  // Advanced search states
+  const [searchScope, setSearchScope] = useState<'all' | 'current' | 'custom'>('all');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [advType, setAdvType] = useState<'tudo' | 'entrada' | 'saida' | 'retirada'>('tudo');
+  const [advCategory, setAdvCategory] = useState('todas');
+  const [advPaymentMethod, setAdvPaymentMethod] = useState('todas');
+  const [advMinAmount, setAdvMinAmount] = useState('');
+  const [advMaxAmount, setAdvMaxAmount] = useState('');
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+
+  // Get all unique categories dynamically
+  const allCategories = React.useMemo(() => {
+    return Array.from(new Set([
+      ...getCategoryNamesByType(userId, 'entrada'),
+      ...getCategoryNamesByType(userId, 'saida'),
+      ...transactions.map(t => t.category)
+    ])).sort();
+  }, [userId, transactions]);
+
+  const isAnyAdvancedFilterActive = () => {
+    return searchScope !== 'all' || 
+           advType !== 'tudo' || 
+           advCategory !== 'todas' || 
+           advPaymentMethod !== 'todas' || 
+           advMinAmount !== '' || 
+           advMaxAmount !== '';
+  };
+
   // Editing state
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -63,23 +92,102 @@ export default function History({ profile, userId = 'default_user', transactions
 
   // Filter transactions
   const filteredTransactions = transactions.filter(tx => {
-    const txDate = new Date(tx.date + 'T00:00:00'); // avoid timezone shifts
-    const txMonth = txDate.getMonth();
-    const txYear = txDate.getFullYear();
+    // 1. Scope / Date Filter
+    const txDateStr = tx.date; // e.g. "2026-07-13"
 
-    // Month & Year Filter
-    if (txMonth !== selectedMonthIndex || txYear !== selectedYear) return false;
+    if (searchScope === 'current') {
+      const txDate = new Date(tx.date + 'T12:00:00');
+      const txMonth = txDate.getMonth();
+      const txYear = txDate.getFullYear();
+      if (txMonth !== selectedMonthIndex || txYear !== selectedYear) return false;
+    } else if (searchScope === 'custom') {
+      if (customStartDate && txDateStr < customStartDate) return false;
+      if (customEndDate && txDateStr > customEndDate) return false;
+    } else {
+      // Default scope 'all' (Todo histórico)
+      // If search query is empty AND no advanced filters are active, default to showing selected month/year.
+      const isAnyFilterActive = searchQuery.trim() !== '' || 
+                                advType !== 'tudo' || 
+                                advCategory !== 'todas' || 
+                                advPaymentMethod !== 'todas' || 
+                                advMinAmount !== '' || 
+                                advMaxAmount !== '';
+      if (!isAnyFilterActive) {
+        const txDate = new Date(tx.date + 'T12:00:00');
+        const txMonth = txDate.getMonth();
+        const txYear = txDate.getFullYear();
+        if (txMonth !== selectedMonthIndex || txYear !== selectedYear) return false;
+      }
+    }
 
-    // Type Filter
-    if (filterType !== 'tudo' && tx.type !== filterType) return false;
+    // 2. Type Filter (Combining top pill filters and advanced filters)
+    const activeType = advType !== 'tudo' ? advType : (filterType === 'tudo' ? 'tudo' : filterType);
+    if (activeType !== 'tudo') {
+      if (activeType === 'retirada') {
+        if (tx.type !== 'saida' || tx.category !== 'Pro-Labore') return false;
+      } else if (activeType === 'saida') {
+        if (tx.type !== 'saida' || tx.category === 'Pro-Labore') return false;
+      } else {
+        if (tx.type !== activeType) return false;
+      }
+    }
 
-    // Search Query Filter
+    // 3. Category Filter
+    if (advCategory !== 'todas' && tx.category !== advCategory) return false;
+
+    // 4. Payment Method Filter
+    if (advPaymentMethod !== 'todas' && tx.paymentMethod !== advPaymentMethod) return false;
+
+    // 5. Min Amount Filter
+    if (advMinAmount !== '') {
+      const minVal = parseFloat(advMinAmount);
+      if (!isNaN(minVal) && tx.amount < minVal) return false;
+    }
+
+    // 6. Max Amount Filter
+    if (advMaxAmount !== '') {
+      const maxVal = parseFloat(advMaxAmount);
+      if (!isNaN(maxVal) && tx.amount > maxVal) return false;
+    }
+
+    // 7. Search Query Filter (Matches: title, category, paymentMethod, account, value, date, type)
     if (searchQuery.trim() !== '') {
-      const q = searchQuery.toLowerCase();
-      const matchTitle = tx.title.toLowerCase().includes(q);
-      const matchCat = tx.category.toLowerCase().includes(q);
-      const matchMethod = tx.paymentMethod.toLowerCase().includes(q);
-      return matchTitle || matchCat || matchMethod;
+      const query = searchQuery.trim().toLowerCase();
+      const words = query.split(/\s+/);
+      
+      const match = words.every(word => {
+        // Match Title
+        if (tx.title.toLowerCase().includes(word)) return true;
+        
+        // Match Category
+        if (tx.category.toLowerCase().includes(word)) return true;
+        
+        // Match Payment Method
+        if (tx.paymentMethod.toLowerCase().includes(word)) return true;
+        
+        // Match Account
+        if (tx.account && tx.account.toLowerCase().includes(word)) return true;
+        
+        // Match Type (converting types to pt-BR labels)
+        const typePt = tx.type === 'entrada' ? 'entrada' : tx.type === 'saida' ? 'saída despesa' : 'retirada pró-labore';
+        if (typePt.includes(word)) return true;
+        
+        // Match Date (e.g. 15/03/2026 or "março" or "2026")
+        const dateObj = new Date(tx.date + 'T12:00:00');
+        const formattedDate = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        const monthName = MONTHS_PT[dateObj.getMonth()].toLowerCase();
+        const yearStr = String(dateObj.getFullYear());
+        if (formattedDate.includes(word) || monthName.includes(word) || yearStr.includes(word)) return true;
+        
+        // Match Value
+        const amountStr = String(tx.amount);
+        const amountFormatted = tx.amount.toFixed(2).replace('.', ',');
+        if (amountStr.includes(word) || amountFormatted.includes(word)) return true;
+        
+        return false;
+      });
+
+      if (!match) return false;
     }
 
     return true;
@@ -239,29 +347,225 @@ export default function History({ profile, userId = 'default_user', transactions
     
           {/* Filter and Search Section */}
           <div className="flex flex-col gap-3">
-            {/* Search input */}
-            <div className="relative flex items-center bg-surface-container-low rounded-xl border border-outline-variant/30 px-3 py-2.5">
-              <span className="material-symbols-outlined text-on-surface-variant text-lg mr-2">search</span>
-              <input 
-                type="text"
-                placeholder="Buscar por descrição, tipo, pix..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-transparent border-none text-xs text-on-surface focus:outline-none w-full placeholder:text-on-surface-variant/40"
-              />
-              {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="text-on-surface-variant hover:text-on-surface text-xs">
-                  <span className="material-symbols-outlined text-sm">close</span>
-                </button>
-              )}
+            {/* Search Input and Filters Button Row */}
+            <div className="flex gap-2 w-full">
+              <div className="relative flex-1 flex items-center bg-surface-container-low rounded-xl border border-outline-variant/30 px-3 py-2.5">
+                <span className="material-symbols-outlined text-on-surface-variant text-lg mr-2">search</span>
+                <input 
+                  type="text"
+                  placeholder="Buscar por descrição, tipo, valor, data..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="bg-transparent border-none text-xs text-on-surface focus:outline-none w-full placeholder:text-on-surface-variant/40"
+                />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery('')} className="text-on-surface-variant hover:text-on-surface text-xs mr-2 cursor-pointer">
+                    <span className="material-symbols-outlined text-sm">close</span>
+                  </button>
+                )}
+              </div>
+              
+              <button
+                onClick={() => setShowFilterPanel(!showFilterPanel)}
+                className={`px-4 py-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  showFilterPanel || isAnyAdvancedFilterActive()
+                    ? 'bg-primary/10 border-primary/40 text-primary'
+                    : 'bg-surface-container-low border-outline-variant/30 text-on-surface-variant hover:text-on-surface'
+                }`}
+              >
+                <span className="material-symbols-outlined text-sm">tune</span>
+                <span>Filtros</span>
+                {isAnyAdvancedFilterActive() && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+                )}
+              </button>
             </div>
+
+            {/* Advanced Filters Drawer/Panel */}
+            <AnimatePresence>
+              {showFilterPanel && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden bg-surface-container border border-outline-variant/20 rounded-2xl p-4 flex flex-col gap-4 shadow-xl z-20"
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Column 1: Scope */}
+                    <div className="flex flex-col gap-2">
+                      <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-wider">Pesquisar em</label>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="flex items-center gap-2 text-xs text-on-surface cursor-pointer">
+                          <input 
+                            type="radio" 
+                            name="searchScope" 
+                            checked={searchScope === 'all'} 
+                            onChange={() => setSearchScope('all')}
+                            className="accent-primary"
+                          />
+                          Todo histórico (padrão)
+                        </label>
+                        <label className="flex items-center gap-2 text-xs text-on-surface cursor-pointer">
+                          <input 
+                            type="radio" 
+                            name="searchScope" 
+                            checked={searchScope === 'current'} 
+                            onChange={() => setSearchScope('current')}
+                            className="accent-primary"
+                          />
+                          Apenas mês atual
+                        </label>
+                        <label className="flex items-center gap-2 text-xs text-on-surface cursor-pointer">
+                          <input 
+                            type="radio" 
+                            name="searchScope" 
+                            checked={searchScope === 'custom'} 
+                            onChange={() => setSearchScope('custom')}
+                            className="accent-primary"
+                          />
+                          Período personalizado
+                        </label>
+                      </div>
+
+                      {searchScope === 'custom' && (
+                        <div className="grid grid-cols-2 gap-2 mt-1.5">
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[9px] text-on-surface-variant font-semibold">Início</span>
+                            <input 
+                              type="date" 
+                              value={customStartDate}
+                              onChange={(e) => setCustomStartDate(e.target.value)}
+                              className="bg-surface-container-low border border-outline-variant/40 rounded-lg px-2 py-1 text-xs text-on-surface focus:outline-none focus:border-primary"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[9px] text-on-surface-variant font-semibold">Fim</span>
+                            <input 
+                              type="date" 
+                              value={customEndDate}
+                              onChange={(e) => setCustomEndDate(e.target.value)}
+                              className="bg-surface-container-low border border-outline-variant/40 rounded-lg px-2 py-1 text-xs text-on-surface focus:outline-none focus:border-primary"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Column 2: Types & Categories */}
+                    <div className="flex flex-col gap-2">
+                      <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-wider">Filtros adicionais</label>
+                      
+                      <div className="flex flex-col gap-2">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[9px] text-on-surface-variant font-semibold">Tipo</span>
+                          <select
+                            value={advType}
+                            onChange={(e) => setAdvType(e.target.value as any)}
+                            className="bg-surface-container-low border border-outline-variant/40 rounded-lg px-2.5 py-1.5 text-xs text-on-surface focus:outline-none focus:border-primary cursor-pointer"
+                          >
+                            <option value="tudo" className="bg-[#121217] text-white">Todos os tipos</option>
+                            <option value="entrada" className="bg-[#121217] text-white">Entrada</option>
+                            <option value="saida" className="bg-[#121217] text-white">Saída</option>
+                            <option value="retirada" className="bg-[#121217] text-white">Retirada</option>
+                          </select>
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[9px] text-on-surface-variant font-semibold">Categoria</span>
+                          <select
+                            value={advCategory}
+                            onChange={(e) => setAdvCategory(e.target.value)}
+                            className="bg-surface-container-low border border-outline-variant/40 rounded-lg px-2.5 py-1.5 text-xs text-on-surface focus:outline-none focus:border-primary cursor-pointer"
+                          >
+                            <option value="todas" className="bg-[#121217] text-white">Todas as categorias</option>
+                            {allCategories.map(cat => (
+                              <option key={cat} value={cat} className="bg-[#121217] text-white">{cat}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Column 3: Payment & Amount */}
+                    <div className="flex flex-col gap-2">
+                      <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-wider">Forma & Valores</label>
+                      
+                      <div className="flex flex-col gap-2">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[9px] text-on-surface-variant font-semibold">Forma de pagamento</span>
+                          <select
+                            value={advPaymentMethod}
+                            onChange={(e) => setAdvPaymentMethod(e.target.value)}
+                            className="bg-surface-container-low border border-outline-variant/40 rounded-lg px-2.5 py-1.5 text-xs text-on-surface focus:outline-none focus:border-primary cursor-pointer"
+                          >
+                            <option value="todas" className="bg-[#121217] text-white">Todas as formas</option>
+                            {PAYMENT_METHODS.map(method => (
+                              <option key={method} value={method} className="bg-[#121217] text-white">{method}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[9px] text-on-surface-variant font-semibold">Min (R$)</span>
+                            <input 
+                              type="number" 
+                              placeholder="0"
+                              value={advMinAmount}
+                              onChange={(e) => setAdvMinAmount(e.target.value)}
+                              className="bg-surface-container-low border border-outline-variant/40 rounded-lg px-2 py-1 text-xs text-on-surface focus:outline-none focus:border-primary"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[9px] text-on-surface-variant font-semibold">Max (R$)</span>
+                            <input 
+                              type="number" 
+                              placeholder="Indefinido"
+                              value={advMaxAmount}
+                              onChange={(e) => setAdvMaxAmount(e.target.value)}
+                              className="bg-surface-container-low border border-outline-variant/40 rounded-lg px-2 py-1 text-xs text-on-surface focus:outline-none focus:border-primary"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2 border-t border-outline-variant/10 pt-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchScope('all');
+                        setCustomStartDate('');
+                        setCustomEndDate('');
+                        setAdvType('tudo');
+                        setAdvCategory('todas');
+                        setAdvPaymentMethod('todas');
+                        setAdvMinAmount('');
+                        setAdvMaxAmount('');
+                      }}
+                      className="px-3.5 py-1.5 bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant hover:text-on-surface rounded-xl font-bold text-xs transition-all cursor-pointer border border-outline-variant/10"
+                    >
+                      Limpar Filtros
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowFilterPanel(false)}
+                      className="px-4 py-1.5 bg-primary hover:bg-[#c0aeff] text-on-primary rounded-xl font-bold text-xs transition-all cursor-pointer shadow-md"
+                    >
+                      Aplicar
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
     
             {/* Filters pills row */}
             <div className="flex gap-2 items-center">
               <button
-                onClick={() => setFilterType('tudo')}
+                onClick={() => { setFilterType('tudo'); setAdvType('tudo'); }}
                 className={`px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 ${
-                  filterType === 'tudo'
+                  filterType === 'tudo' && advType === 'tudo'
                     ? 'bg-primary text-on-primary shadow-md'
                     : 'bg-surface-container text-on-surface-variant hover:text-on-surface border border-outline-variant/10'
                 }`}
@@ -269,9 +573,9 @@ export default function History({ profile, userId = 'default_user', transactions
                 Tudo
               </button>
               <button
-                onClick={() => setFilterType('entrada')}
+                onClick={() => { setFilterType('entrada'); setAdvType('entrada'); }}
                 className={`px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 ${
-                  filterType === 'entrada'
+                  filterType === 'entrada' || advType === 'entrada'
                     ? 'bg-tertiary/20 text-tertiary border border-tertiary/40 shadow-sm'
                     : 'bg-surface-container text-on-surface-variant hover:text-on-surface border border-outline-variant/10'
                 }`}
@@ -279,9 +583,9 @@ export default function History({ profile, userId = 'default_user', transactions
                 Entradas
               </button>
               <button
-                onClick={() => setFilterType('saida')}
+                onClick={() => { setFilterType('saida'); setAdvType('saida'); }}
                 className={`px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 ${
-                  filterType === 'saida'
+                  filterType === 'saida' || advType === 'saida'
                     ? 'bg-error/20 text-error border border-error/40 shadow-sm'
                     : 'bg-surface-container text-on-surface-variant hover:text-on-surface border border-outline-variant/10'
                 }`}
@@ -333,21 +637,21 @@ export default function History({ profile, userId = 'default_user', transactions
                       key={tx.id} 
                       className={`rounded-2xl transition-all duration-300 relative overflow-hidden ${
                         isEditingThis 
-                          ? 'bg-surface-container-high border-2 border-primary/40 p-5' 
-                          : 'bg-surface-container border border-outline-variant/15 p-4 hover:bg-surface-container-high'
+                          ? 'bg-surface-container-high border-2 border-primary/40 p-4 sm:p-5' 
+                          : 'bg-surface-container border border-outline-variant/15 p-3 sm:p-4 hover:bg-surface-container-high'
                       }`}
                     >
                       {/* Normal Row view */}
                       {!isEditingThis ? (
-                        <div className="flex items-center justify-between gap-4">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${getCategoryInfo(tx.category, tx.type, userId).bgColor} ${getCategoryInfo(tx.category, tx.type, userId).color}`}>
-                              <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                        <div className="flex items-center justify-between gap-3 sm:gap-4">
+                          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                            <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0 ${getCategoryInfo(tx.category, tx.type, userId).bgColor} ${getCategoryInfo(tx.category, tx.type, userId).color}`}>
+                              <span className="material-symbols-outlined text-lg sm:text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
                                 {getCategoryIcon(tx.category, tx.type)}
                               </span>
                             </div>
-                            <div>
-                              <h4 className="text-sm font-bold text-on-surface leading-tight">{tx.title}</h4>
+                            <div className="min-w-0">
+                              <h4 className="text-sm font-bold text-on-surface leading-tight truncate">{tx.title}</h4>
                               <p className="text-[11px] text-on-surface-variant/80 mt-0.5 flex items-center gap-1.5 flex-wrap">
                                 {tx.paymentMethod} • 
                                 <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/[0.03] border border-white/[0.06] ${getCategoryInfo(tx.category, tx.type, userId).color}`}>

@@ -112,7 +112,7 @@ export default function Dashboard({ profile, userId = 'default_user', transactio
   return (
     <div className="w-full">
       {/* Mobile Experience (100% untouched & approved) */}
-      <div className="lg:hidden flex flex-col gap-6 w-full max-w-lg md:max-w-4xl pb-24 text-left mx-auto">
+      <div className="lg:hidden flex flex-col gap-4 sm:gap-5 w-full max-w-lg md:max-w-4xl pb-24 text-left mx-auto">
         {/* Top Welcome Bar */}
         <div className="flex items-center justify-between col-span-12">
           <div>
@@ -146,7 +146,7 @@ export default function Dashboard({ profile, userId = 'default_user', transactio
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="glass-card rounded-[24px] p-6 shadow-xl flex flex-col gap-6 relative overflow-hidden"
+          className="glass-card rounded-[24px] p-4 sm:p-5 shadow-xl flex flex-col gap-4 sm:gap-5 relative overflow-hidden"
         >
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full filter blur-xl pointer-events-none"></div>
 
@@ -157,7 +157,7 @@ export default function Dashboard({ profile, userId = 'default_user', transactio
               Sobrou em Caixa
             </span>
             <div className="flex items-baseline gap-2">
-              <h1 className={`text-3xl font-extrabold tracking-tight ${totalSobrou >= 0 ? 'text-on-surface' : 'text-error'}`}>
+              <h1 className={`text-2xl xs:text-3xl font-extrabold tracking-tight ${totalSobrou >= 0 ? 'text-on-surface' : 'text-error'}`}>
                 {formatBRL(totalSobrou)}
               </h1>
             </div>
@@ -174,36 +174,36 @@ export default function Dashboard({ profile, userId = 'default_user', transactio
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 border-t border-white/5 pt-4">
+          <div className="grid grid-cols-2 gap-3 border-t border-white/5 pt-3.5">
             {/* Entradas */}
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-xl bg-tertiary/10 flex items-center justify-center border border-tertiary/20">
+            <div className="flex items-start gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-tertiary/10 flex items-center justify-center border border-tertiary/20 shrink-0">
                 <span className="material-symbols-outlined text-tertiary text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
                   arrow_upward
                 </span>
               </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">
+              <div className="flex flex-col min-w-0">
+                <span className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider truncate">
                   Entrou
                 </span>
-                <span className="text-sm font-bold text-tertiary">
+                <span className="text-sm font-bold text-tertiary truncate">
                   {formatBRL(totalEntradas)}
                 </span>
               </div>
             </div>
 
             {/* Saídas */}
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-xl bg-error/10 flex items-center justify-center border border-error/20">
+            <div className="flex items-start gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-error/10 flex items-center justify-center border border-error/20 shrink-0">
                 <span className="material-symbols-outlined text-error text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
                   arrow_downward
                 </span>
               </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">
+              <div className="flex flex-col min-w-0">
+                <span className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider truncate">
                   Saiu
                 </span>
-                <span className="text-sm font-bold text-error">
+                <span className="text-sm font-bold text-error truncate">
                   {formatBRL(totalSaidas)}
                 </span>
               </div>
@@ -212,10 +212,10 @@ export default function Dashboard({ profile, userId = 'default_user', transactio
         </motion.div>
 
         {/* Wide Action Buttons */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full">
           <button
             onClick={() => { setTxType('entrada'); setShowQuickAdd(true); }}
-            className="w-full bg-[#6d3bd7] hover:bg-[#8455ef] text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 shadow-[0_0_20px_rgba(109,59,215,0.4)] hover:shadow-[0_0_30px_rgba(109,59,215,0.6)] cursor-pointer active:scale-[0.98] border border-primary/30"
+            className="w-full bg-[#6d3bd7] hover:bg-[#8455ef] text-white font-bold py-3 sm:py-3.5 px-4 rounded-xl sm:rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 shadow-[0_0_20px_rgba(109,59,215,0.4)] hover:shadow-[0_0_30px_rgba(109,59,215,0.6)] cursor-pointer active:scale-[0.98] border border-primary/30"
           >
             <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>add_circle</span>
             <span className="text-xs sm:text-sm tracking-wide font-semibold">Lançar Movimentação</span>
@@ -223,7 +223,7 @@ export default function Dashboard({ profile, userId = 'default_user', transactio
           
           <button
             onClick={() => setShowImportModal(true)}
-            className="w-full bg-white/[0.04] hover:bg-white/[0.08] text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 border border-white/[0.08] cursor-pointer active:scale-[0.98]"
+            className="w-full bg-white/[0.04] hover:bg-white/[0.08] text-white font-bold py-3 sm:py-3.5 px-4 rounded-xl sm:rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 border border-white/[0.08] cursor-pointer active:scale-[0.98]"
           >
             <span className="material-symbols-outlined text-lg text-primary animate-pulse" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
             <span className="text-xs sm:text-sm tracking-wide font-semibold">Importação Inteligente</span>
@@ -231,7 +231,7 @@ export default function Dashboard({ profile, userId = 'default_user', transactio
         </div>
 
         {/* Pro Growth Insights Panel ou Card Compacto PRO */}
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-4 sm:gap-5">
           {isPro ? (
             <ProGrowthPanel
               transactions={transactions}
@@ -242,12 +242,12 @@ export default function Dashboard({ profile, userId = 'default_user', transactio
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="glass-card rounded-[24px] p-6 shadow-xl flex flex-col gap-4 relative overflow-hidden text-left"
+              className="glass-card rounded-[24px] p-4 sm:p-5 shadow-xl flex flex-col gap-3.5 relative overflow-hidden text-left"
             >
               <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full filter blur-lg pointer-events-none"></div>
               
               {/* Discret badge in the top right */}
-              <div className="absolute top-6 right-6">
+              <div className="absolute top-4 sm:top-5 right-4 sm:top-5">
                 <span className="text-[10px] font-black text-white bg-[#6934D1] px-2.5 py-0.5 rounded-full tracking-wider">
                   PRO
                 </span>
@@ -265,7 +265,7 @@ export default function Dashboard({ profile, userId = 'default_user', transactio
               <button
                 type="button"
                 onClick={() => setShowProModal(true)}
-                className="mt-1 w-full py-3.5 rounded-2xl bg-gradient-to-r from-primary to-[#8b6eff] hover:from-[#8b6eff] hover:to-[#a18cff] text-on-primary font-black text-xs transition-all duration-300 flex items-center justify-center gap-2 border border-primary/30 shadow-[0_4px_14px_rgba(109,59,215,0.25)] hover:shadow-[0_4px_20px_rgba(109,59,215,0.45)] cursor-pointer active:scale-95"
+                className="mt-1 w-full py-3 rounded-xl sm:rounded-2xl bg-gradient-to-r from-primary to-[#8b6eff] hover:from-[#8b6eff] hover:to-[#a18cff] text-on-primary font-black text-xs transition-all duration-300 flex items-center justify-center gap-2 border border-primary/30 shadow-[0_4px_14px_rgba(109,59,215,0.25)] hover:shadow-[0_4px_20px_rgba(109,59,215,0.45)] cursor-pointer active:scale-95"
               >
                 Visualizar benefícios do PRO
               </button>
@@ -275,7 +275,7 @@ export default function Dashboard({ profile, userId = 'default_user', transactio
 
         {/* Insights PRO (Exclusivo PRO) - apenas se for PRO */}
         {isPro && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
             {/* Evolução do Negócio */}
             <EvolutionCard transactions={transactions} />
 
@@ -328,7 +328,7 @@ export default function Dashboard({ profile, userId = 'default_user', transactio
                   return (
                     <div 
                       key={tx.id} 
-                      className="group px-4 sm:px-6 py-3.5 flex items-center justify-between hover:bg-white/[0.02] transition-all duration-200 select-none min-h-[64px]"
+                      className="group px-3 sm:px-5 py-3 flex items-center justify-between hover:bg-white/[0.02] transition-all duration-200 select-none min-h-[58px]"
                     >
                       <div className="flex items-center gap-3.5 min-w-0 flex-1 text-left">
                         <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${

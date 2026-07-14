@@ -54,74 +54,75 @@ export default function DesktopDashboard({
   const now = new Date();
 
   return (
-    <div className="hidden lg:flex flex-col gap-8 w-full max-w-[1440px] mx-auto pb-12 text-left">
-      {/* Row 0: Welcome Header & Quick Action Button */}
-      <div className="flex justify-between items-center">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold text-primary bg-primary/10 border border-primary/25 px-2.5 py-0.5 rounded-full select-none tracking-wider uppercase">
-              {profile.businessType === 'cnpj' ? 'MEI' : 'Autônomo'}
-            </span>
-            <span className={`text-[9px] px-2 py-0.5 rounded-full uppercase font-black tracking-wider border ${
-              isPro
-                ? 'bg-primary/20 text-primary border-primary/30'
-                : 'bg-white/10 text-on-surface-variant border-white/10'
-            }`}>
-              {profile.plan || 'essential'}
-            </span>
-          </div>
-          <h2 className="text-2xl font-extrabold text-on-surface tracking-tight mt-1.5">
-            Olá, <span className="text-primary">{profile.name}</span>!
-          </h2>
-          <p className="text-xs text-on-surface-variant font-medium">
-            Bem-vindo ao <span className="text-on-surface font-semibold">{profile.businessName}</span>. Seu fluxo de caixa de {now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })} está atualizado.
-          </p>
-        </div>
-
-        {/* Small, Elegant Buttons */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onOpenImport}
-            className="bg-white/[0.04] hover:bg-white/[0.08] text-white font-extrabold text-xs tracking-wider uppercase py-3.5 px-6 rounded-2xl flex items-center gap-2 transition-all duration-300 border border-white/[0.08] cursor-pointer active:scale-[0.98]"
-          >
-            <span className="material-symbols-outlined text-sm text-primary font-black animate-pulse" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
-            Importação Inteligente
-          </button>
-          
-          <button
-            onClick={() => { setTxType('entrada'); setShowQuickAdd(true); }}
-            className="bg-primary hover:bg-[#8455ef] text-white font-extrabold text-xs tracking-wider uppercase py-3.5 px-6 rounded-2xl flex items-center gap-2 transition-all duration-300 shadow-[0_4px_14px_rgba(109,59,215,0.25)] hover:shadow-[0_6px_22px_rgba(109,59,215,0.45)] cursor-pointer active:scale-[0.98] border border-primary/30"
-          >
-            <span className="material-symbols-outlined text-sm font-black" style={{ fontVariationSettings: "'FILL' 1" }}>add_circle</span>
-            Lançar Movimentação
-          </button>
-        </div>
-      </div>
-
-      {/* Row 1: HERO PRINCIPAL (Full Width) */}
-      <motion.div 
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="glass-card rounded-[32px] p-8 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.6)] border border-white/[0.06] bg-gradient-to-br from-[#1a1a24] via-[#121217] to-[#0b0b0f] relative overflow-hidden"
-      >
-        <div className="absolute -top-12 -right-12 w-64 h-64 bg-primary/10 rounded-full filter blur-[80px] pointer-events-none"></div>
-        <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-tertiary/5 rounded-full filter blur-[60px] pointer-events-none"></div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          {/* Left part of the Hero: Value & Stats */}
-          <div className="lg:col-span-7 flex flex-col gap-6 text-left relative z-10">
-            <div className="flex flex-col gap-1.5">
-              <span className="text-xs font-black text-primary/80 uppercase tracking-widest flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-                Sobrou este mês
+    <div className="hidden lg:flex flex-col gap-5 w-full max-w-[1440px] mx-auto pb-8 text-left">
+      {/* Row 0: Welcome Header & Quick Action Button & Row 1: Hero merged in close spacing */}
+      <div className="flex flex-col gap-3.5">
+        {/* Row 0: Welcome Header & Quick Action Button */}
+        <div className="flex justify-between items-center">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-primary bg-primary/10 border border-primary/25 px-2.5 py-0.5 rounded-full select-none tracking-wider uppercase">
+                {profile.businessType === 'cnpj' ? 'MEI' : 'Autônomo'}
               </span>
-              <h1 className={`text-5xl font-black tracking-tight ${totalSobrou >= 0 ? 'text-on-surface' : 'text-error'}`}>
-                {formatBRL(totalSobrou)}
-              </h1>
+              <span className={`text-[9px] px-2 py-0.5 rounded-full uppercase font-black tracking-wider border ${
+                isPro
+                  ? 'bg-primary/20 text-primary border-primary/30'
+                  : 'bg-white/10 text-on-surface-variant border-white/10'
+              }`}>
+                {profile.plan || 'essential'}
+              </span>
             </div>
+            <h2 className="text-xl font-extrabold text-on-surface tracking-tight mt-1">
+              Olá, <span className="text-primary">{profile.name}</span>!
+            </h2>
+            <p className="text-[11px] text-on-surface-variant font-medium">
+              Bem-vindo ao <span className="text-on-surface font-semibold">{profile.businessName}</span>. Seu fluxo de caixa de {now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })} está atualizado.
+            </p>
+          </div>
 
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-2.5">
+          {/* Small, Elegant Buttons */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onOpenImport}
+              className="bg-white/[0.04] hover:bg-white/[0.08] text-white font-extrabold text-[10px] tracking-wider uppercase py-2.5 px-4 rounded-xl flex items-center gap-1.5 transition-all duration-300 border border-white/[0.08] cursor-pointer active:scale-[0.98]"
+            >
+              <span className="material-symbols-outlined text-xs text-primary font-black animate-pulse" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+              Importação Inteligente
+            </button>
+            
+            <button
+              onClick={() => { setTxType('entrada'); setShowQuickAdd(true); }}
+              className="bg-primary hover:bg-[#8455ef] text-white font-extrabold text-[10px] tracking-wider uppercase py-2.5 px-4 rounded-xl flex items-center gap-1.5 transition-all duration-300 shadow-[0_4px_14px_rgba(109,59,215,0.25)] hover:shadow-[0_6px_22px_rgba(109,59,215,0.45)] cursor-pointer active:scale-[0.98] border border-primary/30"
+            >
+              <span className="material-symbols-outlined text-xs font-black" style={{ fontVariationSettings: "'FILL' 1" }}>add_circle</span>
+              Lançar Movimentação
+            </button>
+          </div>
+        </div>
+
+        {/* Row 1: HERO PRINCIPAL (Full Width) - Compact horizontal layout */}
+        <motion.div 
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass-card rounded-[24px] p-4 lg:p-5 shadow-[0_24px_48px_-12px_rgba(0,0,0,0.5)] border border-white/[0.06] bg-gradient-to-br from-[#1a1a24] via-[#121217] to-[#0b0b0f] relative overflow-hidden"
+        >
+          <div className="absolute -top-12 -right-12 w-64 h-64 bg-primary/10 rounded-full filter blur-[80px] pointer-events-none"></div>
+          <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-tertiary/5 rounded-full filter blur-[60px] pointer-events-none"></div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
+            {/* Left part of the Hero: Value & Variation Badge */}
+            <div className="lg:col-span-4 flex flex-col gap-2 text-left relative z-10 justify-center">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[10px] font-black text-primary/80 uppercase tracking-widest flex items-center gap-1.5 leading-none">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+                  Sobrou este mês
+                </span>
+                <h1 className={`text-3xl lg:text-4xl font-black tracking-tight leading-tight ${totalSobrou >= 0 ? 'text-on-surface' : 'text-error'}`}>
+                  {formatBRL(totalSobrou)}
+                </h1>
+              </div>
+
+              <div className="flex items-center gap-2">
                 {(() => {
                   const prevMonthDate = new Date();
                   prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
@@ -141,221 +142,219 @@ export default function DesktopDashboard({
 
                   if (!hasPrevData) {
                     return (
-                      <span className="text-xs font-semibold text-on-surface-variant/80 bg-white/5 border border-white/5 rounded-full px-3 py-1 flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-sm">info</span>
-                        Primeiro mês registrado (ótimo progresso!)
+                      <span className="text-[10px] font-semibold text-on-surface-variant/80 bg-white/5 border border-white/5 rounded-full px-2 py-0.5 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[11px]">info</span>
+                        Primeiro mês
                       </span>
                     );
                   }
 
                   const isPositive = varSobrou >= 0;
                   return (
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs font-extrabold rounded-full px-3 py-1 flex items-center gap-1 border ${
-                          isPositive 
-                            ? 'bg-[#10b981]/15 text-[#4edea3] border-[#10b981]/20' 
-                            : 'bg-error/15 text-error border-error/20'
-                        }`}>
-                          <span className="material-symbols-outlined text-sm font-bold">
-                            {isPositive ? 'arrow_upward' : 'arrow_downward'}
-                          </span>
-                          {isPositive ? '+' : ''}{varSobrou.toFixed(1)}%
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={`text-[9px] font-extrabold rounded-full px-1.5 py-0.5 flex items-center gap-0.5 border ${
+                        isPositive 
+                          ? 'bg-[#10b981]/15 text-[#4edea3] border-[#10b981]/20' 
+                          : 'bg-error/15 text-error border-error/20'
+                      }`}>
+                        <span className="material-symbols-outlined text-[10px] font-bold">
+                          {isPositive ? 'arrow_upward' : 'arrow_downward'}
                         </span>
-                        <span className="text-xs font-bold text-on-surface-variant">
-                          em relação ao mês passado (sobra anterior: {formatBRL(prevSobrou)})
-                        </span>
-                      </div>
+                        {isPositive ? '+' : ''}{varSobrou.toFixed(0)}%
+                      </span>
+                      <span className="text-[9px] font-bold text-on-surface-variant/85 truncate max-w-[150px] xl:max-w-none" title={`Sobra anterior: ${formatBRL(prevSobrou)}`}>
+                        vs anterior ({formatBRL(prevSobrou)})
+                      </span>
                     </div>
                   );
                 })()}
               </div>
+            </div>
 
-              {/* Progress bar towards goal */}
-              <div className="flex flex-col gap-2 mt-2 max-w-md bg-white/[0.02] border border-white/5 rounded-2xl p-4.5">
-                <div className="flex justify-between items-center text-[11px] font-bold">
-                  <span className="text-on-surface-variant flex items-center gap-1">
-                    <span className="material-symbols-outlined text-xs text-primary">tour</span>
-                    Sobra do Faturamento Mensal
-                  </span>
-                  <span className="text-primary font-black">
-                    {sobrouPercentage}% Guardado
-                  </span>
-                </div>
-                <div className="w-full bg-[#111115] h-2.5 rounded-full overflow-hidden border border-white/5">
-                  <div 
-                    className="bg-gradient-to-r from-primary to-[#8b6eff] h-full transition-all duration-700 rounded-full"
-                    style={{ width: `${sobrouPercentage}%` }}
-                  ></div>
-                </div>
-                <div className="flex justify-between items-center text-[10px] text-on-surface-variant/65 font-semibold leading-none">
-                  <span>Sobrou: {formatBRL(totalSobrou)}</span>
-                  <span>Faturado: {formatBRL(totalEntradas)}</span>
-                </div>
+            {/* Middle part of the Hero: Compact Progress bar */}
+            <div className="lg:col-span-4 flex flex-col gap-1.5 relative z-10 justify-center">
+              <div className="flex justify-between items-center text-[10px] font-bold leading-none">
+                <span className="text-on-surface-variant flex items-center gap-1">
+                  <span className="material-symbols-outlined text-xs text-primary">tour</span>
+                  Sobra do Faturamento
+                </span>
+                <span className="text-primary font-black">
+                  {sobrouPercentage}% Guardado
+                </span>
+              </div>
+              <div className="w-full bg-[#111115] h-2 rounded-full overflow-hidden border border-white/5">
+                <div 
+                  className="bg-gradient-to-r from-primary to-[#8b6eff] h-full transition-all duration-700 rounded-full"
+                  style={{ width: `${sobrouPercentage}%` }}
+                ></div>
+              </div>
+              <div className="flex justify-between items-center text-[9px] text-on-surface-variant/65 font-semibold leading-none">
+                <span>Sobrou: {formatBRL(totalSobrou)}</span>
+                <span>Faturado: {formatBRL(totalEntradas)}</span>
+              </div>
+            </div>
+
+            {/* Right part of the Hero: Extremely clean sparkline line graph */}
+            <div className="lg:col-span-4 flex flex-col justify-center relative z-10 w-full gap-1.5">
+              <div className="flex items-center justify-between px-1 leading-none">
+                <span className="text-[9px] font-black text-on-surface-variant uppercase tracking-widest">
+                  Evolução do Caixa
+                </span>
+                <span className="text-[9px] font-bold text-tertiary bg-tertiary/10 border border-tertiary/20 px-2 py-0.5 rounded-full">
+                  Tempo Real
+                </span>
+              </div>
+
+              {/* Draw Custom SVG Sparkline Area & Line */}
+              <div className="w-full bg-[#0d0d12]/40 border border-white/5 rounded-xl p-2.5 flex items-center justify-center h-[76px] relative overflow-hidden group hover:border-white/10 transition-all duration-300">
+                {(() => {
+                  const sortedTxs = [...visibleTransactions].sort((a, b) => a.date.localeCompare(b.date));
+                  let runningSum = 0;
+                  let balancePoints = sortedTxs.map(tx => {
+                    runningSum += tx.type === 'entrada' ? tx.amount : -tx.amount;
+                    return runningSum;
+                  });
+
+                  if (balancePoints.length === 0) {
+                    balancePoints = [0, 1000, 1500, 1200, 2200, 3100, 4500, 4000, 5200];
+                  } else if (balancePoints.length === 1) {
+                    balancePoints = [balancePoints[0] * 0.8, balancePoints[0]];
+                  } else if (balancePoints.length < 5) {
+                    balancePoints = [0, ...balancePoints];
+                  }
+
+                  const width = 340;
+                  const height = 70;
+                  const padding = 5;
+                  
+                  const min = Math.min(...balancePoints);
+                  const max = Math.max(...balancePoints);
+                  const range = max - min === 0 ? 1 : max - min;
+                  
+                  const coords = balancePoints.map((val, index) => {
+                    const x = padding + (index / (balancePoints.length - 1)) * (width - 2 * padding);
+                    const y = padding + (1 - (val - min) / range) * (height - 2 * padding);
+                    return { x, y };
+                  });
+
+                  let linePath = `M ${coords[0].x} ${coords[0].y}`;
+                  for (let i = 0; i < coords.length - 1; i++) {
+                    const curr = coords[i];
+                    const next = coords[i + 1];
+                    const cpX1 = curr.x + (next.x - curr.x) / 3;
+                    const cpY1 = curr.y;
+                    const cpX2 = curr.x + 2 * (next.x - curr.x) / 3;
+                    const cpY2 = next.y;
+                    linePath += ` C ${cpX1} ${cpY1}, ${cpX2} ${cpY2}, ${next.x} ${next.y}`;
+                  }
+
+                  const areaPath = `${linePath} L ${coords[coords.length - 1].x} ${height} L ${coords[0].x} ${height} Z`;
+
+                  return (
+                    <svg className="w-full h-full overflow-visible" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
+                      <defs>
+                        <linearGradient id="heroSparklineGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.25" />
+                          <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.00" />
+                        </linearGradient>
+                      </defs>
+                      <line x1="0" y1={height / 2} x2={width} y2={height / 2} stroke="rgba(255,255,255,0.02)" strokeDasharray="4 4" />
+                      
+                      <path d={areaPath} fill="url(#heroSparklineGrad)" className="transition-all duration-500" />
+                      
+                      <path d={linePath} fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-all duration-500" />
+                      
+                      {coords.length > 0 && (
+                        <g>
+                          <circle cx={coords[coords.length - 1].x} cy={coords[coords.length - 1].y} r="4" fill="#8b5cf6" className="origin-center" />
+                          <circle cx={coords[coords.length - 1].x} cy={coords[coords.length - 1].y} r="2.5" fill="#a78bfa" stroke="#131315" strokeWidth="1" />
+                        </g>
+                      )}
+                    </svg>
+                  );
+                })()}
               </div>
             </div>
           </div>
-
-          {/* Right part of the Hero: Extremely clean sparkline line graph */}
-          <div className="lg:col-span-5 flex flex-col justify-center relative z-10 w-full">
-            <div className="flex items-center justify-between mb-3 px-1">
-              <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest leading-none">
-                Evolução do Caixa (Mês Vigente)
-              </span>
-              <span className="text-[10px] font-bold text-tertiary bg-tertiary/10 border border-tertiary/20 px-2.5 py-0.5 rounded-full">
-                Tempo Real
-              </span>
-            </div>
-
-            {/* Draw Custom SVG Sparkline Area & Line */}
-            <div className="w-full bg-[#0d0d12]/60 border border-white/5 rounded-2xl p-4.5 flex items-center justify-center h-[140px] relative overflow-hidden group hover:border-white/10 transition-all duration-300">
-              {(() => {
-                const sortedTxs = [...visibleTransactions].sort((a, b) => a.date.localeCompare(b.date));
-                let runningSum = 0;
-                let balancePoints = sortedTxs.map(tx => {
-                  runningSum += tx.type === 'entrada' ? tx.amount : -tx.amount;
-                  return runningSum;
-                });
-
-                if (balancePoints.length === 0) {
-                  balancePoints = [0, 1000, 1500, 1200, 2200, 3100, 4500, 4000, 5200];
-                } else if (balancePoints.length === 1) {
-                  balancePoints = [balancePoints[0] * 0.8, balancePoints[0]];
-                } else if (balancePoints.length < 5) {
-                  balancePoints = [0, ...balancePoints];
-                }
-
-                const width = 340;
-                const height = 110;
-                const padding = 10;
-                
-                const min = Math.min(...balancePoints);
-                const max = Math.max(...balancePoints);
-                const range = max - min === 0 ? 1 : max - min;
-                
-                const coords = balancePoints.map((val, index) => {
-                  const x = padding + (index / (balancePoints.length - 1)) * (width - 2 * padding);
-                  const y = padding + (1 - (val - min) / range) * (height - 2 * padding);
-                  return { x, y };
-                });
-
-                let linePath = `M ${coords[0].x} ${coords[0].y}`;
-                for (let i = 0; i < coords.length - 1; i++) {
-                  const curr = coords[i];
-                  const next = coords[i + 1];
-                  const cpX1 = curr.x + (next.x - curr.x) / 3;
-                  const cpY1 = curr.y;
-                  const cpX2 = curr.x + 2 * (next.x - curr.x) / 3;
-                  const cpY2 = next.y;
-                  linePath += ` C ${cpX1} ${cpY1}, ${cpX2} ${cpY2}, ${next.x} ${next.y}`;
-                }
-
-                const areaPath = `${linePath} L ${coords[coords.length - 1].x} ${height} L ${coords[0].x} ${height} Z`;
-
-                return (
-                  <svg className="w-full h-full overflow-visible" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
-                    <defs>
-                      <linearGradient id="heroSparklineGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.25" />
-                        <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.00" />
-                      </linearGradient>
-                    </defs>
-                    <line x1="0" y1={height / 2} x2={width} y2={height / 2} stroke="rgba(255,255,255,0.02)" strokeDasharray="4 4" />
-                    
-                    <path d={areaPath} fill="url(#heroSparklineGrad)" className="transition-all duration-500" />
-                    
-                    <path d={linePath} fill="none" stroke="#a78bfa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="transition-all duration-500" />
-                    
-                    {coords.length > 0 && (
-                      <g>
-                        <circle cx={coords[coords.length - 1].x} cy={coords[coords.length - 1].y} r="6" fill="#8b5cf6" className="animate-ping origin-center" style={{ transformOrigin: `${coords[coords.length - 1].x}px ${coords[coords.length - 1].y}px` }} />
-                        <circle cx={coords[coords.length - 1].x} cy={coords[coords.length - 1].y} r="4" fill="#a78bfa" stroke="#131315" strokeWidth="1.5" />
-                      </g>
-                    )}
-                  </svg>
-                );
-              })()}
-            </div>
-          </div>
-        </div>
-      </motion.div>
+        </motion.div>
+      </div>
 
       {/* Row 2: CARDS SECUNDÁRIOS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
         {/* Card 1: Entradas */}
-        <div className="glass-card rounded-2xl p-5 border border-white/5 bg-gradient-to-b from-surface-container/20 to-surface-container-low/10 flex flex-col justify-between min-h-[124px] relative group hover:border-tertiary/20 transition-all duration-300">
+        <div className="glass-card rounded-2xl p-4 border border-white/5 bg-gradient-to-b from-surface-container/20 to-surface-container-low/10 flex flex-col justify-between min-h-[104px] relative group hover:border-tertiary/20 transition-all duration-300">
           <div className="absolute top-0 right-0 w-16 h-16 bg-tertiary/5 rounded-full filter blur-xl pointer-events-none"></div>
           <div className="flex justify-between items-start">
-            <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">Entradas do Mês</span>
-            <div className="w-8 h-8 rounded-lg bg-tertiary/10 flex items-center justify-center border border-tertiary/20">
-              <span className="material-symbols-outlined text-tertiary text-base" style={{ fontVariationSettings: "'FILL' 1" }}>arrow_upward</span>
+            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Entradas do Mês</span>
+            <div className="w-7 h-7 rounded-lg bg-tertiary/10 flex items-center justify-center border border-tertiary/20">
+              <span className="material-symbols-outlined text-tertiary text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>arrow_upward</span>
             </div>
           </div>
-          <div className="flex flex-col text-left mt-3">
-            <span className="text-xl font-black text-tertiary tracking-tight leading-none">
+          <div className="flex flex-col text-left mt-2">
+            <span className="text-lg font-black text-tertiary tracking-tight leading-none">
               {formatBRL(totalEntradas)}
             </span>
-            <span className="text-[10px] text-on-surface-variant/70 font-semibold mt-1.5 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+            <span className="text-[9px] text-on-surface-variant/70 font-semibold mt-1 flex items-center gap-1">
+              <span className="w-1 h-1 rounded-full bg-tertiary"></span>
               Receitas brutas operacionais
             </span>
           </div>
         </div>
 
         {/* Card 2: Saídas */}
-        <div className="glass-card rounded-2xl p-5 border border-white/5 bg-gradient-to-b from-surface-container/20 to-surface-container-low/10 flex flex-col justify-between min-h-[124px] relative group hover:border-error/20 transition-all duration-300">
+        <div className="glass-card rounded-2xl p-4 border border-white/5 bg-gradient-to-b from-surface-container/20 to-surface-container-low/10 flex flex-col justify-between min-h-[104px] relative group hover:border-error/20 transition-all duration-300">
           <div className="absolute top-0 right-0 w-16 h-16 bg-error/5 rounded-full filter blur-xl pointer-events-none"></div>
           <div className="flex justify-between items-start">
-            <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">Saídas do Mês</span>
-            <div className="w-8 h-8 rounded-lg bg-error/10 flex items-center justify-center border border-error/20">
-              <span className="material-symbols-outlined text-error text-base" style={{ fontVariationSettings: "'FILL' 1" }}>arrow_downward</span>
+            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Saídas do Mês</span>
+            <div className="w-7 h-7 rounded-lg bg-error/10 flex items-center justify-center border border-error/20">
+              <span className="material-symbols-outlined text-error text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>arrow_downward</span>
             </div>
           </div>
-          <div className="flex flex-col text-left mt-3">
-            <span className="text-xl font-black text-error tracking-tight leading-none">
+          <div className="flex flex-col text-left mt-2">
+            <span className="text-lg font-black text-error tracking-tight leading-none">
               {formatBRL(totalSaidas)}
             </span>
-            <span className="text-[10px] text-on-surface-variant/70 font-semibold mt-1.5 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-error"></span>
+            <span className="text-[9px] text-on-surface-variant/70 font-semibold mt-1 flex items-center gap-1">
+              <span className="w-1 h-1 rounded-full bg-error"></span>
               Despesas totais do período
             </span>
           </div>
         </div>
 
         {/* Card 3: Retiradas */}
-        <div className="glass-card rounded-2xl p-5 border border-white/5 bg-gradient-to-b from-surface-container/20 to-surface-container-low/10 flex flex-col justify-between min-h-[124px] relative group hover:border-primary/20 transition-all duration-300">
+        <div className="glass-card rounded-2xl p-4 border border-white/5 bg-gradient-to-b from-surface-container/20 to-surface-container-low/10 flex flex-col justify-between min-h-[104px] relative group hover:border-primary/20 transition-all duration-300">
           <div className="absolute top-0 right-0 w-16 h-16 bg-primary/5 rounded-full filter blur-xl pointer-events-none"></div>
           <div className="flex justify-between items-start">
-            <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">Retiradas</span>
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
-              <span className="material-symbols-outlined text-primary text-base" style={{ fontVariationSettings: "'FILL' 1" }}>payments</span>
+            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Retiradas</span>
+            <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
+              <span className="material-symbols-outlined text-primary text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>payments</span>
             </div>
           </div>
-          <div className="flex flex-col text-left mt-3">
-            <span className="text-xl font-black text-primary tracking-tight leading-none">
+          <div className="flex flex-col text-left mt-2">
+            <span className="text-lg font-black text-primary tracking-tight leading-none">
               {formatBRL(totalRetiradas)}
             </span>
-            <span className="text-[10px] text-on-surface-variant/70 font-semibold mt-1.5 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
+            <span className="text-[9px] text-on-surface-variant/70 font-semibold mt-1 flex items-center gap-1">
+              <span className="w-1 h-1 rounded-full bg-primary"></span>
               Salário do sócio (Pró-Labore)
             </span>
           </div>
         </div>
 
         {/* Card 4: Saldo Final */}
-        <div className="glass-card rounded-2xl p-5 border border-white/5 bg-gradient-to-b from-surface-container/20 to-surface-container-low/10 flex flex-col justify-between min-h-[124px] relative group hover:border-blue-500/20 transition-all duration-300">
+        <div className="glass-card rounded-2xl p-4 border border-white/5 bg-gradient-to-b from-surface-container/20 to-surface-container-low/10 flex flex-col justify-between min-h-[104px] relative group hover:border-blue-500/20 transition-all duration-300">
           <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/5 rounded-full filter blur-xl pointer-events-none"></div>
           <div className="flex justify-between items-start">
-            <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">Saldo Líquido</span>
-            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
-              <span className="material-symbols-outlined text-blue-400 text-base" style={{ fontVariationSettings: "'FILL' 1" }}>account_balance</span>
+            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Saldo Líquido</span>
+            <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+              <span className="material-symbols-outlined text-blue-400 text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>account_balance</span>
             </div>
           </div>
-          <div className="flex flex-col text-left mt-3">
-            <span className={`text-xl font-black tracking-tight leading-none ${totalSobrou >= 0 ? 'text-blue-400' : 'text-error'}`}>
+          <div className="flex flex-col text-left mt-2">
+            <span className={`text-lg font-black tracking-tight leading-none ${totalSobrou >= 0 ? 'text-blue-400' : 'text-error'}`}>
               {formatBRL(totalSobrou)}
             </span>
-            <span className="text-[10px] text-on-surface-variant/70 font-semibold mt-1.5 flex items-center gap-1">
+            <span className="text-[9px] text-on-surface-variant/70 font-semibold mt-1 flex items-center gap-1">
               <span className={`w-1.5 h-1.5 rounded-full ${totalSobrou >= 0 ? 'bg-blue-400' : 'bg-error'}`}></span>
               Disponível para reinvestimento
             </span>
@@ -364,10 +363,10 @@ export default function DesktopDashboard({
       </div>
 
       {/* Row 3: CORE CONTENT */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full items-start">
         
         {/* LEFT CONTAINER (col-span-8) */}
-        <div className="lg:col-span-8 flex flex-col gap-8 text-left">
+        <div className="lg:col-span-8 flex flex-col gap-6 text-left">
           
           {/* Gráfico Principal */}
           <div className="flex flex-col gap-3">
@@ -491,7 +490,7 @@ export default function DesktopDashboard({
         </div>
 
         {/* RIGHT CONTAINER (col-span-4) */}
-        <div className="lg:col-span-4 flex flex-col gap-8 text-left">
+        <div className="lg:col-span-4 flex flex-col gap-6 text-left">
           
           {/* Meta e Saúde Financeira */}
           <div className="flex flex-col gap-3">

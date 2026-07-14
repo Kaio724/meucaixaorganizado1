@@ -86,11 +86,11 @@ export default function Summary({ transactions, profile, onNavigateToPlanos }: S
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="glass-card rounded-[24px] p-6 shadow-xl flex flex-col gap-4"
+          className="glass-card rounded-[24px] p-4 sm:p-5 shadow-xl flex flex-col gap-3.5 sm:gap-4"
         >
           <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Lucro Líquido Real</h3>
           <div className="flex items-baseline gap-2">
-            <h1 className={`text-3xl font-extrabold tracking-tight ${netBalance >= 0 ? 'text-tertiary' : 'text-error'}`}>
+            <h1 className={`text-2xl xs:text-3xl font-extrabold tracking-tight ${netBalance >= 0 ? 'text-tertiary' : 'text-error'}`}>
               {formatBRL(netBalance)}
             </h1>
             <span className="text-[10px] text-on-surface-variant bg-white/5 rounded-full px-2.5 py-1">
@@ -214,7 +214,7 @@ export default function Summary({ transactions, profile, onNavigateToPlanos }: S
         </div>
 
         {/* Seção Estruturada para Projeções / Funcionalidade futura PRO */}
-        <div className="glass-card rounded-[24px] p-5 border border-white/5 flex flex-col gap-4 relative overflow-hidden bg-gradient-to-br from-primary/5 to-transparent">
+        <div className="glass-card rounded-[24px] p-4 sm:p-5 border border-white/5 flex flex-col gap-3.5 sm:gap-4 relative overflow-hidden bg-gradient-to-br from-primary/5 to-transparent">
           <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-full filter blur-xl pointer-events-none"></div>
           
           <div className="flex items-start justify-between">
