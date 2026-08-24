@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { UserProfile, Transaction, ActiveTab } from './types';
+import { UserProfile, Transaction, ActiveTab, AccountType } from './types';
 import { INITIAL_TRANSACTIONS } from './initialData';
 
 // Components
@@ -12,6 +12,15 @@ import Summary from './components/Summary';
 import Auth from './components/Auth';
 import Plans from './components/Plans';
 import Categories from './components/Categories';
+import AccountToggle from './components/AccountToggle';
+import PersonalDashboard from './components/PersonalDashboard';
+import PersonalHistory from './components/PersonalHistory';
+import PersonalAddModal from './components/PersonalAddModal';
+import PersonalBudgets from './components/personal/PersonalBudgets';
+import PersonalGoals from './components/personal/PersonalGoals';
+import PersonalRecurring from './components/personal/PersonalRecurring';
+import PersonalSummary from './components/personal/PersonalSummary';
+import PersonalMoreMenuModal from './components/personal/PersonalMoreMenuModal';
 
 // Supabase Helpers
 import { 
@@ -31,6 +40,37 @@ export default function App() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard'); // default to 'dashboard'
+  const [activeAccount, setActiveAccount] = useState<AccountType>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('mco_active_account_type');
+      if (saved === 'pessoal' || saved === 'empresarial') return saved;
+    }
+    return 'empresarial';
+  });
+
+  // Personal Account Modal States
+  const [isPersonalAddModalOpen, setIsPersonalAddModalOpen] = useState(false);
+  const [editingPersonalTx, setEditingPersonalTx] = useState<Transaction | null>(null);
+  const [showPersonalMoreModal, setShowPersonalMoreModal] = useState(false);
+
+  const handleAccountChange = (newAccount: AccountType) => {
+    setActiveAccount(newAccount);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('mco_active_account_type', newAccount);
+    }
+    if (newAccount === 'pessoal') {
+      const validPersonalTabs: ActiveTab[] = ['dashboard', 'historico', 'metas', 'orcamentos', 'recorrencias', 'resumo', 'categorias'];
+      if (!validPersonalTabs.includes(activeTab)) {
+        setActiveTab('dashboard');
+      }
+    } else {
+      const validEmpresarialTabs: ActiveTab[] = ['dashboard', 'historico', 'retirar', 'resumo', 'planos', 'categorias'];
+      if (!validEmpresarialTabs.includes(activeTab)) {
+        setActiveTab('dashboard');
+      }
+    }
+  };
+
   const [showNotification, setShowNotification] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
@@ -238,7 +278,11 @@ export default function App() {
     if (!session?.user) return;
     setDbError(null);
     try {
-      const savedTx = await insertTransaction(session.user.id, newTx);
+      const txWithAccount = {
+        ...newTx,
+        accountType: newTx.accountType || activeAccount,
+      };
+      const savedTx = await insertTransaction(session.user.id, txWithAccount);
       setTransactions((prev) => [savedTx, ...prev]);
     } catch (err) {
       setDbError('Sem conexão, tente novamente');
@@ -250,7 +294,11 @@ export default function App() {
     if (!session?.user) return;
     setDbError(null);
     try {
-      const savedTx = await updateTransaction(session.user.id, updatedTx);
+      const txWithAccount = {
+        ...updatedTx,
+        accountType: updatedTx.accountType || activeAccount,
+      };
+      const savedTx = await updateTransaction(session.user.id, txWithAccount);
       setTransactions((prev) => prev.map((t) => (t.id === savedTx.id ? savedTx : t)));
     } catch (err) {
       setDbError('Sem conexão, tente novamente');
@@ -463,9 +511,10 @@ export default function App() {
   // If Supabase tables are not configured yet, show helper instructions screen
   if (dbSchemaError) {
     const upgradeScript = `-- ATUALIZAÇÃO SÓ DE COLUNAS (Se você já tem as tabelas criadas)
--- Use isso para corrigir o erro 'plano column' ou 'policy already exists'
+-- Adiciona suporte a planos, contas e contas duplas (Empresarial e Pessoal)
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS plano TEXT DEFAULT 'essential' CHECK (plano IN ('essential', 'pro'));
-ALTER TABLE public.lancamentos ADD COLUMN IF NOT EXISTS conta TEXT;`;
+ALTER TABLE public.lancamentos ADD COLUMN IF NOT EXISTS conta TEXT;
+ALTER TABLE public.lancamentos ADD COLUMN IF NOT EXISTS tipo_conta TEXT NOT NULL DEFAULT 'empresarial';`;
 
     const sqlScript = `-- 1. Criar a tabela de perfis (profiles) vinculada ao auth.users
 CREATE TABLE IF NOT EXISTS public.profiles (
@@ -477,7 +526,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 2. Criar a tabela de lançamentos (lancamentos)
+-- 2. Criar a tabela de lançamentos (lancamentos) com suporte a Conta Dupla (tipo_conta)
 CREATE TABLE IF NOT EXISTS public.lancamentos (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -489,6 +538,7 @@ CREATE TABLE IF NOT EXISTS public.lancamentos (
     descricao TEXT,
     data DATE NOT NULL,
     conta TEXT,
+    tipo_conta TEXT NOT NULL DEFAULT 'empresarial',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -652,8 +702,16 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
     );
   }
 
-  // Navigation Items definitions
-  const NAV_ITEMS = [
+  // Filter transactions by account type
+  const empresarialTransactions = transactions.filter(
+    (t) => (t.accountType || 'empresarial') === 'empresarial'
+  );
+  const pessoalTransactions = transactions.filter(
+    (t) => t.accountType === 'pessoal'
+  );
+
+  // Navigation Items definitions for Empresarial
+  const NAV_ITEMS_EMPRESARIAL = [
     { id: 'dashboard' as ActiveTab, label: 'Dashboard', icon: 'home' },
     { id: 'historico' as ActiveTab, label: 'Histórico', icon: 'history' },
     { id: 'retirar' as ActiveTab, label: 'Retirar', icon: 'payments' },
@@ -661,11 +719,24 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
     { id: 'categorias' as ActiveTab, label: 'Categorias', icon: 'category' },
   ];
 
+  // Navigation Items definitions for Pessoal
+  const NAV_ITEMS_PESSOAL = [
+    { id: 'dashboard' as ActiveTab, label: 'Início', icon: 'home' },
+    { id: 'historico' as ActiveTab, label: 'Histórico', icon: 'history' },
+    { id: 'metas' as ActiveTab, label: 'Metas', icon: 'track_changes' },
+    { id: 'orcamentos' as ActiveTab, label: 'Orçamentos', icon: 'savings' },
+    { id: 'recorrencias' as ActiveTab, label: 'Recorrências', icon: 'autorenew' },
+    { id: 'resumo' as ActiveTab, label: 'Resumo Mensal', icon: 'pie_chart' },
+    { id: 'categorias' as ActiveTab, label: 'Categorias', icon: 'category' },
+  ];
+
   return (
     <div className="min-h-screen bg-[#131315] text-[#e5e1e4] flex flex-col justify-between relative overflow-x-hidden antialiased font-sans">
       
-      {/* Ambient background glow gradient */}
+      {/* Ambient background glow gradient & dot grid */}
       <div className="absolute inset-0 ambient-glow pointer-events-none z-0"></div>
+      <div className="absolute inset-0 dot-grid-bg opacity-70 pointer-events-none z-0"></div>
+      <div className="absolute inset-0 bg-noise opacity-40 pointer-events-none z-0"></div>
 
       {/* Connection Error Toast */}
       <AnimatePresence>
@@ -706,7 +777,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
             {/* Sidebar - Visible on Desktop only */}
             <aside className="hidden lg:flex flex-col w-64 shrink-0 h-screen sticky top-0 py-8 border-r border-white/5 pr-6 z-30 select-none">
               {/* Logo */}
-              <div className="flex items-center gap-2.5 px-3 py-2 rounded-2xl bg-primary/10 border border-primary/30 shadow-[0_0_15px_rgba(208,188,255,0.25)] mb-8 max-w-full">
+              <div className="flex items-center gap-2.5 px-3 py-2 rounded-2xl bg-primary/10 border border-primary/30 shadow-[0_0_15px_rgba(208,188,255,0.25)] mb-4 max-w-full">
                 <span className="material-symbols-outlined text-primary text-xl flex-shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>
                   account_balance_wallet
                 </span>
@@ -715,69 +786,122 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                 </span>
               </div>
 
+              {/* Account Switcher in Sidebar */}
+              <div className="mb-6">
+                <AccountToggle
+                  activeAccount={activeAccount}
+                  onAccountChange={handleAccountChange}
+                  className="w-full justify-between"
+                  size="sm"
+                />
+              </div>
+
               {/* Menu */}
               <div className="flex flex-col gap-1.5 mb-auto">
-                {NAV_ITEMS.map((item) => {
-                  const isActive = activeTab === item.id;
-                  return (
+                {activeAccount === 'empresarial' ? (
+                  <>
+                    {NAV_ITEMS_EMPRESARIAL.map((item) => {
+                      const isActive = activeTab === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            setActiveTab(item.id);
+                            setShowProfileMenu(false);
+                            setShowNotification(false);
+                          }}
+                          className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold tracking-wide uppercase transition-all duration-200 cursor-pointer ${
+                            isActive
+                              ? 'bg-primary/20 text-primary border border-primary/30 shadow-[0_0_16px_rgba(160,120,255,0.18)]'
+                              : 'text-on-surface-variant hover:text-on-surface hover:bg-white/[0.04] border border-transparent'
+                          }`}
+                        >
+                          <span className="material-symbols-outlined text-lg">{item.icon}</span>
+                          <span>{item.label}</span>
+                        </button>
+                      );
+                    })}
+                    
+                    {/* Plans button in side menu */}
                     <button
-                      key={item.id}
                       onClick={() => {
-                        setActiveTab(item.id);
+                        setActiveTab('planos');
                         setShowProfileMenu(false);
                         setShowNotification(false);
                       }}
                       className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold tracking-wide uppercase transition-all duration-200 cursor-pointer ${
-                        isActive
-                          ? 'bg-primary/20 text-primary border border-primary/15'
-                          : 'text-on-surface-variant hover:text-on-surface hover:bg-white/5 border border-transparent'
+                        activeTab === 'planos'
+                          ? 'bg-primary/20 text-primary border border-primary/30 shadow-[0_0_16px_rgba(160,120,255,0.18)]'
+                          : 'text-on-surface-variant hover:text-on-surface hover:bg-white/[0.04] border border-transparent'
                       }`}
                     >
-                      <span className="material-symbols-outlined text-lg">{item.icon}</span>
-                      <span>{item.label}</span>
+                      <span className="material-symbols-outlined text-lg">workspace_premium</span>
+                      <span>Planos</span>
                     </button>
-                  );
-                })}
-                
-                {/* Plans button in side menu */}
-                <button
-                  onClick={() => {
-                    setActiveTab('planos');
-                    setShowProfileMenu(false);
-                    setShowNotification(false);
-                  }}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold tracking-wide uppercase transition-all duration-200 cursor-pointer ${
-                    activeTab === 'planos'
-                      ? 'bg-primary/20 text-primary border border-primary/15'
-                      : 'text-on-surface-variant hover:text-on-surface hover:bg-white/5 border border-transparent'
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-lg">workspace_premium</span>
-                  <span>Planos</span>
-                </button>
-              </div>
+                  </>
+                ) : (
+                  /* Personal Sidebar Menu */
+                  <>
+                    {NAV_ITEMS_PESSOAL.map((item) => {
+                      const isActive = activeTab === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            setActiveTab(item.id);
+                            setShowProfileMenu(false);
+                            setShowNotification(false);
+                          }}
+                          className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold tracking-wide uppercase transition-all duration-200 cursor-pointer ${
+                            isActive
+                              ? 'bg-[#7C3AED]/20 text-[#c4b5fd] border border-[#7C3AED]/35 shadow-[0_0_16px_rgba(124,58,237,0.25)]'
+                              : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] border border-transparent'
+                          }`}
+                        >
+                          <span className="material-symbols-outlined text-lg">{item.icon}</span>
+                          <span>{item.label}</span>
+                        </button>
+                      );
+                    })}
 
-              {/* Plano Atual & Botão Upgrade */}
-              <div className="bg-surface-container-low rounded-2xl p-4 border border-white/5 mb-4 flex flex-col gap-2.5 text-left">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wider">Plano Atual</span>
-                  <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase border ${
-                    (profile.plan || 'essential') === 'pro'
-                      ? 'bg-primary/20 text-primary border-primary/30'
-                      : 'bg-white/5 text-on-surface-variant/80 border-white/10'
-                  }`}>
-                    {profile.plan || 'essential'}
-                  </span>
-                </div>
-                {(profile.plan || 'essential') !== 'pro' && (
-                  <button
-                    onClick={() => setActiveTab('planos')}
-                    className="w-full py-2.5 rounded-xl bg-primary hover:bg-[#c0aeff] text-on-primary font-black text-xs transition-all duration-200 border border-primary/30 shadow-[0_4px_12px_rgba(160,120,255,0.15)] text-center cursor-pointer"
-                  >
-                    Upgrade para o PRO
-                  </button>
+                    {/* Quick + Lançar Button for Personal Account in Sidebar */}
+                    <button
+                      onClick={() => {
+                        setEditingPersonalTx(null);
+                        setIsPersonalAddModalOpen(true);
+                      }}
+                      className="mt-3 flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#9333ea] hover:from-[#8b4bf0] hover:to-[#a855f7] text-white font-extrabold text-xs transition-all duration-200 shadow-[0_4px_16px_rgba(124,58,237,0.35)] cursor-pointer border border-[#c4b5fd]/30"
+                    >
+                      <span className="material-symbols-outlined text-base font-bold">add_circle</span>
+                      <span>+ Lançar Pessoal</span>
+                    </button>
+                  </>
                 )}
               </div>
+
+              {/* Plano Atual & Botão Upgrade (Empresarial only) */}
+              {activeAccount === 'empresarial' && (
+                <div className="bg-surface-container-low rounded-2xl p-4 border border-white/5 mb-4 flex flex-col gap-2.5 text-left">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wider">Plano Atual</span>
+                    <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase border ${
+                      (profile.plan || 'essential') === 'pro'
+                        ? 'bg-primary/20 text-primary border-primary/30'
+                        : 'bg-white/5 text-on-surface-variant/80 border-white/10'
+                    }`}>
+                      {profile.plan || 'essential'}
+                    </span>
+                  </div>
+                  {(profile.plan || 'essential') !== 'pro' && (
+                    <button
+                      onClick={() => setActiveTab('planos')}
+                      className="w-full py-2.5 rounded-xl bg-primary hover:bg-[#c0aeff] text-on-primary font-black text-xs transition-all duration-200 border border-primary/30 shadow-[0_4px_12px_rgba(160,120,255,0.15)] text-center cursor-pointer"
+                    >
+                      Upgrade para o PRO
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Perfil */}
               <div className="border-t border-white/5 pt-4 flex items-center justify-between gap-3 relative">
@@ -796,7 +920,9 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                   </div>
                   <div className="flex flex-col min-w-0">
                     <span className="text-xs font-bold text-on-surface truncate group-hover:text-primary transition-colors">{profile.name}</span>
-                    <span className="text-[10px] text-on-surface-variant truncate">{profile.businessName}</span>
+                    <span className="text-[10px] text-on-surface-variant truncate">
+                      {activeAccount === 'empresarial' ? profile.businessName : 'Conta Pessoal'}
+                    </span>
                   </div>
                 </div>
 
@@ -811,46 +937,69 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
             </aside>
 
             {/* Core page layout on the right of the sidebar */}
-            <div className="flex-1 flex flex-col justify-between pb-24 lg:pb-8 min-w-0">
+            <div className="flex-1 flex flex-col justify-between pb-[calc(88px+env(safe-area-inset-bottom,0px))] lg:pb-8 min-w-0 px-5 sm:px-6">
+              
               {/* Desktop Header */}
               <header className="hidden lg:flex items-center justify-between py-6 border-b border-white/5 mb-8 shrink-0 select-none">
                 <div className="flex flex-col text-left">
                   <span className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-widest leading-none mb-1">
                     {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                   </span>
-                  <h2 className="text-xl font-bold text-on-surface tracking-tight leading-none uppercase">
-                    {activeTab === 'dashboard' && 'Dashboard Financeiro'}
-                    {activeTab === 'historico' && 'Histórico de Lançamentos'}
-                    {activeTab === 'retirar' && 'Retirar e Retornos'}
-                    {activeTab === 'resumo' && 'Resumo Financeiro'}
-                    {activeTab === 'planos' && 'Upgrade de Plano'}
-                    {activeTab === 'categorias' && 'Categorias'}
-                  </h2>
+                  <div className="flex items-center gap-2.5">
+                    <h2 className="text-xl font-bold text-on-surface tracking-tight leading-none uppercase">
+                      {activeAccount === 'pessoal' ? (
+                        <>
+                          {activeTab === 'dashboard' && 'Dashboard Pessoal'}
+                          {activeTab === 'historico' && 'Histórico Pessoal'}
+                          {activeTab === 'metas' && 'Metas de Economia'}
+                          {activeTab === 'orcamentos' && 'Orçamentos Mensais'}
+                          {activeTab === 'recorrencias' && 'Recorrências & Fixos'}
+                          {activeTab === 'resumo' && 'Resumo Financeiro Mensal'}
+                          {activeTab === 'categorias' && 'Minhas Categorias'}
+                        </>
+                      ) : (
+                        <>
+                          {activeTab === 'dashboard' && 'Dashboard Financeiro'}
+                          {activeTab === 'historico' && 'Histórico de Lançamentos'}
+                          {activeTab === 'retirar' && 'Retirar e Retornos'}
+                          {activeTab === 'resumo' && 'Resumo Financeiro'}
+                          {activeTab === 'planos' && 'Upgrade de Plano'}
+                          {activeTab === 'categorias' && 'Categorias'}
+                        </>
+                      )}
+                    </h2>
+                    <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border ${
+                      activeAccount === 'pessoal'
+                        ? 'bg-[#7C3AED]/20 text-[#c4b5fd] border-[#7C3AED]/35'
+                        : 'bg-primary/20 text-primary border-primary/30'
+                    }`}>
+                      {activeAccount === 'pessoal' ? 'Pessoal' : 'Empresarial'}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-4">
-                  {/* Plano atual pill */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-on-surface-variant font-medium tracking-wider uppercase">
-                      Plano Atual
-                    </span>
-                    <span className={`text-[10px] px-2.5 py-0.5 rounded-full uppercase font-extrabold border ${
-                      (profile.plan || 'essential') === 'pro'
-                        ? 'bg-primary/20 text-primary border-primary/30'
-                        : 'bg-white/10 text-on-surface-variant border-white/10'
-                    }`}>
-                      {profile.plan || 'essential'}
-                    </span>
-                  </div>
+                  {/* Account Switcher Header Toggle */}
+                  <AccountToggle
+                    activeAccount={activeAccount}
+                    onAccountChange={handleAccountChange}
+                    size="sm"
+                  />
 
-                  {/* Botão Upgrade if not pro */}
-                  {(profile.plan || 'essential') !== 'pro' && (
-                    <button
-                      onClick={() => setActiveTab('planos')}
-                      className="px-4 py-2 rounded-xl bg-primary hover:bg-[#c0aeff] text-on-primary text-xs font-black transition-all duration-200 shadow-[0_4px_12px_rgba(160,120,255,0.15)] hover:shadow-[0_6px_20px_rgba(160,120,255,0.3)] hover:-translate-y-0.5 cursor-pointer"
-                    >
-                      Fazer Upgrade
-                    </button>
+                  {/* Plano atual pill (Empresarial only) */}
+                  {activeAccount === 'empresarial' && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-on-surface-variant font-medium tracking-wider uppercase">
+                        Plano
+                      </span>
+                      <span className={`text-[10px] px-2.5 py-0.5 rounded-full uppercase font-extrabold border ${
+                        (profile.plan || 'essential') === 'pro'
+                          ? 'bg-primary/20 text-primary border-primary/30'
+                          : 'bg-white/10 text-on-surface-variant border-white/10'
+                      }`}>
+                        {profile.plan || 'essential'}
+                      </span>
+                    </div>
                   )}
 
                   {/* Perfil avatar */}
@@ -869,246 +1018,498 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                     </div>
                     <div className="flex flex-col text-left">
                       <span className="text-xs font-bold text-on-surface group-hover:text-primary transition-colors">{profile.name}</span>
-                      <span className="text-[9px] text-on-surface-variant">{profile.businessName}</span>
+                      <span className="text-[9px] text-on-surface-variant">
+                        {activeAccount === 'empresarial' ? profile.businessName : 'Finanças Pessoais'}
+                      </span>
                     </div>
                   </div>
                 </div>
               </header>
 
-              {/* Top Navigation Bar */}
-              <header className="py-4 flex items-center justify-between sticky top-0 bg-transparent z-30 mb-4 lg:hidden">
-              
-              {/* Profile/Settings button */}
-              <div className="relative">
-                <button 
-                  onClick={() => setShowProfileMenu(!showProfileMenu)}
-                  className="w-10 h-10 rounded-full bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant/30 flex items-center justify-center transition-all cursor-pointer relative"
-                  title="Configurações do Espaço"
-                >
-                  <span className="material-symbols-outlined text-on-surface text-xl">person</span>
-                </button>
+              {/* Mobile Top Navigation Bar */}
+              <header className="pt-[calc(8px+env(safe-area-inset-top,0px))] pb-2.5 px-3 sm:px-4 sticky top-0 bg-[#131315]/95 backdrop-blur-xl z-30 mb-3 lg:hidden border-b border-white/5 flex items-center justify-between min-h-[56px] select-none gap-2">
+                
+                {/* Backdrop dismiss for active mobile popovers */}
+                {(showProfileMenu || showNotification) && (
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      setShowNotification(false);
+                    }}
+                  />
+                )}
 
-                {/* Dropdown Menu */}
-                <AnimatePresence>
-                  {showProfileMenu && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      className="absolute left-0 mt-2 w-56 rounded-2xl bg-surface-container border border-outline-variant shadow-2xl p-3 z-50 flex flex-col gap-1.5"
-                    >
-                      <div className="px-3 py-2 border-b border-white/5">
-                        <div className="flex items-center justify-between gap-1.5">
-                          <span className="text-[10px] uppercase font-bold text-primary tracking-wider">Espaço Configurado</span>
-                          <span className={`text-[8px] px-1.5 py-0.5 rounded-full uppercase font-extrabold border ${
-                            (profile.plan || 'essential') === 'pro'
-                              ? 'bg-primary/20 text-primary border-primary/30'
-                              : 'bg-white/5 text-on-surface-variant border-white/10'
-                          }`}>
-                            {profile.plan || 'essential'}
-                          </span>
-                        </div>
-                        <h4 className="text-xs font-bold text-on-surface mt-0.5 truncate">{profile.name}</h4>
-                        <p className="text-[10px] text-on-surface-variant truncate">{profile.businessName}</p>
-                      </div>
-
-                      {/* Alterar Perfil Option */}
-                      <button
-                        onClick={() => {
-                          if (profile) {
-                            setEditName(profile.name);
-                            setEditBusinessName(profile.businessName);
-                          }
-                          setShowEditProfileModal(true);
-                          setShowProfileMenu(false);
-                        }}
-                        className="flex items-center gap-2 px-3 py-2 rounded-xl text-left text-xs font-semibold text-primary hover:bg-primary/10 transition-colors w-full cursor-pointer"
-                      >
-                        <span className="material-symbols-outlined text-sm">manage_accounts</span>
-                        Alterar Perfil
-                      </button>
-
-                      {/* Gerenciar Planos Option */}
-                      <button
-                        onClick={() => {
-                          setActiveTab('planos');
-                          setShowProfileMenu(false);
-                        }}
-                        className="flex items-center gap-2 px-3 py-2 rounded-xl text-left text-xs font-semibold text-primary hover:bg-primary/10 transition-colors w-full cursor-pointer"
-                      >
-                        <span className="material-symbols-outlined text-sm">workspace_premium</span>
-                        Gerenciar Planos
-                      </button>
-
-                      {/* Logout option */}
-                      <button
-                        onClick={handleLogout}
-                        className="flex items-center gap-2 px-3 py-2 rounded-xl text-left text-xs font-semibold text-error hover:bg-error/10 transition-colors w-full cursor-pointer"
-                      >
-                        <span className="material-symbols-outlined text-sm">logout</span>
-                        Sair da Conta
-                      </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* Title brand logo with bright purple glass bubble */}
-              <div className="px-3 py-1.5 rounded-full bg-primary/10 backdrop-blur-md border border-primary/30 shadow-[0_0_15px_rgba(208,188,255,0.25)] flex items-center gap-2 max-w-[210px] text-center">
-                <span className="material-symbols-outlined text-primary text-base flex-shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>
-                  account_balance_wallet
-                </span>
-                <h1 className="text-[10px] xs:text-xs font-extrabold text-primary tracking-wider uppercase select-none truncate font-sans">
-                  Meu Caixa Organizado
-                </h1>
-              </div>
-
-              {/* Notification icon */}
-              <div className="relative">
-                <button 
-                  onClick={() => setShowNotification(true)}
-                  className="w-10 h-10 rounded-full bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant/30 flex items-center justify-center transition-all cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-on-surface text-xl">notifications</span>
-                  {/* Indicator Dot */}
-                  <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-primary ring-2 ring-[#131315]"></span>
-                </button>
-
-                {/* Instant interactive feedback overlay */}
-                <AnimatePresence>
-                  {showNotification && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                      className="absolute right-0 mt-2 w-64 rounded-2xl bg-surface-container border border-outline-variant shadow-2xl p-4 z-50 flex flex-col gap-2"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-on-surface flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-tertiary"></span>
-                          Notificações
-                        </span>
-                        <button 
-                          onClick={() => setShowNotification(false)}
-                          className="text-on-surface-variant hover:text-on-surface"
-                        >
-                          <span className="material-symbols-outlined text-xs">close</span>
-                        </button>
-                      </div>
-                      <p className="text-[11px] text-on-surface-variant leading-relaxed font-semibold">
-                        Tudo pronto! Seu fluxo de caixa foi sincronizado e salvo na nuvem com sucesso.
-                      </p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </header>
-
-            {/* Dynamic Content Views */}
-            <main className="flex-1">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeTab}
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.25 }}
-                >
-                  {activeTab === 'dashboard' && (
-                    <Dashboard 
-                      profile={profile}
-                      transactions={transactions}
-                      onAddTransaction={handleAddTransaction}
-                      onNavigateToTab={setActiveTab}
-                    />
-                  )}
-
-                  {activeTab === 'historico' && (
-                    <History 
-                      profile={profile}
-                      userId={session?.user?.id || 'default_user'}
-                      transactions={transactions}
-                      onAddTransaction={handleAddTransaction}
-                      onEditTransaction={handleEditTransaction}
-                      onDeleteTransaction={handleDeleteTransaction}
-                    />
-                  )}
-
-                  {activeTab === 'retirar' && (
-                    <Withdraw 
-                      transactions={transactions}
-                      onAddTransaction={handleAddTransaction}
-                      onNavigateToTab={setActiveTab}
-                    />
-                  )}
-
-                  {activeTab === 'resumo' && (
-                    <Summary 
-                      transactions={transactions}
-                      profile={profile}
-                      onNavigateToPlanos={() => setActiveTab('planos')}
-                    />
-                  )}
-
-                  {activeTab === 'planos' && (
-                    <Plans 
-                      profile={profile}
-                      onUpdatePlan={handleUpdatePlan}
-                      onNavigateToTab={setActiveTab}
-                    />
-                  )}
-
-                  {activeTab === 'categorias' && (
-                    <Categories 
-                      profile={profile}
-                      userId={session?.user?.id || 'default_user'}
-                      onNavigateToPlanos={() => setActiveTab('planos')}
-                    />
-                  )}
-                </motion.div>
-              </AnimatePresence>
-            </main>
-
-            {/* Bottom Navigation */}
-            <nav className="fixed bottom-0 left-0 right-0 py-3 bg-[#1c1b1d]/95 backdrop-blur-md border-t border-white/5 z-40 shadow-xl lg:hidden">
-              <div className="max-w-lg mx-auto px-6 flex items-center justify-between">
-                {NAV_ITEMS.map((item) => {
-                  const isActive = activeTab === item.id;
-                  
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => {
-                        setActiveTab(item.id);
-                        setShowProfileMenu(false);
-                        setShowNotification(false);
-                      }}
-                      className="flex flex-col items-center gap-1 cursor-pointer transition-all relative"
-                    >
-                      {/* Active state styling with rounded container overlay */}
-                      <div className={`px-5 py-1.5 rounded-full flex items-center justify-center transition-all ${
-                        isActive 
-                          ? 'bg-primary/20 text-primary' 
-                          : 'text-on-surface-variant hover:text-on-surface'
-                      }`}>
-                        <span className="material-symbols-outlined text-xl">
-                          {item.icon}
-                        </span>
-                      </div>
-                      <span className={`text-[9px] font-bold tracking-wide uppercase transition-colors ${
-                        isActive ? 'text-primary' : 'text-on-surface-variant'
-                      }`}>
-                        {item.label}
+                {/* Profile/Settings button */}
+                <div className="relative shrink-0 z-50">
+                  <button 
+                    onClick={() => {
+                      setShowProfileMenu(!showProfileMenu);
+                      setShowNotification(false);
+                    }}
+                    className="w-10 h-10 rounded-full bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant/30 flex items-center justify-center transition-all cursor-pointer relative tap-target"
+                    title="Configurações do Espaço"
+                    aria-label="Menu de perfil e configurações"
+                  >
+                    {profile?.name ? (
+                      <span className="text-xs font-black text-primary uppercase">
+                        {profile.name.charAt(0)}
                       </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </nav>
-          </div>
+                    ) : (
+                      <span className="material-symbols-outlined text-on-surface text-xl">person</span>
+                    )}
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  <AnimatePresence>
+                    {showProfileMenu && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className="absolute left-0 mt-2 w-64 rounded-2xl bg-[#18181c] border border-outline-variant shadow-2xl p-3 z-50 flex flex-col gap-1.5 contain-scroll"
+                      >
+                        <div className="px-3 py-2 border-b border-white/5">
+                          <div className="flex items-center justify-between gap-1.5">
+                            <span className="text-[10px] uppercase font-bold text-primary tracking-wider">Espaço MCO</span>
+                            <span className={`text-[8px] px-1.5 py-0.5 rounded-full uppercase font-extrabold border ${
+                              (profile.plan || 'essential') === 'pro'
+                                ? 'bg-primary/20 text-primary border-primary/30'
+                                : 'bg-white/5 text-on-surface-variant border-white/10'
+                            }`}>
+                              {profile.plan || 'essential'}
+                            </span>
+                          </div>
+                          <h4 className="text-xs font-bold text-on-surface mt-0.5 truncate">{profile.name}</h4>
+                          <p className="text-[10px] text-on-surface-variant truncate">{profile.businessName}</p>
+                        </div>
+
+                        {/* Alterar Perfil Option */}
+                        <button
+                          onClick={() => {
+                            if (profile) {
+                              setEditName(profile.name);
+                              setEditBusinessName(profile.businessName);
+                            }
+                            setShowEditProfileModal(true);
+                            setShowProfileMenu(false);
+                          }}
+                          className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold text-primary hover:bg-primary/10 transition-colors w-full cursor-pointer min-h-[44px]"
+                        >
+                          <span className="material-symbols-outlined text-base">manage_accounts</span>
+                          Alterar Perfil
+                        </button>
+
+                        {/* Gerenciar Planos Option (Empresarial) */}
+                        <button
+                          onClick={() => {
+                            setActiveTab('planos');
+                            setShowProfileMenu(false);
+                          }}
+                          className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold text-primary hover:bg-primary/10 transition-colors w-full cursor-pointer min-h-[44px]"
+                        >
+                          <span className="material-symbols-outlined text-base">workspace_premium</span>
+                          Gerenciar Planos
+                        </button>
+
+                        {/* Logout option */}
+                        <button
+                          onClick={handleLogout}
+                          className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold text-error hover:bg-error/10 transition-colors w-full cursor-pointer min-h-[44px]"
+                        >
+                          <span className="material-symbols-outlined text-base">logout</span>
+                          Sair da Conta
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Centered Account Switcher */}
+                <div className="flex-1 flex justify-center px-1 max-w-[220px] mx-auto z-10">
+                  <AccountToggle
+                    activeAccount={activeAccount}
+                    onAccountChange={handleAccountChange}
+                    size="sm"
+                    className="w-full"
+                  />
+                </div>
+
+                {/* Notification icon */}
+                <div className="relative shrink-0 z-50">
+                  <button 
+                    onClick={() => {
+                      setShowNotification(!showNotification);
+                      setShowProfileMenu(false);
+                    }}
+                    className="w-10 h-10 rounded-full bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant/30 flex items-center justify-center transition-all cursor-pointer tap-target"
+                    title="Notificações"
+                    aria-label="Abrir notificações"
+                  >
+                    <span className="material-symbols-outlined text-on-surface text-xl">notifications</span>
+                    <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-primary ring-2 ring-[#131315]"></span>
+                  </button>
+
+                  <AnimatePresence>
+                    {showNotification && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                        className="absolute right-0 mt-2 w-72 rounded-2xl bg-[#18181c] border border-outline-variant shadow-2xl p-4 z-50 flex flex-col gap-2"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-on-surface flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-tertiary"></span>
+                            Notificações
+                          </span>
+                          <button 
+                            onClick={() => setShowNotification(false)}
+                            className="text-on-surface-variant hover:text-on-surface p-1 tap-target"
+                          >
+                            <span className="material-symbols-outlined text-sm">close</span>
+                          </button>
+                        </div>
+                        <p className="text-[12px] text-on-surface-variant leading-relaxed font-semibold">
+                          Tudo pronto! Seus dados foram sincronizados e salvos com sucesso na nuvem.
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </header>
+
+              {/* Dynamic Content Views */}
+              <main className="flex-1">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={`${activeAccount}-${activeTab}`}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    {activeAccount === 'pessoal' ? (
+                      /* Personal Account Views */
+                      <>
+                        {activeTab === 'dashboard' && (
+                          <PersonalDashboard
+                            profile={profile}
+                            userId={session?.user?.id || 'default_user'}
+                            transactions={pessoalTransactions}
+                            onAddTransaction={handleAddTransaction}
+                            onNavigateToTab={setActiveTab}
+                            onOpenAddModal={() => {
+                              setEditingPersonalTx(null);
+                              setIsPersonalAddModalOpen(true);
+                            }}
+                          />
+                        )}
+
+                        {activeTab === 'historico' && (
+                          <PersonalHistory
+                            profile={profile}
+                            userId={session?.user?.id || 'default_user'}
+                            transactions={pessoalTransactions}
+                            onAddTransaction={handleAddTransaction}
+                            onEditTransaction={handleEditTransaction}
+                            onDeleteTransaction={handleDeleteTransaction}
+                            onOpenAddModal={() => {
+                              setEditingPersonalTx(null);
+                              setIsPersonalAddModalOpen(true);
+                            }}
+                            onOpenEditModal={(tx) => {
+                              setEditingPersonalTx(tx);
+                              setIsPersonalAddModalOpen(true);
+                            }}
+                          />
+                        )}
+
+                        {activeTab === 'metas' && (
+                          <PersonalGoals
+                            profile={profile}
+                            userId={session?.user?.id || 'default_user'}
+                            onNavigateToTab={setActiveTab}
+                          />
+                        )}
+
+                        {activeTab === 'orcamentos' && (
+                          <PersonalBudgets
+                            profile={profile}
+                            userId={session?.user?.id || 'default_user'}
+                            transactions={pessoalTransactions}
+                          />
+                        )}
+
+                        {activeTab === 'recorrencias' && (
+                          <PersonalRecurring
+                            profile={profile}
+                            userId={session?.user?.id || 'default_user'}
+                            onAddTransaction={handleAddTransaction}
+                            onNavigateToTab={setActiveTab}
+                          />
+                        )}
+
+                        {activeTab === 'resumo' && (
+                          <PersonalSummary
+                            profile={profile}
+                            userId={session?.user?.id || 'default_user'}
+                            transactions={pessoalTransactions}
+                            onNavigateToTab={setActiveTab}
+                          />
+                        )}
+
+                        {activeTab === 'categorias' && (
+                          <Categories
+                            profile={profile}
+                            userId={session?.user?.id || 'default_user'}
+                            onNavigateToPlanos={() => setActiveTab('planos')}
+                          />
+                        )}
+                      </>
+                    ) : (
+                      /* Empresarial Account Views */
+                      <>
+                        {activeTab === 'dashboard' && (
+                          <Dashboard 
+                            profile={profile}
+                            transactions={empresarialTransactions}
+                            onAddTransaction={handleAddTransaction}
+                            onNavigateToTab={setActiveTab}
+                          />
+                        )}
+
+                        {activeTab === 'historico' && (
+                          <History 
+                            profile={profile}
+                            userId={session?.user?.id || 'default_user'}
+                            transactions={empresarialTransactions}
+                            onAddTransaction={handleAddTransaction}
+                            onEditTransaction={handleEditTransaction}
+                            onDeleteTransaction={handleDeleteTransaction}
+                          />
+                        )}
+
+                        {activeTab === 'retirar' && (
+                          <Withdraw 
+                            transactions={empresarialTransactions}
+                            onAddTransaction={handleAddTransaction}
+                            onNavigateToTab={setActiveTab}
+                          />
+                        )}
+
+                        {activeTab === 'resumo' && (
+                          <Summary 
+                            transactions={empresarialTransactions}
+                            profile={profile}
+                            onNavigateToPlanos={() => setActiveTab('planos')}
+                          />
+                        )}
+
+                        {activeTab === 'planos' && (
+                          <Plans 
+                            profile={profile}
+                            onUpdatePlan={handleUpdatePlan}
+                            onNavigateToTab={setActiveTab}
+                          />
+                        )}
+
+                        {activeTab === 'categorias' && (
+                          <Categories 
+                            profile={profile}
+                            userId={session?.user?.id || 'default_user'}
+                            onNavigateToPlanos={() => setActiveTab('planos')}
+                          />
+                        )}
+                      </>
+                    )}
+                  </motion.div>
+                </AnimatePresence>
+              </main>
+
+              {/* Bottom Navigation */}
+              <nav className="fixed bottom-0 left-0 right-0 bg-[#0e0c18]/95 backdrop-blur-2xl border-t border-primary/20 z-40 shadow-[0_-8px_32px_rgba(0,0,0,0.6)] lg:hidden h-[calc(64px+env(safe-area-inset-bottom,0px))] pb-[env(safe-area-inset-bottom,0px)]">
+                <div className="max-w-lg mx-auto h-full px-2 sm:px-4 flex items-center justify-between">
+                  {activeAccount === 'empresarial' ? (
+                    NAV_ITEMS_EMPRESARIAL.map((item) => {
+                      const isActive = activeTab === item.id;
+                      
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            setActiveTab(item.id);
+                            setShowProfileMenu(false);
+                            setShowNotification(false);
+                          }}
+                          className="flex-1 h-full flex flex-col items-center justify-center gap-1 cursor-pointer transition-all relative group tap-target"
+                        >
+                          <div className={`px-3 py-1 rounded-full flex items-center justify-center transition-all ${
+                            isActive 
+                              ? 'bg-primary/25 text-primary border border-primary/35 shadow-[0_0_14px_rgba(160,120,255,0.4)]' 
+                              : 'text-on-surface-variant hover:text-on-surface'
+                          }`}>
+                            <span className="material-symbols-outlined text-[22px]">
+                              {item.icon}
+                            </span>
+                          </div>
+                          <span className={`text-[10px] font-bold tracking-tight uppercase transition-colors whitespace-nowrap ${
+                            isActive ? 'text-primary drop-shadow-[0_0_6px_rgba(208,188,255,0.4)]' : 'text-on-surface-variant'
+                          }`}>
+                            {item.label}
+                          </span>
+                        </button>
+                      );
+                    })
+                  ) : (
+                    /* Personal Mobile Bottom Bar - 5 items */
+                    <div className="w-full h-full flex items-center justify-between px-1">
+                      {/* 1. Início */}
+                      <button
+                        onClick={() => {
+                          setActiveTab('dashboard');
+                          setShowProfileMenu(false);
+                          setShowNotification(false);
+                        }}
+                        className="flex-1 h-full flex flex-col items-center justify-center gap-1 cursor-pointer transition-all relative group tap-target"
+                      >
+                        <div className={`px-3 py-1 rounded-full flex items-center justify-center transition-all ${
+                          activeTab === 'dashboard'
+                            ? 'bg-[#7C3AED]/30 text-[#c4b5fd] border border-[#7C3AED]/40 shadow-[0_0_14px_rgba(124,58,237,0.4)]'
+                            : 'text-zinc-400 hover:text-zinc-200'
+                        }`}>
+                          <span className="material-symbols-outlined text-[20px]">home</span>
+                        </div>
+                        <span className={`text-[9px] font-bold tracking-tight uppercase transition-colors whitespace-nowrap ${
+                          activeTab === 'dashboard' ? 'text-[#c4b5fd]' : 'text-zinc-400'
+                        }`}>
+                          Início
+                        </span>
+                      </button>
+
+                      {/* 2. Histórico */}
+                      <button
+                        onClick={() => {
+                          setActiveTab('historico');
+                          setShowProfileMenu(false);
+                          setShowNotification(false);
+                        }}
+                        className="flex-1 h-full flex flex-col items-center justify-center gap-1 cursor-pointer transition-all relative group tap-target"
+                      >
+                        <div className={`px-3 py-1 rounded-full flex items-center justify-center transition-all ${
+                          activeTab === 'historico'
+                            ? 'bg-[#7C3AED]/30 text-[#c4b5fd] border border-[#7C3AED]/40 shadow-[0_0_14px_rgba(124,58,237,0.4)]'
+                            : 'text-zinc-400 hover:text-zinc-200'
+                        }`}>
+                          <span className="material-symbols-outlined text-[20px]">history</span>
+                        </div>
+                        <span className={`text-[9px] font-bold tracking-tight uppercase transition-colors whitespace-nowrap ${
+                          activeTab === 'historico' ? 'text-[#c4b5fd]' : 'text-zinc-400'
+                        }`}>
+                          Histórico
+                        </span>
+                      </button>
+
+                      {/* 3. + Lançar Center Action Pill */}
+                      <button
+                        onClick={() => {
+                          setEditingPersonalTx(null);
+                          setIsPersonalAddModalOpen(true);
+                        }}
+                        className="flex items-center justify-center w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#7C3AED] to-[#9333ea] text-white shadow-[0_0_18px_rgba(124,58,237,0.6)] border border-[#c4b5fd]/40 -translate-y-2 hover:scale-105 active:scale-95 transition-all cursor-pointer tap-target mx-0.5 shrink-0"
+                        title="Novo Lançamento Pessoal"
+                      >
+                        <span className="material-symbols-outlined text-2xl font-black">add</span>
+                      </button>
+
+                      {/* 4. Metas */}
+                      <button
+                        onClick={() => {
+                          setActiveTab('metas');
+                          setShowProfileMenu(false);
+                          setShowNotification(false);
+                        }}
+                        className="flex-1 h-full flex flex-col items-center justify-center gap-1 cursor-pointer transition-all relative group tap-target"
+                      >
+                        <div className={`px-3 py-1 rounded-full flex items-center justify-center transition-all ${
+                          activeTab === 'metas'
+                            ? 'bg-[#7C3AED]/30 text-[#c4b5fd] border border-[#7C3AED]/40 shadow-[0_0_14px_rgba(124,58,237,0.4)]'
+                            : 'text-zinc-400 hover:text-zinc-200'
+                        }`}>
+                          <span className="material-symbols-outlined text-[20px]">track_changes</span>
+                        </div>
+                        <span className={`text-[9px] font-bold tracking-tight uppercase transition-colors whitespace-nowrap ${
+                          activeTab === 'metas' ? 'text-[#c4b5fd]' : 'text-zinc-400'
+                        }`}>
+                          Metas
+                        </span>
+                      </button>
+
+                      {/* 5. Mais */}
+                      <button
+                        onClick={() => {
+                          setShowPersonalMoreModal(true);
+                          setShowProfileMenu(false);
+                          setShowNotification(false);
+                        }}
+                        className="flex-1 h-full flex flex-col items-center justify-center gap-1 cursor-pointer transition-all relative group tap-target"
+                      >
+                        <div className={`px-3 py-1 rounded-full flex items-center justify-center transition-all ${
+                          ['orcamentos', 'recorrencias', 'resumo', 'categorias'].includes(activeTab)
+                            ? 'bg-[#7C3AED]/30 text-[#c4b5fd] border border-[#7C3AED]/40 shadow-[0_0_14px_rgba(124,58,237,0.4)]'
+                            : 'text-zinc-400 hover:text-zinc-200'
+                        }`}>
+                          <span className="material-symbols-outlined text-[20px]">more_horiz</span>
+                        </div>
+                        <span className={`text-[9px] font-bold tracking-tight uppercase transition-colors whitespace-nowrap ${
+                          ['orcamentos', 'recorrencias', 'resumo', 'categorias'].includes(activeTab) ? 'text-[#c4b5fd]' : 'text-zinc-400'
+                        }`}>
+                          Mais
+                        </span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </nav>
+            </div>
           </>
         )}
       </div>
+
+      {/* Personal More Menu Modal */}
+      <PersonalMoreMenuModal
+        isOpen={showPersonalMoreModal}
+        onClose={() => setShowPersonalMoreModal(false)}
+        onSelectTab={(tab) => {
+          setActiveTab(tab);
+          setShowPersonalMoreModal(false);
+        }}
+        onOpenProfile={() => {
+          if (profile) {
+            setEditName(profile.name);
+            setEditBusinessName(profile.businessName);
+          }
+          setShowEditProfileModal(true);
+        }}
+      />
+
+      {/* Personal Add / Edit Modal */}
+      <PersonalAddModal
+        isOpen={isPersonalAddModalOpen}
+        onClose={() => {
+          setIsPersonalAddModalOpen(false);
+          setEditingPersonalTx(null);
+        }}
+        onSave={(tx) => {
+          if (editingPersonalTx) {
+            handleEditTransaction(tx as Transaction);
+          } else {
+            handleAddTransaction(tx);
+          }
+        }}
+        editingTx={editingPersonalTx}
+        userId={session?.user?.id || 'default_user'}
+      />
 
       {/* Alterar Perfil Modal */}
       <AnimatePresence>
@@ -1123,15 +1524,18 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 50, scale: 0.95 }}
               transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-              className="relative w-full sm:max-w-md bg-[#131315] border-t sm:border border-white/10 rounded-t-[32px] sm:rounded-[32px] p-6 shadow-2xl overflow-hidden flex flex-col gap-6 max-h-[92vh] overflow-y-auto z-10"
+              className="relative w-full sm:max-w-md bg-[#131315] border-t sm:border border-white/10 rounded-t-[28px] sm:rounded-[28px] p-4 sm:p-6 shadow-2xl overflow-hidden flex flex-col gap-5 max-h-[92vh] overflow-y-auto contain-scroll z-10"
             >
+              {/* Mobile Drag Handle */}
+              <div className="w-10 h-1 bg-white/25 rounded-full mx-auto -mt-1 mb-1 sm:hidden shrink-0"></div>
+
               <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full filter blur-xl pointer-events-none"></div>
 
-              <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-5">
                 {/* Header */}
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col">
-                    <h3 className="text-xl font-bold text-on-surface">
+                    <h3 className="text-lg sm:text-xl font-bold text-on-surface">
                       Alterar Perfil
                     </h3>
                     <p className="text-xs text-on-surface-variant font-medium mt-0.5">
@@ -1140,16 +1544,17 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                   </div>
                   <button 
                     onClick={closeEditProfileModal}
-                    className="w-10 h-10 rounded-full bg-surface-container-high hover:bg-surface-container-highest flex items-center justify-center transition-colors cursor-pointer select-none"
+                    className="w-10 h-10 rounded-full bg-surface-container-high hover:bg-surface-container-highest flex items-center justify-center transition-colors cursor-pointer select-none tap-target"
+                    aria-label="Fechar modal"
                   >
                     <span className="material-symbols-outlined text-on-surface-variant">close</span>
                   </button>
                 </div>
 
-                <form onSubmit={handleUpdateProfile} className="flex flex-col gap-5">
+                <form onSubmit={handleUpdateProfile} className="flex flex-col gap-4">
                   
                   {/* Seu Nome */}
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-bold text-on-surface-variant/90">Seu Nome</label>
                     <input
                       type="text"
@@ -1157,12 +1562,12 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                       placeholder="Seu nome completo"
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
-                      className="w-full bg-surface-container-low border border-outline-variant/40 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-primary text-on-surface placeholder:text-on-surface-variant/30 font-semibold"
+                      className="w-full bg-surface-container-low border border-outline-variant/40 rounded-2xl px-4 py-3 text-base sm:text-sm focus:outline-none focus:border-primary text-on-surface placeholder:text-on-surface-variant/30 font-semibold min-h-[48px]"
                     />
                   </div>
 
                   {/* Nome do Negócio */}
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-bold text-on-surface-variant/90">Nome do seu Negócio</label>
                     <input
                       type="text"
@@ -1170,17 +1575,17 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                       placeholder="Ex: Minha Confeitaria, Salão..."
                       value={editBusinessName}
                       onChange={(e) => setEditBusinessName(e.target.value)}
-                      className="w-full bg-surface-container-low border border-outline-variant/40 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-primary text-on-surface placeholder:text-on-surface-variant/30 font-semibold"
+                      className="w-full bg-surface-container-low border border-outline-variant/40 rounded-2xl px-4 py-3 text-base sm:text-sm focus:outline-none focus:border-primary text-on-surface placeholder:text-on-surface-variant/30 font-semibold min-h-[48px]"
                     />
                   </div>
 
                   {/* Submit action */}
                   <button
                     type="submit"
-                    className="w-full bg-[#6d3bd7] hover:bg-[#8455ef] text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 shadow-[0_4px_14px_rgba(109,59,215,0.25)] cursor-pointer border border-primary/30 mt-3 select-none"
+                    className="w-full bg-[#6d3bd7] hover:bg-[#8455ef] text-white font-bold h-[52px] rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 shadow-[0_4px_14px_rgba(109,59,215,0.25)] cursor-pointer border border-primary/30 mt-2 select-none text-base"
                   >
                     <span className="material-symbols-outlined text-sm font-bold">done</span>
-                    <span className="text-sm">Salvar Alterações</span>
+                    <span>Salvar Alterações</span>
                   </button>
 
                 </form>

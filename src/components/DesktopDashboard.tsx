@@ -84,7 +84,7 @@ export default function DesktopDashboard({
           <div className="flex items-center gap-3">
             <button
               onClick={onOpenImport}
-              className="bg-white/[0.04] hover:bg-white/[0.08] text-white font-extrabold text-[10px] tracking-wider uppercase py-2.5 px-4 rounded-xl flex items-center gap-1.5 transition-all duration-300 border border-white/[0.08] cursor-pointer active:scale-[0.98]"
+              className="bg-white/[0.04] hover:bg-white/[0.08] text-white font-extrabold text-[10px] tracking-wider uppercase py-2.5 px-4 rounded-xl flex items-center gap-1.5 transition-all duration-300 border border-white/[0.08] hover:border-primary/30 cursor-pointer active:scale-[0.98] shadow-sm hover:shadow-[0_0_16px_rgba(160,120,255,0.15)]"
             >
               <span className="material-symbols-outlined text-xs text-primary font-black animate-pulse" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
               Importação Inteligente
@@ -92,7 +92,7 @@ export default function DesktopDashboard({
             
             <button
               onClick={() => { setTxType('entrada'); setShowQuickAdd(true); }}
-              className="bg-primary hover:bg-[#8455ef] text-white font-extrabold text-[10px] tracking-wider uppercase py-2.5 px-4 rounded-xl flex items-center gap-1.5 transition-all duration-300 shadow-[0_4px_14px_rgba(109,59,215,0.25)] hover:shadow-[0_6px_22px_rgba(109,59,215,0.45)] cursor-pointer active:scale-[0.98] border border-primary/30"
+              className="bg-primary hover:bg-[#8455ef] text-white font-extrabold text-[10px] tracking-wider uppercase py-2.5 px-4 rounded-xl flex items-center gap-1.5 btn-primary-pulse cursor-pointer border border-primary/40"
             >
               <span className="material-symbols-outlined text-xs font-black" style={{ fontVariationSettings: "'FILL' 1" }}>add_circle</span>
               Lançar Movimentação
@@ -104,7 +104,7 @@ export default function DesktopDashboard({
         <motion.div 
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass-card rounded-[24px] p-4 lg:p-5 shadow-[0_24px_48px_-12px_rgba(0,0,0,0.5)] border border-white/[0.06] bg-gradient-to-br from-[#1a1a24] via-[#121217] to-[#0b0b0f] relative overflow-hidden"
+          className="hero-master-card rounded-[24px] p-4 lg:p-5 shadow-2xl relative overflow-hidden text-left"
         >
           <div className="absolute -top-12 -right-12 w-64 h-64 bg-primary/10 rounded-full filter blur-[80px] pointer-events-none"></div>
           <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-tertiary/5 rounded-full filter blur-[60px] pointer-events-none"></div>
@@ -113,11 +113,11 @@ export default function DesktopDashboard({
             {/* Left part of the Hero: Value & Variation Badge */}
             <div className="lg:col-span-4 flex flex-col gap-2 text-left relative z-10 justify-center">
               <div className="flex flex-col gap-0.5">
-                <span className="text-[10px] font-black text-primary/80 uppercase tracking-widest flex items-center gap-1.5 leading-none">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+                <span className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1.5 leading-none">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(208,188,255,0.8)]"></span>
                   Sobrou este mês
                 </span>
-                <h1 className={`text-3xl lg:text-4xl font-black tracking-tight leading-tight ${totalSobrou >= 0 ? 'text-on-surface' : 'text-error'}`}>
+                <h1 className={`text-3xl lg:text-4xl font-black tracking-tight leading-tight ${totalSobrou >= 0 ? 'text-on-surface' : 'text-error glow-text-red'}`}>
                   {formatBRL(totalSobrou)}
                 </h1>
               </div>
@@ -154,8 +154,8 @@ export default function DesktopDashboard({
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className={`text-[9px] font-extrabold rounded-full px-1.5 py-0.5 flex items-center gap-0.5 border ${
                         isPositive 
-                          ? 'bg-[#10b981]/15 text-[#4edea3] border-[#10b981]/20' 
-                          : 'bg-error/15 text-error border-error/20'
+                          ? 'bg-[#10b981]/15 text-[#4edea3] border-[#10b981]/25 shadow-[0_0_8px_rgba(78,222,163,0.15)]' 
+                          : 'bg-error/15 text-error border-error/25 shadow-[0_0_8px_rgba(255,180,171,0.15)]'
                       }`}>
                         <span className="material-symbols-outlined text-[10px] font-bold">
                           {isPositive ? 'arrow_upward' : 'arrow_downward'}
@@ -184,7 +184,7 @@ export default function DesktopDashboard({
               </div>
               <div className="w-full bg-[#111115] h-2 rounded-full overflow-hidden border border-white/5">
                 <div 
-                  className="bg-gradient-to-r from-primary to-[#8b6eff] h-full transition-all duration-700 rounded-full"
+                  className="bg-gradient-to-r from-primary to-[#8b6eff] h-full transition-all duration-700 rounded-full bar-glow-purple"
                   style={{ width: `${sobrouPercentage}%` }}
                 ></div>
               </div>
@@ -200,13 +200,13 @@ export default function DesktopDashboard({
                 <span className="text-[9px] font-black text-on-surface-variant uppercase tracking-widest">
                   Evolução do Caixa
                 </span>
-                <span className="text-[9px] font-bold text-tertiary bg-tertiary/10 border border-tertiary/20 px-2 py-0.5 rounded-full">
+                <span className="text-[9px] font-bold text-tertiary bg-tertiary/10 border border-tertiary/20 px-2 py-0.5 rounded-full shadow-[0_0_8px_rgba(78,222,163,0.15)]">
                   Tempo Real
                 </span>
               </div>
 
               {/* Draw Custom SVG Sparkline Area & Line */}
-              <div className="w-full bg-[#0d0d12]/40 border border-white/5 rounded-xl p-2.5 flex items-center justify-center h-[76px] relative overflow-hidden group hover:border-white/10 transition-all duration-300">
+              <div className="w-full bg-[#0d0d12]/60 border border-white/[0.08] rounded-xl p-2.5 flex items-center justify-center h-[76px] relative overflow-hidden group hover:border-primary/30 transition-all duration-300">
                 {(() => {
                   const sortedTxs = [...visibleTransactions].sort((a, b) => a.date.localeCompare(b.date));
                   let runningSum = 0;
@@ -254,20 +254,20 @@ export default function DesktopDashboard({
                     <svg className="w-full h-full overflow-visible" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
                       <defs>
                         <linearGradient id="heroSparklineGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.25" />
+                          <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.3" />
                           <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.00" />
                         </linearGradient>
                       </defs>
-                      <line x1="0" y1={height / 2} x2={width} y2={height / 2} stroke="rgba(255,255,255,0.02)" strokeDasharray="4 4" />
+                      <line x1="0" y1={height / 2} x2={width} y2={height / 2} stroke="rgba(255,255,255,0.03)" strokeDasharray="4 4" />
                       
                       <path d={areaPath} fill="url(#heroSparklineGrad)" className="transition-all duration-500" />
                       
-                      <path d={linePath} fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-all duration-500" />
+                      <path d={linePath} fill="none" stroke="#a78bfa" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="transition-all duration-500" />
                       
                       {coords.length > 0 && (
                         <g>
-                          <circle cx={coords[coords.length - 1].x} cy={coords[coords.length - 1].y} r="4" fill="#8b5cf6" className="origin-center" />
-                          <circle cx={coords[coords.length - 1].x} cy={coords[coords.length - 1].y} r="2.5" fill="#a78bfa" stroke="#131315" strokeWidth="1" />
+                          <circle cx={coords[coords.length - 1].x} cy={coords[coords.length - 1].y} r="5" fill="#8b5cf6" className="origin-center" />
+                          <circle cx={coords[coords.length - 1].x} cy={coords[coords.length - 1].y} r="2.5" fill="#ffffff" stroke="#131315" strokeWidth="1" />
                         </g>
                       )}
                     </svg>
@@ -282,80 +282,80 @@ export default function DesktopDashboard({
       {/* Row 2: CARDS SECUNDÁRIOS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
         {/* Card 1: Entradas */}
-        <div className="glass-card rounded-2xl p-4 border border-white/5 bg-gradient-to-b from-surface-container/20 to-surface-container-low/10 flex flex-col justify-between min-h-[104px] relative group hover:border-tertiary/20 transition-all duration-300">
-          <div className="absolute top-0 right-0 w-16 h-16 bg-tertiary/5 rounded-full filter blur-xl pointer-events-none"></div>
+        <div className="glass-card glass-card-interactive rounded-2xl p-4 border border-white/[0.08] bg-gradient-to-b from-surface-container/30 to-surface-container-low/20 flex flex-col justify-between min-h-[104px] relative group hover:border-tertiary/30 transition-all duration-300">
+          <div className="absolute top-0 right-0 w-16 h-16 bg-tertiary/10 rounded-full filter blur-xl pointer-events-none"></div>
           <div className="flex justify-between items-start">
             <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Entradas do Mês</span>
-            <div className="w-7 h-7 rounded-lg bg-tertiary/10 flex items-center justify-center border border-tertiary/20">
+            <div className="w-7 h-7 rounded-lg bg-tertiary/10 flex items-center justify-center border border-tertiary/25 shadow-[0_0_8px_rgba(78,222,163,0.12)]">
               <span className="material-symbols-outlined text-tertiary text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>arrow_upward</span>
             </div>
           </div>
           <div className="flex flex-col text-left mt-2">
-            <span className="text-lg font-black text-tertiary tracking-tight leading-none">
+            <span className="text-lg font-black text-tertiary glow-text-green tracking-tight leading-none">
               {formatBRL(totalEntradas)}
             </span>
             <span className="text-[9px] text-on-surface-variant/70 font-semibold mt-1 flex items-center gap-1">
-              <span className="w-1 h-1 rounded-full bg-tertiary"></span>
+              <span className="w-1 h-1 rounded-full bg-tertiary shadow-[0_0_4px_rgba(78,222,163,0.8)]"></span>
               Receitas brutas operacionais
             </span>
           </div>
         </div>
 
         {/* Card 2: Saídas */}
-        <div className="glass-card rounded-2xl p-4 border border-white/5 bg-gradient-to-b from-surface-container/20 to-surface-container-low/10 flex flex-col justify-between min-h-[104px] relative group hover:border-error/20 transition-all duration-300">
-          <div className="absolute top-0 right-0 w-16 h-16 bg-error/5 rounded-full filter blur-xl pointer-events-none"></div>
+        <div className="glass-card glass-card-interactive rounded-2xl p-4 border border-white/[0.08] bg-gradient-to-b from-surface-container/30 to-surface-container-low/20 flex flex-col justify-between min-h-[104px] relative group hover:border-error/30 transition-all duration-300">
+          <div className="absolute top-0 right-0 w-16 h-16 bg-error/10 rounded-full filter blur-xl pointer-events-none"></div>
           <div className="flex justify-between items-start">
             <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Saídas do Mês</span>
-            <div className="w-7 h-7 rounded-lg bg-error/10 flex items-center justify-center border border-error/20">
+            <div className="w-7 h-7 rounded-lg bg-error/10 flex items-center justify-center border border-error/25 shadow-[0_0_8px_rgba(255,180,171,0.12)]">
               <span className="material-symbols-outlined text-error text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>arrow_downward</span>
             </div>
           </div>
           <div className="flex flex-col text-left mt-2">
-            <span className="text-lg font-black text-error tracking-tight leading-none">
+            <span className="text-lg font-black text-error glow-text-red tracking-tight leading-none">
               {formatBRL(totalSaidas)}
             </span>
             <span className="text-[9px] text-on-surface-variant/70 font-semibold mt-1 flex items-center gap-1">
-              <span className="w-1 h-1 rounded-full bg-error"></span>
+              <span className="w-1 h-1 rounded-full bg-error shadow-[0_0_4px_rgba(255,180,171,0.8)]"></span>
               Despesas totais do período
             </span>
           </div>
         </div>
 
         {/* Card 3: Retiradas */}
-        <div className="glass-card rounded-2xl p-4 border border-white/5 bg-gradient-to-b from-surface-container/20 to-surface-container-low/10 flex flex-col justify-between min-h-[104px] relative group hover:border-primary/20 transition-all duration-300">
-          <div className="absolute top-0 right-0 w-16 h-16 bg-primary/5 rounded-full filter blur-xl pointer-events-none"></div>
+        <div className="glass-card glass-card-interactive rounded-2xl p-4 border border-white/[0.08] bg-gradient-to-b from-surface-container/30 to-surface-container-low/20 flex flex-col justify-between min-h-[104px] relative group hover:border-primary/30 transition-all duration-300">
+          <div className="absolute top-0 right-0 w-16 h-16 bg-primary/10 rounded-full filter blur-xl pointer-events-none"></div>
           <div className="flex justify-between items-start">
             <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Retiradas</span>
-            <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
+            <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/25 shadow-[0_0_8px_rgba(208,188,255,0.15)]">
               <span className="material-symbols-outlined text-primary text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>payments</span>
             </div>
           </div>
           <div className="flex flex-col text-left mt-2">
-            <span className="text-lg font-black text-primary tracking-tight leading-none">
+            <span className="text-lg font-black text-primary glow-text-purple tracking-tight leading-none">
               {formatBRL(totalRetiradas)}
             </span>
             <span className="text-[9px] text-on-surface-variant/70 font-semibold mt-1 flex items-center gap-1">
-              <span className="w-1 h-1 rounded-full bg-primary"></span>
+              <span className="w-1 h-1 rounded-full bg-primary shadow-[0_0_4px_rgba(208,188,255,0.8)]"></span>
               Salário do sócio (Pró-Labore)
             </span>
           </div>
         </div>
 
         {/* Card 4: Saldo Final */}
-        <div className="glass-card rounded-2xl p-4 border border-white/5 bg-gradient-to-b from-surface-container/20 to-surface-container-low/10 flex flex-col justify-between min-h-[104px] relative group hover:border-blue-500/20 transition-all duration-300">
-          <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/5 rounded-full filter blur-xl pointer-events-none"></div>
+        <div className="glass-card glass-card-interactive rounded-2xl p-4 border border-white/[0.08] bg-gradient-to-b from-surface-container/30 to-surface-container-low/20 flex flex-col justify-between min-h-[104px] relative group hover:border-blue-500/30 transition-all duration-300">
+          <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/10 rounded-full filter blur-xl pointer-events-none"></div>
           <div className="flex justify-between items-start">
             <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Saldo Líquido</span>
-            <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+            <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center border border-blue-500/25 shadow-[0_0_8px_rgba(96,165,250,0.15)]">
               <span className="material-symbols-outlined text-blue-400 text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>account_balance</span>
             </div>
           </div>
           <div className="flex flex-col text-left mt-2">
-            <span className={`text-lg font-black tracking-tight leading-none ${totalSobrou >= 0 ? 'text-blue-400' : 'text-error'}`}>
+            <span className={`text-lg font-black tracking-tight leading-none ${totalSobrou >= 0 ? 'text-blue-400' : 'text-error glow-text-red'}`}>
               {formatBRL(totalSobrou)}
             </span>
             <span className="text-[9px] text-on-surface-variant/70 font-semibold mt-1 flex items-center gap-1">
-              <span className={`w-1.5 h-1.5 rounded-full ${totalSobrou >= 0 ? 'bg-blue-400' : 'bg-error'}`}></span>
+              <span className={`w-1.5 h-1.5 rounded-full ${totalSobrou >= 0 ? 'bg-blue-400 shadow-[0_0_4px_rgba(96,165,250,0.8)]' : 'bg-error shadow-[0_0_4px_rgba(255,180,171,0.8)]'}`}></span>
               Disponível para reinvestimento
             </span>
           </div>

@@ -20,7 +20,8 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     date: getTodayDateString(0), // Today
     paymentMethod: 'Pix',
     category: 'Cliente Avulso',
-    description: 'Venda de doces sortidos para cliente direto'
+    description: 'Venda de doces sortidos para cliente direto',
+    accountType: 'empresarial'
   },
   {
     id: '2',
@@ -30,7 +31,8 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     date: getTodayDateString(0), // Today
     paymentMethod: 'Cartão de Crédito',
     category: 'Materiais',
-    description: 'Embalagens para os doces gourmet'
+    description: 'Embalagens para os doces gourmet',
+    accountType: 'empresarial'
   },
   {
     id: '3',
@@ -40,7 +42,8 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     date: getTodayDateString(1), // Yesterday
     paymentMethod: 'Dinheiro',
     category: 'Sinal',
-    description: 'Adiantamento de 50% para buffet infantil'
+    description: 'Adiantamento de 50% para buffet infantil',
+    accountType: 'empresarial'
   },
   {
     id: '4',
@@ -50,7 +53,8 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     date: getTodayDateString(1), // Yesterday
     paymentMethod: 'Débito',
     category: 'Transporte',
-    description: 'Abastecimento para entregas do final de semana'
+    description: 'Abastecimento para entregas do final de semana',
+    accountType: 'empresarial'
   }
 ];
 

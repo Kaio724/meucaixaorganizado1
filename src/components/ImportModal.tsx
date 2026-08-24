@@ -375,31 +375,35 @@ export default function ImportModal({ isOpen, onClose, profile, userId = 'defaul
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 overflow-y-auto">
-      <div className="w-full max-w-5xl bg-[#121217] border border-white/5 rounded-3xl overflow-hidden shadow-[0_24px_50px_-12px_rgba(0,0,0,0.8)] flex flex-col my-8 max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/85 backdrop-blur-md p-0 sm:p-4 overflow-y-auto contain-scroll">
+      <div className="w-full max-w-5xl bg-[#121217] border-t sm:border border-white/10 rounded-t-[28px] sm:rounded-3xl overflow-hidden shadow-[0_24px_50px_-12px_rgba(0,0,0,0.8)] flex flex-col my-0 sm:my-8 max-h-[92vh] sm:max-h-[90vh]">
         
+        {/* Mobile Drag Handle */}
+        <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mt-2.5 -mb-1 sm:hidden shrink-0"></div>
+
         {/* Header */}
-        <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-white/[0.01]">
+        <div className="px-4 sm:px-6 py-4 border-b border-white/5 flex items-center justify-between bg-white/[0.01]">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-primary animate-pulse" />
             </div>
             <div className="text-left">
-              <h3 className="text-base font-bold text-on-surface">Importação Inteligente</h3>
-              <p className="text-xs text-on-surface-variant">Lançamento de extratos com inteligência artificial</p>
+              <h3 className="text-sm sm:text-base font-bold text-on-surface">Importação Inteligente</h3>
+              <p className="text-[11px] sm:text-xs text-on-surface-variant">Lançamento de extratos com inteligência artificial</p>
             </div>
           </div>
           
           <button 
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors cursor-pointer"
+            className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors cursor-pointer tap-target"
+            aria-label="Fechar modal"
           >
             <X className="w-4 h-4 text-on-surface-variant" />
           </button>
         </div>
 
         {/* Inner Content scroll area */}
-        <div className="flex-1 overflow-y-auto p-6 md:p-8">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 contain-scroll">
           
           {/* STEP 1: UPLOAD AREA */}
           {step === 'upload' && (
@@ -719,7 +723,7 @@ export default function ImportModal({ isOpen, onClose, profile, userId = 'defaul
                                 type="date"
                                 value={tx.date}
                                 onChange={(e) => handleUpdateField(tx.id, 'date', e.target.value)}
-                                className="w-full bg-white/5 border border-white/5 hover:border-white/10 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg px-2 py-1.5 font-semibold text-on-surface"
+                                className="w-full bg-white/5 border border-white/5 hover:border-white/10 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg px-2 py-1.5 font-semibold text-on-surface text-base sm:text-xs min-h-[38px] scheme-dark"
                               />
                             </td>
 
@@ -729,7 +733,7 @@ export default function ImportModal({ isOpen, onClose, profile, userId = 'defaul
                                 type="text"
                                 value={tx.title}
                                 onChange={(e) => handleUpdateField(tx.id, 'title', e.target.value)}
-                                className="w-full bg-white/5 border border-white/5 hover:border-white/10 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg px-2 py-1.5 font-semibold text-on-surface"
+                                className="w-full bg-white/5 border border-white/5 hover:border-white/10 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg px-2 py-1.5 font-semibold text-on-surface text-base sm:text-xs min-h-[38px]"
                               />
                             </td>
 
@@ -738,7 +742,7 @@ export default function ImportModal({ isOpen, onClose, profile, userId = 'defaul
                               <select
                                 value={tx.type}
                                 onChange={(e) => handleUpdateField(tx.id, 'type', e.target.value as any)}
-                                className={`w-full bg-white/5 border border-white/5 rounded-lg px-2 py-1.5 font-bold focus:border-primary focus:ring-1 focus:ring-primary ${
+                                className={`w-full bg-white/5 border border-white/5 rounded-lg px-2 py-1.5 font-bold focus:border-primary focus:ring-1 focus:ring-primary text-base sm:text-xs min-h-[38px] ${
                                   tx.type === 'entrada' ? 'text-green-400' : 'text-red-400'
                                 }`}
                               >
@@ -750,13 +754,13 @@ export default function ImportModal({ isOpen, onClose, profile, userId = 'defaul
                             {/* Amount / Value (Editable) */}
                             <td className="py-2 px-4">
                               <div className="relative">
-                                <span className="absolute left-2 top-1.5 text-on-surface-variant font-medium text-[10px]">R$</span>
+                                <span className="absolute left-2 top-2 text-on-surface-variant font-medium text-[10px]">R$</span>
                                 <input
                                   type="number"
                                   step="0.01"
                                   value={tx.amount || ''}
                                   onChange={(e) => handleUpdateField(tx.id, 'amount', parseFloat(e.target.value) || 0)}
-                                  className="w-full bg-white/5 border border-white/5 hover:border-white/10 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg pl-6 pr-2 py-1.5 font-semibold text-on-surface"
+                                  className="w-full bg-white/5 border border-white/5 hover:border-white/10 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg pl-6 pr-2 py-1.5 font-semibold text-on-surface text-base sm:text-xs min-h-[38px]"
                                 />
                               </div>
                             </td>
@@ -766,7 +770,7 @@ export default function ImportModal({ isOpen, onClose, profile, userId = 'defaul
                               <select
                                 value={tx.category}
                                 onChange={(e) => handleUpdateField(tx.id, 'category', e.target.value)}
-                                className="w-full bg-white/5 border border-white/5 hover:border-white/10 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg px-2 py-1.5 font-semibold text-on-surface"
+                                className="w-full bg-white/5 border border-white/5 hover:border-white/10 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg px-2 py-1.5 font-semibold text-on-surface text-base sm:text-xs min-h-[38px]"
                               >
                                 <option value="Não identificada" className="bg-[#121217] text-red-400">Não identificada</option>
                                 <optgroup label="Entradas" className="bg-[#121217] text-on-surface-variant">
@@ -793,9 +797,10 @@ export default function ImportModal({ isOpen, onClose, profile, userId = 'defaul
                             <td className="py-2 px-4 text-center">
                               <button
                                 onClick={() => handleDeleteRow(tx.id)}
-                                className="w-7 h-7 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 flex items-center justify-center transition-colors cursor-pointer"
+                                className="w-9 h-9 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 flex items-center justify-center transition-colors cursor-pointer tap-target mx-auto"
+                                aria-label="Remover linha"
                               >
-                                <Trash2 className="w-3.5 h-3.5" />
+                                <Trash2 className="w-4 h-4" />
                               </button>
                             </td>
 

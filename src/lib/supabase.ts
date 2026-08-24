@@ -4,6 +4,7 @@ import { UserProfile, Transaction } from '../types';
 let supabaseClient: any = null;
 let hasPlanoColumn = typeof window !== 'undefined' && localStorage.getItem('mco_db_has_plano') !== 'false';
 let hasContaColumn = typeof window !== 'undefined' && localStorage.getItem('mco_db_has_conta') !== 'false';
+let hasTipoContaColumn = typeof window !== 'undefined' && localStorage.getItem('mco_db_has_tipo_conta') !== 'false';
 
 export function getSupabaseUrl() {
   return (import.meta as any).env.VITE_SUPABASE_URL || 'https://yfbgauajvijwngvhrkms.supabase.co';
@@ -76,6 +77,7 @@ export function mapDbToTransaction(row: any): Transaction {
     category: row.categoria || 'Outros',
     description: row.descricao || '',
     account: row.conta || undefined,
+    accountType: (row.tipo_conta as 'empresarial' | 'pessoal') || 'empresarial',
   };
 }
 
@@ -94,6 +96,9 @@ export function mapTransactionToDb(tx: any, userId: string) {
   };
   if (hasContaColumn && tx.account) {
     row.conta = tx.account;
+  }
+  if (hasTipoContaColumn) {
+    row.tipo_conta = tx.accountType || 'empresarial';
   }
   return row;
 }
@@ -354,14 +359,18 @@ export async function insertTransaction(userId: string, tx: Omit<Transaction, 'i
       .single();
 
     if (error) {
-      if (error.message?.includes('conta') || error.message?.includes('column')) {
-        console.warn('Database lancamentos table does not have "conta" column. Marking as unsupported.');
-        hasContaColumn = false;
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('mco_db_has_conta', 'false');
+      if (error.message?.includes('tipo_conta') || error.message?.includes('conta') || error.message?.includes('column')) {
+        if (error.message?.includes('tipo_conta')) {
+          hasTipoContaColumn = false;
+          if (typeof window !== 'undefined') localStorage.setItem('mco_db_has_tipo_conta', 'false');
+        }
+        if (error.message?.includes('conta')) {
+          hasContaColumn = false;
+          if (typeof window !== 'undefined') localStorage.setItem('mco_db_has_conta', 'false');
         }
         const retryDbTx = { ...dbTx };
-        delete retryDbTx.conta;
+        if (!hasContaColumn) delete retryDbTx.conta;
+        if (!hasTipoContaColumn) delete retryDbTx.tipo_conta;
         const { data: retryData, error: retryError } = await supabase
           .from('lancamentos')
           .insert(retryDbTx)
@@ -430,14 +439,18 @@ export async function updateTransaction(userId: string, tx: Transaction): Promis
       .single();
 
     if (error) {
-      if (error.message?.includes('conta') || error.message?.includes('column')) {
-        console.warn('Database lancamentos table does not have "conta" column on update. Marking as unsupported.');
-        hasContaColumn = false;
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('mco_db_has_conta', 'false');
+      if (error.message?.includes('tipo_conta') || error.message?.includes('conta') || error.message?.includes('column')) {
+        if (error.message?.includes('tipo_conta')) {
+          hasTipoContaColumn = false;
+          if (typeof window !== 'undefined') localStorage.setItem('mco_db_has_tipo_conta', 'false');
+        }
+        if (error.message?.includes('conta')) {
+          hasContaColumn = false;
+          if (typeof window !== 'undefined') localStorage.setItem('mco_db_has_conta', 'false');
         }
         const retryDbTx = { ...dbTx };
-        delete retryDbTx.conta;
+        if (!hasContaColumn) delete retryDbTx.conta;
+        if (!hasTipoContaColumn) delete retryDbTx.tipo_conta;
         const { data: retryData, error: retryError } = await supabase
           .from('lancamentos')
           .update(retryDbTx)

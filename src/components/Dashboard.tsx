@@ -111,16 +111,16 @@ export default function Dashboard({ profile, userId = 'default_user', transactio
 
   return (
     <div className="w-full">
-      {/* Mobile Experience (100% untouched & approved) */}
-      <div className="lg:hidden flex flex-col gap-4 sm:gap-5 w-full max-w-lg md:max-w-4xl pb-24 text-left mx-auto">
+      {/* Mobile Experience */}
+      <div className="lg:hidden flex flex-col gap-4 sm:gap-5 w-full max-w-lg md:max-w-4xl text-left mx-auto pb-4">
         {/* Top Welcome Bar */}
-        <div className="flex items-center justify-between col-span-12">
-          <div>
+        <div className="flex items-center justify-between col-span-12 px-0.5">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <span className="text-xs text-on-surface-variant font-medium tracking-wider uppercase">
                 {profile.businessType === 'cnpj' ? 'MEI' : 'Autônomo'}
               </span>
-              <span className={`text-[8px] px-1.5 py-0.5 rounded-full uppercase font-extrabold border ${
+              <span className={`text-[9px] px-2 py-0.5 rounded-full uppercase font-extrabold border ${
                 (profile.plan || 'essential') === 'pro'
                   ? 'bg-primary/20 text-primary border-primary/30'
                   : 'bg-white/10 text-on-surface-variant border-white/10'
@@ -128,56 +128,57 @@ export default function Dashboard({ profile, userId = 'default_user', transactio
                 {profile.plan || 'essential'}
               </span>
             </div>
-            <h2 className="text-xl font-bold text-on-surface tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-bold text-on-surface tracking-tight truncate mt-0.5">
               Olá, <span className="text-primary">{profile.name}</span>!
             </h2>
-            <p className="text-xs text-on-surface-variant">
+            <p className="text-xs text-on-surface-variant truncate">
               {profile.businessName}
             </p>
           </div>
-          <div className="w-10 h-10 rounded-full bg-surface-container-high border border-outline-variant/30 flex items-center justify-center">
+          <div className="w-11 h-11 rounded-full bg-surface-container-high border border-outline-variant/30 flex items-center justify-center shrink-0 tap-target">
             <span className="material-symbols-outlined text-primary text-xl">
               storefront
             </span>
           </div>
         </div>
 
-        {/* Main Financial Dashboard Card */}
+        {/* Main Financial Dashboard Card (Card Mestre) */}
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="glass-card rounded-[24px] p-4 sm:p-5 shadow-xl flex flex-col gap-4 sm:gap-5 relative overflow-hidden"
+          className="hero-master-card rounded-[24px] p-4 sm:p-5 shadow-2xl flex flex-col gap-4 relative overflow-hidden text-left w-full"
         >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full filter blur-xl pointer-events-none"></div>
+          <div className="absolute top-0 right-0 w-36 h-36 bg-primary/10 rounded-full filter blur-2xl pointer-events-none"></div>
 
           {/* Sobrou (Net profit) Display */}
           <div className="flex flex-col gap-1">
-            <span className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+            <span className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(208,188,255,0.8)]"></span>
               Sobrou em Caixa
             </span>
-            <div className="flex items-baseline gap-2">
-              <h1 className={`text-2xl xs:text-3xl font-extrabold tracking-tight ${totalSobrou >= 0 ? 'text-on-surface' : 'text-error'}`}>
+            <div className="flex items-baseline gap-2 mt-0.5">
+              <h1 className={`text-3xl sm:text-4xl font-black tracking-tight ${totalSobrou >= 0 ? 'text-on-surface' : 'text-error glow-text-red'}`}>
                 {formatBRL(totalSobrou)}
               </h1>
             </div>
-            <div className="flex items-center gap-2 mt-1">
-              <div className="flex-1 bg-surface-container-low h-2 rounded-full overflow-hidden">
+            <div className="flex items-center gap-2.5 mt-1.5">
+              <div className="flex-1 bg-surface-container-low h-2.5 rounded-full overflow-hidden border border-white/5">
                 <div 
-                  className="bg-primary h-full transition-all duration-500 rounded-full"
+                  className="bg-gradient-to-r from-primary to-[#8b6eff] h-full transition-all duration-500 rounded-full bar-glow-purple"
                   style={{ width: `${sobrouPercentage}%` }}
                 ></div>
               </div>
-              <span className="text-xs font-semibold text-primary">
+              <span className="text-xs font-bold text-primary shrink-0">
                 {sobrouPercentage}% guardado
               </span>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 border-t border-white/5 pt-3.5">
+          {/* Grid de Cards (Entrou / Saiu / Você retirou) */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 border-t border-white/[0.08] pt-3.5">
             {/* Entradas */}
-            <div className="flex items-start gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-tertiary/10 flex items-center justify-center border border-tertiary/20 shrink-0">
+            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+              <div className="w-9 h-9 rounded-xl bg-tertiary/10 flex items-center justify-center border border-tertiary/25 shrink-0 shadow-[0_0_12px_rgba(78,222,163,0.15)]">
                 <span className="material-symbols-outlined text-tertiary text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
                   arrow_upward
                 </span>
@@ -186,15 +187,15 @@ export default function Dashboard({ profile, userId = 'default_user', transactio
                 <span className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider truncate">
                   Entrou
                 </span>
-                <span className="text-sm font-bold text-tertiary truncate">
+                <span className="text-sm font-extrabold text-tertiary glow-text-green truncate">
                   {formatBRL(totalEntradas)}
                 </span>
               </div>
             </div>
 
             {/* Saídas */}
-            <div className="flex items-start gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-error/10 flex items-center justify-center border border-error/20 shrink-0">
+            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+              <div className="w-9 h-9 rounded-xl bg-error/10 flex items-center justify-center border border-error/25 shrink-0 shadow-[0_0_12px_rgba(255,180,171,0.15)]">
                 <span className="material-symbols-outlined text-error text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
                   arrow_downward
                 </span>
@@ -203,8 +204,25 @@ export default function Dashboard({ profile, userId = 'default_user', transactio
                 <span className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider truncate">
                   Saiu
                 </span>
-                <span className="text-sm font-bold text-error truncate">
+                <span className="text-sm font-extrabold text-error glow-text-red truncate">
                   {formatBRL(totalSaidas)}
+                </span>
+              </div>
+            </div>
+
+            {/* Retiradas MEI / Pró-labore */}
+            <div className="col-span-2 sm:col-span-1 flex items-center gap-2.5 p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/25 shrink-0 shadow-[0_0_12px_rgba(208,188,255,0.15)]">
+                <span className="material-symbols-outlined text-primary text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
+                  account_balance
+                </span>
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider truncate">
+                  Você Retirou
+                </span>
+                <span className="text-sm font-extrabold text-primary truncate">
+                  {formatBRL(totalRetiradas)}
                 </span>
               </div>
             </div>
@@ -212,21 +230,21 @@ export default function Dashboard({ profile, userId = 'default_user', transactio
         </motion.div>
 
         {/* Wide Action Buttons */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
           <button
             onClick={() => { setTxType('entrada'); setShowQuickAdd(true); }}
-            className="w-full bg-[#6d3bd7] hover:bg-[#8455ef] text-white font-bold py-3 sm:py-3.5 px-4 rounded-xl sm:rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 shadow-[0_0_20px_rgba(109,59,215,0.4)] hover:shadow-[0_0_30px_rgba(109,59,215,0.6)] cursor-pointer active:scale-[0.98] border border-primary/30"
+            className="w-full bg-[#6d3bd7] hover:bg-[#8455ef] text-white font-bold h-[52px] px-4 rounded-2xl flex items-center justify-center gap-2 btn-primary-pulse cursor-pointer border border-primary/40 text-base select-none tap-target"
           >
-            <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>add_circle</span>
-            <span className="text-xs sm:text-sm tracking-wide font-semibold">Lançar Movimentação</span>
+            <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>add_circle</span>
+            <span className="tracking-wide font-bold">Lançar Movimentação</span>
           </button>
           
           <button
             onClick={() => setShowImportModal(true)}
-            className="w-full bg-white/[0.04] hover:bg-white/[0.08] text-white font-bold py-3 sm:py-3.5 px-4 rounded-xl sm:rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 border border-white/[0.08] cursor-pointer active:scale-[0.98]"
+            className="w-full bg-white/[0.04] hover:bg-white/[0.08] text-white font-bold h-[52px] px-4 rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 border border-white/[0.08] hover:border-primary/25 cursor-pointer active:scale-[0.98] shadow-sm hover:shadow-[0_0_15px_rgba(160,120,255,0.12)] text-base select-none tap-target"
           >
-            <span className="material-symbols-outlined text-lg text-primary animate-pulse" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
-            <span className="text-xs sm:text-sm tracking-wide font-semibold">Importação Inteligente</span>
+            <span className="material-symbols-outlined text-xl text-primary animate-pulse" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+            <span className="tracking-wide font-bold">Importação Inteligente</span>
           </button>
         </div>
 
@@ -392,17 +410,23 @@ export default function Dashboard({ profile, userId = 'default_user', transactio
         />
       </div>
 
-      {/* Quick Add Dialog (Matches requested layout) */}
+      {/* Quick Add Dialog (Mobile Bottom Sheet + Desktop Modal) */}
       <AnimatePresence>
         {showQuickAdd && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md">
+            {/* Backdrop click */}
+            <div className="absolute inset-0 cursor-default" onClick={() => setShowQuickAdd(false)} />
+
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              transition={{ type: "spring", duration: 0.4 }}
-              className="glass-card rounded-[28px] p-5 sm:p-6 border border-white/[0.08] w-full max-w-xl flex flex-col gap-4 relative bg-gradient-to-b from-[#181822]/98 to-[#0f0f14]/98 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.8)] max-h-[95vh] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10"
+              initial={{ opacity: 0, y: 60, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 60, scale: 0.96 }}
+              transition={{ type: "spring", damping: 25, stiffness: 350 }}
+              className="glass-card rounded-t-[28px] sm:rounded-[28px] p-4 sm:p-6 border-t sm:border border-white/[0.08] w-full max-w-xl flex flex-col gap-4 relative bg-[#131317]/98 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.8)] max-h-[92vh] overflow-y-auto contain-scroll z-10"
             >
+              {/* Drag Handle Mobile */}
+              <div className="w-10 h-1 bg-white/25 rounded-full mx-auto -mt-1 mb-1 sm:hidden shrink-0"></div>
+
               <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full filter blur-2xl pointer-events-none"></div>
 
               {/* Header */}
@@ -418,7 +442,8 @@ export default function Dashboard({ profile, userId = 'default_user', transactio
                 </div>
                 <button 
                   onClick={() => setShowQuickAdd(false)}
-                  className="w-8 h-8 rounded-full bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] flex items-center justify-center transition-all cursor-pointer text-on-surface-variant hover:text-white"
+                  className="w-9 h-9 rounded-full bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] flex items-center justify-center transition-all cursor-pointer text-on-surface-variant hover:text-white tap-target"
+                  aria-label="Fechar modal"
                 >
                   <span className="material-symbols-outlined text-base">close</span>
                 </button>
@@ -427,43 +452,43 @@ export default function Dashboard({ profile, userId = 'default_user', transactio
               <form onSubmit={handleQuickAddSubmit} className="flex flex-col gap-4">
                 
                 {/* Segmented Toggles: Entrou vs Saiu */}
-                <div className="grid grid-cols-2 p-1 bg-[#0d0d12] rounded-2xl border border-white/[0.06]">
+                <div className="grid grid-cols-2 p-1 bg-[#0d0d12] rounded-2xl border border-white/[0.06] h-12">
                   <button
                     type="button"
                     onClick={() => setTxType('entrada')}
-                    className={`py-2.5 text-xs font-extrabold rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer select-none ${
+                    className={`h-full text-xs sm:text-sm font-extrabold rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none tap-target ${
                       txType === 'entrada' 
                         ? 'bg-tertiary text-on-primary shadow-[0_2px_8px_rgba(16,185,129,0.2)] border border-white/10' 
                         : 'text-on-surface-variant/80 hover:text-white hover:bg-white/[0.02]'
                     }`}
                   >
-                    <span className="material-symbols-outlined text-sm font-bold" style={{ fontVariationSettings: "'FILL' 1" }}>trending_up</span>
+                    <span className="material-symbols-outlined text-base font-bold" style={{ fontVariationSettings: "'FILL' 1" }}>trending_up</span>
                     Receita (Entrou)
                   </button>
                   <button
                     type="button"
                     onClick={() => setTxType('saida')}
-                    className={`py-2.5 text-xs font-extrabold rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer select-none ${
+                    className={`h-full text-xs sm:text-sm font-extrabold rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none tap-target ${
                       txType === 'saida' 
                         ? 'bg-error text-on-primary shadow-[0_2px_8px_rgba(239,68,68,0.2)] border border-white/10' 
                         : 'text-on-surface-variant/80 hover:text-white hover:bg-white/[0.02]'
                     }`}
                   >
-                    <span className="material-symbols-outlined text-sm font-bold" style={{ fontVariationSettings: "'FILL' 1" }}>trending_down</span>
+                    <span className="material-symbols-outlined text-base font-bold" style={{ fontVariationSettings: "'FILL' 1" }}>trending_down</span>
                     Despesa (Saiu)
                   </button>
                 </div>
 
                 {/* 2-Column Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   
                   {/* Left Column */}
-                  <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-3 sm:gap-4">
                     {/* Quanto foi? (Amount) */}
                     <div className="flex flex-col gap-1.5 text-left">
                       <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Quanto foi?</label>
-                      <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary/60 rounded-xl px-4 py-2.5 focus-within:bg-[#1b1b26] focus-within:shadow-[0_0_20px_rgba(109,59,215,0.15)] transition-all">
-                        <span className="text-sm font-extrabold text-on-surface-variant/50 mr-2 select-none">R$</span>
+                      <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary/60 rounded-xl px-4 min-h-[48px] focus-within:bg-[#1b1b26] focus-within:shadow-[0_0_20px_rgba(109,59,215,0.15)] transition-all">
+                        <span className="text-base font-extrabold text-on-surface-variant/50 mr-2 select-none">R$</span>
                         <input
                           type="number"
                           step="0.01"
@@ -471,7 +496,7 @@ export default function Dashboard({ profile, userId = 'default_user', transactio
                           placeholder="0,00"
                           value={amount}
                           onChange={(e) => setAmount(e.target.value)}
-                          className="w-full bg-transparent border-none text-white font-extrabold text-sm focus:outline-none placeholder:text-white/[0.15] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="w-full bg-transparent border-none text-white font-extrabold text-base focus:outline-none placeholder:text-white/[0.15] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
                     </div>
@@ -479,12 +504,12 @@ export default function Dashboard({ profile, userId = 'default_user', transactio
                     {/* Categoria */}
                     <div className="flex flex-col gap-1.5 text-left">
                       <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Categoria</label>
-                      <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary focus-within:bg-[#1b1b26] rounded-xl px-4 py-2.5 transition-all">
+                      <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary focus-within:bg-[#1b1b26] rounded-xl px-4 min-h-[48px] transition-all">
                         <select
                           value={category}
                           onChange={(e) => setCategory(e.target.value)}
                           required
-                          className="w-full bg-transparent border-none text-xs text-white focus:outline-none cursor-pointer appearance-none pr-8"
+                          className="w-full bg-transparent border-none text-base sm:text-xs text-white focus:outline-none cursor-pointer appearance-none pr-8"
                         >
                           {getCategoryNamesByType(userId, txType).map((cat) => (
                             <option key={cat} value={cat} className="bg-[#131315] text-white">
@@ -499,11 +524,11 @@ export default function Dashboard({ profile, userId = 'default_user', transactio
                     {/* Forma de Pagamento */}
                     <div className="flex flex-col gap-1.5 text-left">
                       <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Forma de Pagamento</label>
-                      <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary focus-within:bg-[#1b1b26] rounded-xl px-4 py-2.5 transition-all">
+                      <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary focus-within:bg-[#1b1b26] rounded-xl px-4 min-h-[48px] transition-all">
                         <select
                           value={paymentMethod}
                           onChange={(e) => setPaymentMethod(e.target.value)}
-                          className="w-full bg-transparent border-none text-xs text-white focus:outline-none cursor-pointer appearance-none pr-8"
+                          className="w-full bg-transparent border-none text-base sm:text-xs text-white focus:outline-none cursor-pointer appearance-none pr-8"
                         >
                           {PAYMENT_METHODS.map((method) => (
                             <option key={method} value={method} className="bg-[#131315] text-white">
@@ -517,17 +542,17 @@ export default function Dashboard({ profile, userId = 'default_user', transactio
                   </div>
 
                   {/* Right Column */}
-                  <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-3 sm:gap-4">
                     {/* Quando foi? (Date) */}
                     <div className="flex flex-col gap-1.5 text-left">
                       <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Data</label>
-                      <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary focus-within:bg-[#1b1b26] rounded-xl px-4 py-2.5 transition-all">
+                      <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary focus-within:bg-[#1b1b26] rounded-xl px-4 min-h-[48px] transition-all">
                         <input
                           type="date"
                           required
                           value={date}
                           onChange={(e) => setDate(e.target.value)}
-                          className="w-full bg-transparent border-none text-xs text-white focus:outline-none cursor-pointer scheme-dark"
+                          className="w-full bg-transparent border-none text-base sm:text-xs text-white focus:outline-none cursor-pointer scheme-dark"
                         />
                         <span className="material-symbols-outlined absolute right-4 text-on-surface-variant/70 pointer-events-none text-base">calendar_today</span>
                       </div>
@@ -536,14 +561,14 @@ export default function Dashboard({ profile, userId = 'default_user', transactio
                     {/* Descrição */}
                     <div className="flex flex-col gap-1.5 text-left">
                       <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Identificação</label>
-                      <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary focus-within:bg-[#1b1b26] rounded-xl px-4 py-2.5 transition-all">
+                      <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary focus-within:bg-[#1b1b26] rounded-xl px-4 min-h-[48px] transition-all">
                         <input
                           type="text"
                           required
                           placeholder="Ex: Pagamento Cliente João"
                           value={title}
                           onChange={(e) => setTitle(e.target.value)}
-                          className="w-full bg-transparent border-none text-xs text-white focus:outline-none placeholder:text-white/[0.15]"
+                          className="w-full bg-transparent border-none text-base sm:text-xs text-white focus:outline-none placeholder:text-white/[0.15]"
                         />
                       </div>
                     </div>
@@ -553,11 +578,11 @@ export default function Dashboard({ profile, userId = 'default_user', transactio
                       <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">
                         {txType === 'entrada' ? 'Conta de Destino (Opcional)' : 'Conta de Origem (Opcional)'}
                       </label>
-                      <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary focus-within:bg-[#1b1b26] rounded-xl px-4 py-2.5 transition-all">
+                      <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary focus-within:bg-[#1b1b26] rounded-xl px-4 min-h-[48px] transition-all">
                         <select
                           value={account || ''}
                           onChange={(e) => setAccount(e.target.value || undefined)}
-                          className="w-full bg-transparent border-none text-xs text-white focus:outline-none cursor-pointer appearance-none pr-8"
+                          className="w-full bg-transparent border-none text-base sm:text-xs text-white focus:outline-none cursor-pointer appearance-none pr-8"
                         >
                           <option value="" className="bg-[#131315] text-on-surface-variant/50">Não especificada</option>
                           {ACCOUNT_OPTIONS.map((acc) => (
@@ -578,16 +603,16 @@ export default function Dashboard({ profile, userId = 'default_user', transactio
                   <button
                     type="button"
                     onClick={() => setShowQuickAdd(false)}
-                    className="flex-1 py-3 bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] rounded-xl text-xs sm:text-sm font-extrabold text-white transition-all active:scale-[0.98] cursor-pointer"
+                    className="flex-1 h-[52px] bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] rounded-xl text-base sm:text-sm font-extrabold text-white transition-all active:scale-[0.98] cursor-pointer tap-target"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-3 bg-primary hover:bg-[#8455ef] text-white font-extrabold rounded-xl text-xs sm:text-sm transition-all duration-300 shadow-[0_4px_14px_rgba(109,59,215,0.25)] hover:shadow-[0_4px_20px_rgba(109,59,215,0.45)] active:scale-[0.98] border border-primary/30 flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="flex-1 h-[52px] bg-primary hover:bg-[#8455ef] text-white font-extrabold rounded-xl text-base sm:text-sm transition-all duration-300 shadow-[0_4px_14px_rgba(109,59,215,0.25)] hover:shadow-[0_4px_20px_rgba(109,59,215,0.45)] active:scale-[0.98] border border-primary/30 flex items-center justify-center gap-1.5 cursor-pointer tap-target"
                   >
-                    <span className="material-symbols-outlined text-sm font-bold">done</span>
-                    Salvar lançamento
+                    <span className="material-symbols-outlined text-lg font-bold">done</span>
+                    <span>Salvar lançamento</span>
                   </button>
                 </div>
               </form>

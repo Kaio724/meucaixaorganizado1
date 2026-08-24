@@ -220,17 +220,20 @@ export default function Withdraw({ transactions, onAddTransaction, onNavigateToT
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 50, scale: 0.95 }}
               transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-              className="relative w-full sm:max-w-md bg-[#131315] border-t sm:border border-white/10 rounded-t-[32px] sm:rounded-[32px] p-6 shadow-2xl overflow-hidden flex flex-col gap-6 max-h-[92vh] overflow-y-auto"
+              className="relative w-full sm:max-w-md bg-[#131315] border-t sm:border border-white/10 rounded-t-[28px] sm:rounded-[28px] p-4 sm:p-6 shadow-2xl overflow-hidden flex flex-col gap-5 max-h-[92vh] overflow-y-auto contain-scroll"
             >
+              {/* Mobile Drag Handle */}
+              <div className="w-10 h-1 bg-white/20 rounded-full mx-auto -mt-1 mb-1 sm:hidden shrink-0"></div>
+
               <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full filter blur-xl pointer-events-none"></div>
 
               <AnimatePresence mode="wait">
                 {!success ? (
-                  <div className="flex flex-col gap-6">
+                  <div className="flex flex-col gap-4 sm:gap-5">
                     {/* Header */}
                     <div className="flex items-center justify-between">
                       <div className="flex flex-col">
-                        <h3 className="text-xl font-bold text-on-surface">
+                        <h3 className="text-lg sm:text-xl font-bold text-on-surface">
                           Nova retirada
                         </h3>
                         <p className="text-xs text-on-surface-variant font-medium mt-0.5">
@@ -239,18 +242,19 @@ export default function Withdraw({ transactions, onAddTransaction, onNavigateToT
                       </div>
                       <button 
                         onClick={() => setShowModal(false)}
-                        className="w-10 h-10 rounded-full bg-surface-container-high hover:bg-surface-container-highest flex items-center justify-center transition-colors cursor-pointer select-none"
+                        className="w-10 h-10 rounded-full bg-surface-container-high hover:bg-surface-container-highest flex items-center justify-center transition-colors cursor-pointer select-none tap-target"
+                        aria-label="Fechar modal"
                       >
                         <span className="material-symbols-outlined text-on-surface-variant">close</span>
                       </button>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+                    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                       
                       {/* Amount Input (Quanto foi?) */}
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-1.5">
                         <label className="text-xs font-bold text-on-surface-variant/90">Quanto deseja retirar?</label>
-                        <div className="relative flex items-center bg-surface-container-low border-2 border-primary/60 rounded-2xl px-4 py-3.5 focus-within:shadow-[0_0_15px_rgba(160,120,255,0.25)] transition-all">
+                        <div className="relative flex items-center bg-surface-container-low border-2 border-primary/60 rounded-2xl px-4 py-3 min-h-[50px] focus-within:shadow-[0_0_15px_rgba(160,120,255,0.25)] transition-all">
                           <span className="text-xl font-bold text-on-surface-variant/60 mr-2">R$</span>
                           <input
                             type="number"
@@ -265,7 +269,7 @@ export default function Withdraw({ transactions, onAddTransaction, onNavigateToT
                       </div>
 
                       {/* Finalidade (Categoria) */}
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-1.5">
                         <label className="text-xs font-bold text-on-surface-variant/90">Finalidade</label>
                         <div className="grid grid-cols-2 gap-2">
                           {['Pró-labore', 'Distribuição', 'Reembolso', 'Outros'].map((cat) => {
@@ -275,7 +279,7 @@ export default function Withdraw({ transactions, onAddTransaction, onNavigateToT
                                 key={cat}
                                 type="button"
                                 onClick={() => setCategory(cat)}
-                                className={`px-3 py-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                                className={`px-3 py-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer min-h-[44px] tap-target ${
                                   isSelected
                                     ? 'border-primary bg-primary/10 text-primary'
                                     : 'border-outline-variant/30 bg-surface-container text-on-surface-variant hover:text-on-surface'
@@ -289,44 +293,44 @@ export default function Withdraw({ transactions, onAddTransaction, onNavigateToT
                       </div>
 
                       {/* Origin/Method */}
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-1.5">
                         <label className="text-xs font-bold text-on-surface-variant/90">Receber por onde?</label>
-                        <div className="relative flex items-center bg-surface-container-low border border-outline-variant/40 rounded-2xl px-4 py-3 focus-within:border-primary transition-all">
+                        <div className="relative flex items-center bg-surface-container-low border border-outline-variant/40 rounded-2xl px-4 py-3 min-h-[48px] focus-within:border-primary transition-all">
                           <select
                             value={destination}
                             onChange={(e) => setDestination(e.target.value)}
-                            className="w-full bg-transparent border-none text-xs text-on-surface focus:outline-none cursor-pointer outline-none"
+                            className="w-full bg-transparent border-none text-base sm:text-xs text-on-surface focus:outline-none cursor-pointer outline-none"
                           >
-                            <option value="Pix">Pix pessoal</option>
-                            <option value="Dinheiro">Dinheiro em espécie</option>
-                            <option value="Transferência Bancária">Transferência PJ para PF</option>
-                            <option value="Débito">Débito em conta</option>
+                            <option value="Pix" className="bg-[#131315] text-white">Pix pessoal</option>
+                            <option value="Dinheiro" className="bg-[#131315] text-white">Dinheiro em espécie</option>
+                            <option value="Transferência Bancária" className="bg-[#131315] text-white">Transferência PJ para PF</option>
+                            <option value="Débito" className="bg-[#131315] text-white">Débito em conta</option>
                           </select>
                         </div>
                       </div>
 
                       {/* Descrição (opcional) */}
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-1.5">
                         <label className="text-xs font-bold text-on-surface-variant/90">Descrição <span className="text-xs font-normal text-on-surface-variant/50">(opcional)</span></label>
                         <input
                           type="text"
                           placeholder="Ex.: retirada quinzenal de pró-labore..."
                           value={notes}
                           onChange={(e) => setNotes(e.target.value)}
-                          className="w-full bg-surface-container-low border border-outline-variant/40 rounded-2xl px-4 py-3 text-xs focus:outline-none focus:border-primary text-on-surface placeholder:text-on-surface-variant/30"
+                          className="w-full bg-surface-container-low border border-outline-variant/40 rounded-2xl px-4 py-3 min-h-[48px] text-base sm:text-xs focus:outline-none focus:border-primary text-on-surface placeholder:text-on-surface-variant/30"
                         />
                       </div>
 
                       {/* Quando foi? */}
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-1.5">
                         <label className="text-xs font-bold text-on-surface-variant/90">Quando foi?</label>
-                        <div className="relative flex items-center bg-surface-container-low border border-outline-variant/40 rounded-2xl px-4 py-3 focus-within:border-primary transition-all">
+                        <div className="relative flex items-center bg-surface-container-low border border-outline-variant/40 rounded-2xl px-4 py-3 min-h-[48px] focus-within:border-primary transition-all">
                           <input
                             type="date"
                             required
                             value={date}
                             onChange={(e) => setDate(e.target.value)}
-                            className="w-full bg-transparent border-none text-xs text-on-surface focus:outline-none"
+                            className="w-full bg-transparent border-none text-base sm:text-xs text-on-surface focus:outline-none scheme-dark"
                           />
                           <span className="material-symbols-outlined absolute right-4 text-on-surface-variant pointer-events-none text-lg">calendar_today</span>
                         </div>
@@ -335,10 +339,10 @@ export default function Withdraw({ transactions, onAddTransaction, onNavigateToT
                       {/* Submit action */}
                       <button
                         type="submit"
-                        className="w-full bg-[#6d3bd7] hover:bg-[#8455ef] text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 shadow-[0_4px_14px_rgba(109,59,215,0.25)] cursor-pointer border border-primary/30 mt-3 select-none"
+                        className="w-full h-[52px] bg-[#6d3bd7] hover:bg-[#8455ef] text-white font-bold rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 shadow-[0_4px_14px_rgba(109,59,215,0.25)] cursor-pointer border border-primary/30 mt-2 select-none tap-target"
                       >
-                        <span className="material-symbols-outlined text-sm font-bold">done</span>
-                        <span className="text-sm">Salvar retirada</span>
+                        <span className="material-symbols-outlined text-base font-bold">done</span>
+                        <span className="text-base font-extrabold">Salvar retirada</span>
                       </button>
 
                     </form>

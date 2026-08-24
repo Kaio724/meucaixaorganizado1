@@ -469,12 +469,15 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
               initial={{ opacity: 0, y: 50, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 50, scale: 0.95 }}
-              className="relative w-full sm:max-w-md bg-[#131315] border-t sm:border border-white/10 rounded-t-[32px] sm:rounded-[32px] p-6 shadow-2xl overflow-hidden flex flex-col gap-5 max-h-[90vh] overflow-y-auto z-10 text-left"
+              className="relative w-full sm:max-w-md bg-[#131315] border-t sm:border border-white/10 rounded-t-[28px] sm:rounded-[28px] p-4 sm:p-6 shadow-2xl overflow-hidden flex flex-col gap-4 sm:gap-5 max-h-[92vh] overflow-y-auto contain-scroll z-10 text-left"
             >
+              {/* Mobile Drag Handle */}
+              <div className="w-10 h-1 bg-white/20 rounded-full mx-auto -mt-1 mb-1 sm:hidden shrink-0"></div>
+
               {/* Header */}
               <div className="flex items-center justify-between">
                 <div className="flex flex-col">
-                  <h3 className="text-lg font-bold text-on-surface">
+                  <h3 className="text-base sm:text-lg font-bold text-on-surface">
                     {editingCategory ? 'Editar Categoria' : 'Nova Categoria'}
                   </h3>
                   <p className="text-[10px] text-on-surface-variant font-medium mt-0.5">
@@ -483,7 +486,8 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
                 </div>
                 <button 
                   onClick={() => setShowFormModal(false)}
-                  className="w-10 h-10 rounded-full bg-surface-container-high hover:bg-surface-container-highest flex items-center justify-center transition-colors cursor-pointer"
+                  className="w-10 h-10 rounded-full bg-surface-container-high hover:bg-surface-container-highest flex items-center justify-center transition-colors cursor-pointer tap-target"
+                  aria-label="Fechar modal"
                 >
                   <span className="material-symbols-outlined text-on-surface-variant">close</span>
                 </button>
@@ -496,7 +500,7 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
                 </div>
               )}
 
-              <form onSubmit={handleSaveCategory} className="flex flex-col gap-4">
+              <form onSubmit={handleSaveCategory} className="flex flex-col gap-3.5 sm:gap-4">
                 {/* Nome do Campo */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-bold text-on-surface-variant/90 uppercase tracking-wider">Nome da Categoria</label>
@@ -507,36 +511,36 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
                     placeholder="Ex: Consultoria, Embalagens"
                     value={formName}
                     onChange={(e) => setFormName(e.target.value)}
-                    className="w-full bg-surface-container-low border border-white/5 rounded-2xl px-4 py-3 text-xs focus:outline-none focus:border-primary text-on-surface font-semibold placeholder:text-on-surface-variant/35"
+                    className="w-full bg-surface-container-low border border-white/5 rounded-2xl px-4 py-3 min-h-[48px] text-base sm:text-xs focus:outline-none focus:border-primary text-on-surface font-semibold placeholder:text-on-surface-variant/35"
                   />
                 </div>
 
                 {/* Tipo de Categoria */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-bold text-on-surface-variant/90 uppercase tracking-wider">Tipo</label>
-                  <div className="flex bg-black/30 p-1.5 rounded-2xl border border-white/5 gap-1.5">
+                  <div className="flex bg-black/30 p-1 rounded-2xl border border-white/5 gap-1 h-12">
                     <button
                       type="button"
                       onClick={() => setFormType('entrada')}
-                      className={`flex-1 py-2 px-3 text-[10px] font-bold uppercase rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                      className={`flex-1 h-full px-3 text-xs font-bold uppercase rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 tap-target ${
                         formType === 'entrada'
-                          ? 'bg-[#10b981]/15 text-[#4edea3] border border-[#10b981]/10'
+                          ? 'bg-[#10b981]/15 text-[#4edea3] border border-[#10b981]/20 shadow-sm'
                           : 'text-on-surface-variant/60 hover:text-on-surface hover:bg-white/5'
                       }`}
                     >
-                      <span className="material-symbols-outlined text-xs">trending_up</span>
+                      <span className="material-symbols-outlined text-sm">trending_up</span>
                       Receita
                     </button>
                     <button
                       type="button"
                       onClick={() => setFormType('saida')}
-                      className={`flex-1 py-2 px-3 text-[10px] font-bold uppercase rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                      className={`flex-1 h-full px-3 text-xs font-bold uppercase rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 tap-target ${
                         formType === 'saida'
-                          ? 'bg-[#ef4444]/15 text-[#f87171] border border-[#ef4444]/10'
+                          ? 'bg-[#ef4444]/15 text-[#f87171] border border-[#ef4444]/20 shadow-sm'
                           : 'text-on-surface-variant/60 hover:text-on-surface hover:bg-white/5'
                       }`}
                     >
-                      <span className="material-symbols-outlined text-xs">trending_down</span>
+                      <span className="material-symbols-outlined text-sm">trending_down</span>
                       Despesa
                     </button>
                   </div>
@@ -556,7 +560,7 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
                             setFormColor(col.color);
                             setFormBgColor(col.bgColor);
                           }}
-                          className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border transition-all cursor-pointer ${
+                          className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border transition-all cursor-pointer min-h-[48px] tap-target ${
                             isSelected 
                               ? 'bg-white/5 border-primary shadow-lg shadow-primary/10' 
                               : 'bg-surface-container-low border-white/5 hover:bg-white/[0.02]'
@@ -585,14 +589,14 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
                           key={ico.icon}
                           type="button"
                           onClick={() => setFormIcon(ico.icon)}
-                          className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all cursor-pointer shrink-0 ${
+                          className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all cursor-pointer shrink-0 tap-target ${
                             isSelected
                               ? `${formBgColor} ${formColor} border-primary/25 scale-105 shadow-md`
                               : 'text-on-surface-variant/50 hover:text-on-surface hover:bg-white/5'
                           }`}
                           title={ico.name}
                         >
-                          <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>
+                          <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
                             {ico.icon}
                           </span>
                         </button>
@@ -609,22 +613,22 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
                     rows={2}
                     value={formDescription}
                     onChange={(e) => setFormDescription(e.target.value)}
-                    className="w-full bg-surface-container-low border border-white/5 rounded-2xl px-4 py-3 text-xs focus:outline-none focus:border-primary text-on-surface font-semibold placeholder:text-on-surface-variant/35 resize-none"
+                    className="w-full bg-surface-container-low border border-white/5 rounded-2xl px-4 py-3 text-base sm:text-xs focus:outline-none focus:border-primary text-on-surface font-semibold placeholder:text-on-surface-variant/35 resize-none"
                   />
                 </div>
 
                 {/* Botões de Ação */}
-                <div className="flex gap-3 mt-4">
+                <div className="flex gap-3 mt-2">
                   <button
                     type="button"
                     onClick={() => setShowFormModal(false)}
-                    className="flex-1 py-3.5 rounded-2xl bg-white/5 hover:bg-white/10 text-on-surface font-bold text-xs uppercase tracking-wide transition-all border border-white/5 cursor-pointer text-center"
+                    className="flex-1 h-[50px] rounded-2xl bg-white/5 hover:bg-white/10 text-on-surface font-bold text-xs uppercase tracking-wide transition-all border border-white/5 cursor-pointer text-center tap-target flex items-center justify-center"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-3.5 rounded-2xl bg-[#6d3bd7] hover:bg-[#8455ef] text-white font-bold text-xs uppercase tracking-wide transition-all shadow-[0_4px_12px_rgba(109,59,215,0.25)] cursor-pointer border border-primary/20 text-center"
+                    className="flex-1 h-[50px] rounded-2xl bg-[#6d3bd7] hover:bg-[#8455ef] text-white font-bold text-xs uppercase tracking-wide transition-all shadow-[0_4px_12px_rgba(109,59,215,0.25)] cursor-pointer border border-primary/20 text-center tap-target flex items-center justify-center"
                   >
                     Salvar Categoria
                   </button>
@@ -644,17 +648,20 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
 
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 25 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
+              animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 25 }}
-              className="relative w-full sm:max-w-md bg-[#131315] border-t sm:border border-white/10 rounded-t-[32px] sm:rounded-[32px] p-6 shadow-2xl flex flex-col gap-5 z-10 text-left"
+              className="relative w-full sm:max-w-md bg-[#131315] border-t sm:border border-white/10 rounded-t-[28px] sm:rounded-[28px] p-5 sm:p-6 shadow-2xl flex flex-col gap-4 sm:gap-5 z-10 text-left contain-scroll"
             >
+              {/* Mobile Drag Handle */}
+              <div className="w-10 h-1 bg-white/20 rounded-full mx-auto -mt-1 mb-1 sm:hidden shrink-0"></div>
+
               {/* Header */}
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-error/15 flex items-center justify-center border border-error/20 text-error animate-pulse">
+                <div className="w-12 h-12 rounded-full bg-error/15 flex items-center justify-center border border-error/20 text-error animate-pulse shrink-0">
                   <span className="material-symbols-outlined text-xl">delete_forever</span>
                 </div>
                 <div className="flex flex-col text-left">
-                  <h3 className="text-lg font-black text-on-surface">Excluir categoria</h3>
+                  <h3 className="text-base sm:text-lg font-black text-on-surface">Excluir categoria</h3>
                   <p className="text-[10px] text-on-surface-variant font-medium mt-0.5">
                     Esta ação não pode ser desfeita
                   </p>
@@ -670,18 +677,18 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
               </div>
 
               {/* Botões */}
-              <div className="flex gap-3 mt-2">
+              <div className="flex gap-3 mt-1">
                 <button
                   type="button"
                   onClick={() => setCategoryToDelete(null)}
-                  className="flex-1 py-3.5 rounded-2xl bg-white/5 hover:bg-white/10 text-on-surface font-bold text-xs uppercase tracking-wide transition-all border border-white/5 cursor-pointer text-center"
+                  className="flex-1 h-[50px] rounded-2xl bg-white/5 hover:bg-white/10 text-on-surface font-bold text-xs uppercase tracking-wide transition-all border border-white/5 cursor-pointer text-center tap-target flex items-center justify-center"
                 >
                   Cancelar
                 </button>
                 <button
                   type="button"
                   onClick={handleDeleteConfirm}
-                  className="flex-1 py-3.5 rounded-2xl bg-[#ef4444] hover:bg-red-500 text-white font-bold text-xs uppercase tracking-wide transition-all shadow-[0_4px_12px_rgba(239,68,68,0.2)] cursor-pointer border border-[#ef4444]/25 text-center"
+                  className="flex-1 h-[50px] rounded-2xl bg-[#ef4444] hover:bg-red-500 text-white font-bold text-xs uppercase tracking-wide transition-all shadow-[0_4px_12px_rgba(239,68,68,0.2)] cursor-pointer border border-[#ef4444]/25 text-center tap-target flex items-center justify-center"
                 >
                   Excluir Categoria
                 </button>
