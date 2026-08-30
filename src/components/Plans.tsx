@@ -160,8 +160,9 @@ export default function Plans({ profile, onUpdatePlan, onNavigateToTab }: PlansP
             </span>
             <div className="flex flex-col gap-2.5 text-left opacity-60">
               {[
+                'Conta Pessoal & Gestão Dupla (PF + PJ)',
                 'Comparativo entre meses',
-                'Metas Financeiras',
+                'Metas Financeiras e Orçamentos',
                 'Indicador de Saúde Financeira',
                 'Atualizações Vitalícias',
                 'Recursos exclusivos futuros'
@@ -249,8 +250,9 @@ export default function Plans({ profile, onUpdatePlan, onNavigateToTab }: PlansP
             </span>
             <div className="flex flex-col gap-2.5 text-left">
               {[
+                'Conta Pessoal & Gestão Dupla Integrada (PF + PJ)',
                 'Comparativo Financeiro entre Meses',
-                'Metas de Faturamento',
+                'Metas de Faturamento e Limites de Orçamento',
                 'Indicador de Saúde Financeira',
                 'Atualizações Vitalícias',
                 'Novos Recursos Exclusivos',

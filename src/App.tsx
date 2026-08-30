@@ -34,6 +34,8 @@ import {
   deleteTransaction 
 } from './lib/supabase';
 
+const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://pay.cakto.com.br/rdvxqwt';
+
 export default function App() {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -48,12 +50,19 @@ export default function App() {
     return 'empresarial';
   });
 
+  const isPro = (profile?.plan || 'essential') === 'pro';
+
   // Personal Account Modal States
   const [isPersonalAddModalOpen, setIsPersonalAddModalOpen] = useState(false);
   const [editingPersonalTx, setEditingPersonalTx] = useState<Transaction | null>(null);
   const [showPersonalMoreModal, setShowPersonalMoreModal] = useState(false);
+  const [showPersonalProModal, setShowPersonalProModal] = useState(false);
 
   const handleAccountChange = (newAccount: AccountType) => {
+    if (newAccount === 'pessoal' && !isPro) {
+      setShowPersonalProModal(true);
+      return;
+    }
     setActiveAccount(newAccount);
     if (typeof window !== 'undefined') {
       localStorage.setItem('mco_active_account_type', newAccount);
@@ -139,12 +148,22 @@ export default function App() {
     setDbError(null);
     try {
       let dbProfile = await fetchProfile(userId);
-      const isPromoUser = 
+      const isKaio = 
         email?.toLowerCase() === 'kaiopatrick42@gmail.com' || 
-        email?.toLowerCase() === 'kaioparick42@gmail.com' ||
+        email?.toLowerCase() === 'kaioparick42@gmail.com';
+      const isPromoUser = 
         email?.toLowerCase() === 'joaorodriguesamancio@gmail.com';
+
       if (dbProfile) {
-        if (isPromoUser && dbProfile.plan !== 'pro') {
+        if (isKaio && dbProfile.plan !== 'essential') {
+          dbProfile.plan = 'essential';
+          try {
+            await upsertProfile(userId, dbProfile);
+            localStorage.setItem(`mco_profile_plan_${userId}`, 'essential');
+          } catch (e) {
+            console.warn('Set profile to essential failed:', e);
+          }
+        } else if (isPromoUser && dbProfile.plan !== 'pro') {
           dbProfile.plan = 'pro';
           try {
             await upsertProfile(userId, dbProfile);
@@ -154,6 +173,13 @@ export default function App() {
           }
         }
         setProfile(dbProfile);
+        const currentPlan = dbProfile.plan || 'essential';
+        if (currentPlan !== 'pro' && activeAccount === 'pessoal') {
+          setActiveAccount('empresarial');
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('mco_active_account_type', 'empresarial');
+          }
+        }
         const dbTxs = await fetchTransactions(userId);
         setTransactions(dbTxs);
         
@@ -217,11 +243,11 @@ export default function App() {
     setDbError(null);
     try {
       const isPromoUser = 
-        session?.user?.email?.toLowerCase() === 'kaiopatrick42@gmail.com' || 
-        session?.user?.email?.toLowerCase() === 'kaioparick42@gmail.com' ||
         session?.user?.email?.toLowerCase() === 'joaorodriguesamancio@gmail.com';
       if (isPromoUser) {
         newProfile.plan = 'pro';
+      } else {
+        newProfile.plan = newProfile.plan || 'essential';
       }
       await upsertProfile(session.user.id, newProfile);
       setProfile(newProfile);
@@ -401,12 +427,22 @@ export default function App() {
         ...profile,
         plan: newPlan
       };
+      if (userId !== 'local' && typeof window !== 'undefined') {
+        localStorage.setItem(`mco_profile_plan_${userId}`, newPlan);
+      }
       await upsertProfile(userId, updatedProfile);
       setProfile(updatedProfile);
       
       // Also update in local storage if not logged in
       if (userId === 'local') {
         localStorage.setItem('mco_profile', JSON.stringify(updatedProfile));
+      }
+
+      if (newPlan !== 'pro' && activeAccount === 'pessoal') {
+        setActiveAccount('empresarial');
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('mco_active_account_type', 'empresarial');
+        }
       }
     } catch (err: any) {
       console.warn('Error updating plan:', err);
@@ -793,6 +829,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                   onAccountChange={handleAccountChange}
                   className="w-full justify-between"
                   size="sm"
+                  isPro={isPro}
                 />
               </div>
 
@@ -1026,8 +1063,8 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                 </div>
               </header>
 
-              {/* Mobile Top Navigation Bar */}
-              <header className="pt-[calc(8px+env(safe-area-inset-top,0px))] pb-2.5 px-3 sm:px-4 sticky top-0 bg-[#131315]/95 backdrop-blur-xl z-30 mb-3 lg:hidden border-b border-white/5 flex items-center justify-between min-h-[56px] select-none gap-2">
+              {/* Mobile Top Navigation Bar (Clean floating bar without black background strip) */}
+              <header className="pt-[calc(8px+env(safe-area-inset-top,0px))] pb-1 px-3 sm:px-4 sticky top-0 bg-transparent z-30 mb-2 lg:hidden flex items-center justify-between min-h-[46px] select-none gap-2">
                 
                 {/* Backdrop dismiss for active mobile popovers */}
                 {(showProfileMenu || showNotification) && (
@@ -1047,16 +1084,16 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                       setShowProfileMenu(!showProfileMenu);
                       setShowNotification(false);
                     }}
-                    className="w-10 h-10 rounded-full bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant/30 flex items-center justify-center transition-all cursor-pointer relative tap-target"
+                    className="w-9 h-9 rounded-full bg-[#181428]/90 backdrop-blur-md hover:bg-[#201b34] border border-white/10 flex items-center justify-center transition-all cursor-pointer relative shadow-sm"
                     title="Configurações do Espaço"
                     aria-label="Menu de perfil e configurações"
                   >
                     {profile?.name ? (
-                      <span className="text-xs font-black text-primary uppercase">
+                      <span className="text-[11px] font-black text-primary uppercase">
                         {profile.name.charAt(0)}
                       </span>
                     ) : (
-                      <span className="material-symbols-outlined text-on-surface text-xl">person</span>
+                      <span className="material-symbols-outlined text-on-surface text-lg">person</span>
                     )}
                   </button>
 
@@ -1126,12 +1163,13 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                 </div>
 
                 {/* Centered Account Switcher */}
-                <div className="flex-1 flex justify-center px-1 max-w-[220px] mx-auto z-10">
+                <div className="flex-1 flex justify-center px-1 max-w-[200px] mx-auto z-10">
                   <AccountToggle
                     activeAccount={activeAccount}
                     onAccountChange={handleAccountChange}
                     size="sm"
                     className="w-full"
+                    isPro={isPro}
                   />
                 </div>
 
@@ -1142,12 +1180,12 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                       setShowNotification(!showNotification);
                       setShowProfileMenu(false);
                     }}
-                    className="w-10 h-10 rounded-full bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant/30 flex items-center justify-center transition-all cursor-pointer tap-target"
+                    className="w-9 h-9 rounded-full bg-[#181428]/90 backdrop-blur-md hover:bg-[#201b34] border border-white/10 flex items-center justify-center transition-all cursor-pointer relative shadow-sm"
                     title="Notificações"
                     aria-label="Abrir notificações"
                   >
-                    <span className="material-symbols-outlined text-on-surface text-xl">notifications</span>
-                    <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-primary ring-2 ring-[#131315]"></span>
+                    <span className="material-symbols-outlined text-on-surface text-lg">notifications</span>
+                    <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary ring-2 ring-[#131315]"></span>
                   </button>
 
                   <AnimatePresence>
@@ -1711,6 +1749,96 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                   className="w-full py-3.5 bg-surface-container hover:bg-surface-container-highest rounded-xl text-xs font-bold text-on-surface border border-outline-variant/20 transition-all cursor-pointer select-none"
                 >
                   Não, começar do zero na nuvem
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal PRO Exclusivo para Conta Pessoal */}
+      <AnimatePresence>
+        {showPersonalProModal && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="w-full max-w-md bg-[#161224] border border-primary/30 rounded-[32px] p-6 text-center shadow-2xl relative overflow-hidden flex flex-col gap-5"
+            >
+              {/* Background ambient gradient glow */}
+              <div className="absolute -top-24 -left-24 w-48 h-48 bg-[#7C3AED]/25 rounded-full filter blur-3xl pointer-events-none"></div>
+              <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-primary/15 rounded-full filter blur-3xl pointer-events-none"></div>
+
+              {/* Close button */}
+              <button
+                onClick={() => setShowPersonalProModal(false)}
+                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                title="Fechar"
+              >
+                <span className="material-symbols-outlined text-base">close</span>
+              </button>
+
+              {/* Icon decoration */}
+              <div className="mx-auto w-16 h-16 rounded-3xl bg-[#7C3AED]/20 border border-[#7C3AED]/40 flex items-center justify-center text-[#c4b5fd] relative mt-1 shadow-[0_0_20px_rgba(124,58,237,0.3)]">
+                <span className="material-symbols-outlined text-3xl font-bold">account_circle</span>
+                <span className="absolute -top-1 -right-1 bg-amber-400 text-black text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider scale-90 shadow-md">
+                  PRO
+                </span>
+              </div>
+
+              {/* Information */}
+              <div className="flex flex-col gap-2">
+                <h3 className="text-lg font-black text-white tracking-tight leading-snug">
+                  Conta Pessoal é exclusiva do Plano PRO
+                </h3>
+                <p className="text-xs text-zinc-300 leading-relaxed font-normal px-2">
+                  Separe completamente seus gastos pessoais dos custos da sua empresa. Tenha controle de orçamentos, metas de economia, despesas recorrentes e histórico isolado com um toque.
+                </p>
+              </div>
+
+              {/* Highlight Perks Box */}
+              <div className="bg-[#1e1932] border border-white/5 rounded-2xl p-3.5 flex flex-col gap-2 text-left">
+                <span className="text-[10px] font-bold text-[#c4b5fd] uppercase tracking-wider">O que você ganha no PRO:</span>
+                <div className="flex flex-col gap-1.5 text-xs text-zinc-300">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-xs text-emerald-400">check_circle</span>
+                    <span>Gestão Dupla (Conta Empresarial + Conta Pessoal)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-xs text-emerald-400">check_circle</span>
+                    <span>Metas financeiras e limites de orçamentos por categoria</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-xs text-emerald-400">check_circle</span>
+                    <span>Acesso vitalício com pagamento único de R$ 17,90</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex flex-col gap-2.5 mt-1">
+                <a
+                  href={CHECKOUT_PRO_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setShowPersonalProModal(false)}
+                  className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#9333ea] hover:from-[#8b4bf0] hover:to-[#a855f7] text-white font-black text-xs transition-all duration-300 flex items-center justify-center gap-2 border border-[#c4b5fd]/40 shadow-[0_6px_24px_rgba(124,58,237,0.45)] hover:shadow-[0_8px_30px_rgba(124,58,237,0.65)] hover:-translate-y-0.5 select-none text-center"
+                >
+                  <span className="material-symbols-outlined text-base">workspace_premium</span>
+                  <span>Fazer Upgrade para o PRO (R$ 17,90)</span>
+                </a>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPersonalProModal(false);
+                    setActiveTab('planos');
+                    setActiveAccount('empresarial');
+                  }}
+                  className="w-full py-3 rounded-2xl bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white border border-white/5 transition-all text-xs font-bold cursor-pointer"
+                >
+                  Conhecer todos os benefícios do Plano PRO
                 </button>
               </div>
             </motion.div>

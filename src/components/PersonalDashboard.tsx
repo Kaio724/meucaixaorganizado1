@@ -16,12 +16,15 @@ import {
 import { Transaction, UserProfile, OrcamentoPessoal, MetaPessoal, RecorrenciaPessoal } from '../types';
 import { getPersonalCategoryInfo } from '../lib/personalCategories';
 import { fetchOrcamentos, fetchMetas, fetchRecorrencias, saveRecorrencia, computeNextDate } from '../lib/personalData';
+import TransactionDetailSheet from './TransactionDetailSheet';
 
 interface PersonalDashboardProps {
   profile: UserProfile;
   userId?: string;
   transactions: Transaction[];
   onAddTransaction: (tx: Omit<Transaction, 'id'>) => Promise<void> | void;
+  onEditTransaction?: (tx: Transaction) => void;
+  onDeleteTransaction?: (id: string) => void;
   onNavigateToTab: (tab: any) => void;
   onOpenAddModal: () => void;
 }
@@ -36,6 +39,8 @@ export default function PersonalDashboard({
   userId = 'default_user',
   transactions,
   onAddTransaction,
+  onEditTransaction,
+  onDeleteTransaction,
   onNavigateToTab,
   onOpenAddModal,
 }: PersonalDashboardProps) {
@@ -48,6 +53,7 @@ export default function PersonalDashboard({
   const [recorrencias, setRecorrencias] = useState<RecorrenciaPessoal[]>([]);
   const [loadingExtras, setLoadingExtras] = useState(true);
   const [dashboardToast, setDashboardToast] = useState<string | null>(null);
+  const [selectedTxForDetail, setSelectedTxForDetail] = useState<Transaction | null>(null);
 
   const showToast = (msg: string) => {
     setDashboardToast(msg);
@@ -537,27 +543,20 @@ export default function PersonalDashboard({
       </div>
 
       {/* Feed de Últimas Movimentações */}
-      <div className="rounded-[32px] p-6 sm:p-7 bg-[#110d1e]/90 border border-primary/20 backdrop-blur-xl shadow-xl flex flex-col gap-5">
+      <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <span className="material-symbols-outlined text-[#c4b5fd] text-xl">
-              history
-            </span>
-            <h3 className="text-base font-extrabold text-white tracking-tight uppercase">
-              Últimas Movimentações Pessoais
-            </h3>
-          </div>
+          <span className="text-[13px] uppercase tracking-[0.5px] text-zinc-400 font-semibold">
+            Últimos Lançamentos Pessoais
+          </span>
 
           {monthTransactions.length > 0 && (
             <button
               type="button"
               onClick={() => onNavigateToTab('historico')}
-              className="text-xs font-bold text-[#c4b5fd] hover:text-white flex items-center gap-1 transition-colors cursor-pointer group"
+              className="text-xs font-bold text-[#c4b5fd] hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
             >
               <span>Ver todas</span>
-              <span className="material-symbols-outlined text-sm transition-transform group-hover:translate-x-0.5">
-                arrow_forward
-              </span>
+              <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
             </button>
           )}
         </div>
@@ -569,9 +568,9 @@ export default function PersonalDashboard({
               <span className="material-symbols-outlined text-2xl">account_balance_wallet</span>
             </div>
             <div className="flex flex-col gap-1">
-              <h4 className="text-sm font-bold text-white">Nenhum lançamento pessoal em {MONTHS_PT[selectedMonthIndex]}</h4>
+              <h4 className="text-sm font-bold text-white">Nenhum lançamento em {MONTHS_PT[selectedMonthIndex]}</h4>
               <p className="text-xs text-zinc-500 max-w-xs">
-                Sua Conta Pessoal está pronta e zerada. Adicione sua primeira despesa ou receita pessoal.
+                Sua Conta Pessoal está pronta e zerada. Adicione sua primeira despesa ou receita.
               </p>
             </div>
             <button
@@ -583,9 +582,8 @@ export default function PersonalDashboard({
             </button>
           </div>
         ) : (
-          <div className="flex flex-col gap-2.5">
+          <div className="bg-[#141022]/90 border border-white/5 rounded-2xl overflow-hidden divide-y divide-white/5 shadow-sm">
             {recentTransactions.map((tx) => {
-              const info = getPersonalCategoryInfo(tx.category, tx.type, userId);
               const txDate = new Date(tx.date + 'T12:00:00');
               const formattedDate = txDate.toLocaleDateString('pt-BR', {
                 day: '2-digit',
@@ -595,41 +593,37 @@ export default function PersonalDashboard({
               return (
                 <div
                   key={tx.id}
-                  className="flex items-center justify-between p-3.5 sm:p-4 rounded-2xl bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 hover:border-[#7C3AED]/30 transition-all duration-150 group"
+                  onClick={() => setSelectedTxForDetail(tx)}
+                  className="h-16 px-4 flex items-center justify-between hover:bg-white/[0.03] active:bg-white/[0.06] transition-colors cursor-pointer select-none"
                 >
-                  <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex items-center gap-3 min-w-0 flex-1 text-left">
                     <div
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center border shrink-0 ${info.bgColor}`}
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                        tx.type === 'entrada' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
+                      }`}
                     >
-                      <span className={`material-symbols-outlined text-lg ${info.color}`}>
-                        {info.icon}
+                      <span className="material-symbols-outlined text-base">
+                        {tx.type === 'entrada' ? 'arrow_downward' : 'arrow_upward'}
                       </span>
                     </div>
 
                     <div className="flex flex-col min-w-0">
-                      <span className="text-xs sm:text-sm font-bold text-white truncate group-hover:text-[#c4b5fd] transition-colors">
+                      <span className="text-xs sm:text-sm font-semibold text-white truncate">
                         {tx.title}
                       </span>
-                      <div className="flex items-center gap-2 text-[11px] text-zinc-500">
-                        <span className="font-medium text-zinc-400">{tx.category}</span>
-                        <span>•</span>
-                        <span>{formattedDate}</span>
-                        <span>•</span>
-                        <span>{tx.paymentMethod}</span>
-                      </div>
+                      <span className="text-[11px] text-zinc-500 font-medium truncate mt-0.5">
+                        {tx.category} • {formattedDate}
+                      </span>
                     </div>
                   </div>
 
-                  <div className="flex flex-col items-end shrink-0 pl-3">
+                  <div className="text-right shrink-0 pl-3">
                     <span
-                      className={`text-xs sm:text-sm font-extrabold ${
+                      className={`text-sm font-extrabold tracking-tight ${
                         tx.type === 'entrada' ? 'text-emerald-400' : 'text-rose-400'
                       }`}
                     >
                       {tx.type === 'entrada' ? '+' : '-'} {formatBRL(tx.amount)}
-                    </span>
-                    <span className="text-[10px] text-zinc-500 uppercase font-semibold">
-                      {tx.type === 'entrada' ? 'Receita' : 'Despesa'}
                     </span>
                   </div>
                 </div>
@@ -638,6 +632,26 @@ export default function PersonalDashboard({
           </div>
         )}
       </div>
+
+      {/* Transaction Detail Bottom Sheet (Progressive Disclosure) */}
+      <TransactionDetailSheet
+        transaction={selectedTxForDetail}
+        isOpen={Boolean(selectedTxForDetail)}
+        onClose={() => setSelectedTxForDetail(null)}
+        userId={userId}
+        onEdit={(tx) => {
+          if (onEditTransaction) {
+            onEditTransaction(tx);
+          } else {
+            onNavigateToTab('historico');
+          }
+        }}
+        onDelete={(id) => {
+          if (onDeleteTransaction) {
+            onDeleteTransaction(id);
+          }
+        }}
+      />
 
     </div>
   );

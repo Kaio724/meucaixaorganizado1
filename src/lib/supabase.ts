@@ -41,16 +41,17 @@ export function getSupabase() {
 // Map db row to UserProfile
 export function mapDbProfileToUserProfile(row: any): UserProfile {
   const userId = row?.id;
-  let localPlan = 'essential';
-  if (userId) {
-    localPlan = localStorage.getItem(`mco_profile_plan_${userId}`) || 'essential';
+  let localPlan: string | null = null;
+  if (userId && typeof window !== 'undefined') {
+    localPlan = localStorage.getItem(`mco_profile_plan_${userId}`);
   }
+  const resolvedPlan = row?.plano || localPlan || 'essential';
   return {
     name: row.nome || '',
     businessName: row.nome_negocio || '',
     businessType: row.tipo_negocio === 'mei' ? 'cnpj' : 'autonomo',
     isOnboarded: true,
-    plan: (row.plano as any) === 'pro' ? 'pro' : (localPlan === 'pro' ? 'pro' : 'essential'),
+    plan: resolvedPlan === 'pro' ? 'pro' : 'essential',
   };
 }
 

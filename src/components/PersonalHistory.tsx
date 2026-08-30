@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Transaction, UserProfile, TransactionType } from '../types';
 import { getPersonalCategoryInfo } from '../lib/personalCategories';
+import TransactionDetailSheet from './TransactionDetailSheet';
 
 interface PersonalHistoryProps {
   profile: UserProfile;
@@ -34,6 +35,7 @@ export default function PersonalHistory({
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [showAllTime, setShowAllTime] = useState(false);
   const [deletingTxId, setDeletingTxId] = useState<string | null>(null);
+  const [selectedTxForDetail, setSelectedTxForDetail] = useState<Transaction | null>(null);
 
   const handlePrevMonth = () => {
     if (selectedMonthIndex === 0) {
@@ -348,79 +350,48 @@ export default function PersonalHistory({
                 </div>
 
                 {/* Day Items */}
-                <div className="flex flex-col gap-2">
+                <div className="bg-[#141022]/90 border border-white/5 rounded-2xl overflow-hidden divide-y divide-white/5 shadow-sm">
                   {dayTxs.map((tx) => {
-                    const info = getPersonalCategoryInfo(tx.category, tx.type, userId);
-
                     return (
                       <div
                         key={tx.id}
-                        className="flex items-center justify-between p-4 rounded-2xl bg-[#140f24]/80 hover:bg-[#1a142e] border border-white/5 hover:border-[#7C3AED]/30 transition-all duration-150 group"
+                        onClick={() => setSelectedTxForDetail(tx)}
+                        className="h-16 px-4 flex items-center justify-between hover:bg-white/[0.03] active:bg-white/[0.06] transition-colors cursor-pointer select-none"
                       >
-                        <div className="flex items-center gap-3.5 min-w-0">
+                        <div className="flex items-center gap-3 min-w-0 flex-1 text-left">
                           <div
-                            className={`w-11 h-11 rounded-2xl flex items-center justify-center border shrink-0 ${info.bgColor}`}
+                            className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                              tx.type === 'entrada' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
+                            }`}
                           >
-                            <span className={`material-symbols-outlined text-xl ${info.color}`}>
-                              {info.icon}
+                            <span className="material-symbols-outlined text-base">
+                              {tx.type === 'entrada' ? 'arrow_downward' : 'arrow_upward'}
                             </span>
                           </div>
 
                           <div className="flex flex-col min-w-0">
-                            <span className="text-xs sm:text-sm font-bold text-white truncate group-hover:text-[#c4b5fd] transition-colors">
+                            <span className="text-xs sm:text-sm font-semibold text-white truncate">
                               {tx.title}
                             </span>
-                            <div className="flex items-center gap-2 text-[11px] text-zinc-500 mt-0.5">
-                              <span className="font-medium text-zinc-400">{tx.category}</span>
-                              <span>•</span>
-                              <span>{tx.paymentMethod}</span>
-                              {tx.description && (
-                                <>
-                                  <span>•</span>
-                                  <span className="italic truncate max-w-[120px]">
-                                    {tx.description}
-                                  </span>
-                                </>
-                              )}
-                            </div>
+                            <span className="text-[11px] text-zinc-500 font-medium truncate mt-0.5">
+                              {tx.category} • {tx.paymentMethod}
+                            </span>
                           </div>
                         </div>
 
                         {/* Value & Actions */}
-                        <div className="flex items-center gap-3 shrink-0 pl-3">
-                          <div className="flex flex-col items-end">
+                        <div className="flex items-center gap-2 shrink-0 pl-3">
+                          <div className="text-right">
                             <span
-                              className={`text-xs sm:text-sm font-black ${
+                              className={`text-sm font-extrabold tracking-tight ${
                                 tx.type === 'entrada' ? 'text-emerald-400' : 'text-rose-400'
                               }`}
                             >
                               {tx.type === 'entrada' ? '+' : '-'} {formatBRL(tx.amount)}
                             </span>
-                            <span className="text-[9px] text-zinc-500 uppercase font-semibold">
-                              {tx.type === 'entrada' ? 'Receita' : 'Despesa'}
-                            </span>
                           </div>
 
-                          {/* Action Buttons (Edit & Delete) */}
-                          <div className="flex items-center gap-1 opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                            <button
-                              type="button"
-                              onClick={() => onOpenEditModal(tx)}
-                              className="w-8 h-8 rounded-xl bg-white/5 hover:bg-[#7C3AED]/20 text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
-                              title="Editar"
-                            >
-                              <span className="material-symbols-outlined text-sm">edit</span>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => setDeletingTxId(tx.id)}
-                              className="w-8 h-8 rounded-xl bg-white/5 hover:bg-rose-500/20 text-zinc-400 hover:text-rose-400 flex items-center justify-center transition-colors cursor-pointer"
-                              title="Excluir"
-                            >
-                              <span className="material-symbols-outlined text-sm">delete</span>
-                            </button>
-                          </div>
+                          <span className="material-symbols-outlined text-zinc-600 text-sm">chevron_right</span>
                         </div>
                       </div>
                     );
@@ -431,6 +402,20 @@ export default function PersonalHistory({
           })}
         </div>
       )}
+
+      {/* Transaction Detail Bottom Sheet (Progressive Disclosure) */}
+      <TransactionDetailSheet
+        transaction={selectedTxForDetail}
+        isOpen={Boolean(selectedTxForDetail)}
+        onClose={() => setSelectedTxForDetail(null)}
+        userId={userId}
+        onEdit={(tx) => {
+          onOpenEditModal(tx);
+        }}
+        onDelete={(id) => {
+          onDeleteTransaction(id);
+        }}
+      />
 
       {/* Delete Confirmation Modal */}
       <AnimatePresence>

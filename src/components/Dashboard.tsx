@@ -9,6 +9,7 @@ import ProInsights from './ProInsights';
 import MonthComparison from './MonthComparison';
 import DesktopDashboard from './DesktopDashboard';
 import ImportModal from './ImportModal';
+import TransactionDetailSheet from './TransactionDetailSheet';
 
 const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://pay.cakto.com.br/rdvxqwt';
 
@@ -17,14 +18,25 @@ interface DashboardProps {
   userId?: string;
   transactions: Transaction[];
   onAddTransaction: (tx: Omit<Transaction, 'id'>) => void;
+  onEditTransaction?: (tx: Transaction) => void;
+  onDeleteTransaction?: (id: string) => void;
   onNavigateToTab: (tab: 'dashboard' | 'historico' | 'retirar' | 'resumo') => void;
 }
 
-export default function Dashboard({ profile, userId = 'default_user', transactions, onAddTransaction, onNavigateToTab }: DashboardProps) {
+export default function Dashboard({ 
+  profile, 
+  userId = 'default_user', 
+  transactions, 
+  onAddTransaction, 
+  onEditTransaction,
+  onDeleteTransaction,
+  onNavigateToTab 
+}: DashboardProps) {
   const [showImportModal, setShowImportModal] = useState(false);
   const isPro = (profile.plan || 'essential') === 'pro';
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [showProModal, setShowProModal] = useState(false);
+  const [selectedTxForDetail, setSelectedTxForDetail] = useState<Transaction | null>(null);
   const [txType, setTxType] = useState<TransactionType>('entrada');
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
@@ -38,20 +50,12 @@ export default function Dashboard({ profile, userId = 'default_user', transactio
   const currentYear = now.getFullYear();
 
   // For Essential plan users, main calculations only reflect the current month.
-  // Historical older months are hidden from the dashboard stats.
   const visibleTransactions = isPro
     ? transactions
     : transactions.filter((t) => {
         const tDate = new Date(t.date + 'T12:00:00');
         return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
       });
-
-  // Calculate transactions from other months
-  const previousMonthsTxs = transactions.filter((t) => {
-    const tDate = new Date(t.date + 'T12:00:00');
-    return tDate.getMonth() !== currentMonth || tDate.getFullYear() !== currentYear;
-  });
-  const hasPreviousMonthsTxs = previousMonthsTxs.length > 0;
 
   // Calculations
   const totalEntradas = visibleTransactions
@@ -77,11 +81,14 @@ export default function Dashboard({ profile, userId = 'default_user', transactio
 
   const handleQuickAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !amount) return;
+    if (!amount) return;
+
+    const parsedAmount = Math.abs(parseFloat(amount.replace(',', '.')));
+    if (isNaN(parsedAmount) || parsedAmount <= 0) return;
 
     onAddTransaction({
-      title: title.trim(),
-      amount: Math.abs(parseFloat(amount)),
+      title: title.trim() || category || (txType === 'entrada' ? 'Entrada Caixa' : 'Despesa Caixa'),
+      amount: parsedAmount,
       type: txType,
       date,
       category,
@@ -109,62 +116,81 @@ export default function Dashboard({ profile, userId = 'default_user', transactio
     .filter(t => t.type === 'saida' && t.category === 'Pro-Labore')
     .reduce((sum, t) => sum + t.amount, 0);
 
+  // Recent 3 transactions for minimal, lightweight feed
+  const recent3Transactions = transactions.slice(0, 3);
+
   return (
     <div className="w-full">
-      {/* Mobile Experience */}
-      <div className="lg:hidden flex flex-col gap-4 sm:gap-5 w-full max-w-lg md:max-w-4xl text-left mx-auto pb-4">
-        {/* Top Welcome Bar */}
+      {/* Mobile Experience - 3-Level Hierarchy & Breathable Space */}
+      <div className="lg:hidden flex flex-col gap-6 w-full max-w-lg md:max-w-4xl text-left mx-auto pb-6">
+        
+        {/* ================= LEVEL 1: ABOVE THE FOLD ================= */}
+        
+        {/* Top Welcome Bar (Discreet) */}
         <div className="flex items-center justify-between col-span-12 px-0.5">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-on-surface-variant font-medium tracking-wider uppercase">
+              <span className="text-xs text-zinc-400 font-medium tracking-wider uppercase">
                 {profile.businessType === 'cnpj' ? 'MEI' : 'Autônomo'}
               </span>
               <span className={`text-[9px] px-2 py-0.5 rounded-full uppercase font-extrabold border ${
                 (profile.plan || 'essential') === 'pro'
                   ? 'bg-primary/20 text-primary border-primary/30'
-                  : 'bg-white/10 text-on-surface-variant border-white/10'
+                  : 'bg-white/10 text-zinc-400 border-white/10'
               }`}>
                 {profile.plan || 'essential'}
               </span>
             </div>
-            <h2 className="text-xl sm:text-2xl font-bold text-on-surface tracking-tight truncate mt-0.5">
-              Olá, <span className="text-primary">{profile.name}</span>!
+            <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight truncate mt-0.5">
+              Olá, <span className="text-primary">{profile.name}</span>
             </h2>
-            <p className="text-xs text-on-surface-variant truncate">
+            <p className="text-xs text-zinc-400 truncate">
               {profile.businessName}
             </p>
           </div>
-          <div className="w-11 h-11 rounded-full bg-surface-container-high border border-outline-variant/30 flex items-center justify-center shrink-0 tap-target">
+          <div className="w-11 h-11 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
             <span className="material-symbols-outlined text-primary text-xl">
               storefront
             </span>
           </div>
         </div>
 
-        {/* Main Financial Dashboard Card (Card Mestre) */}
+        {/* Card Mestre: "Sobrou em Caixa" (Protagonista Absoluto) */}
         <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
+          initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="hero-master-card rounded-[24px] p-4 sm:p-5 shadow-2xl flex flex-col gap-4 relative overflow-hidden text-left w-full"
+          className="hero-master-card rounded-[28px] p-5 sm:p-6 shadow-2xl flex flex-col gap-4 relative overflow-hidden text-left w-full border border-primary/30 bg-gradient-to-b from-[#1b1531] via-[#140e26] to-[#0e0a1b]"
         >
-          <div className="absolute top-0 right-0 w-36 h-36 bg-primary/10 rounded-full filter blur-2xl pointer-events-none"></div>
+          <div className="absolute top-0 right-0 w-44 h-44 bg-primary/15 rounded-full filter blur-3xl pointer-events-none"></div>
 
-          {/* Sobrou (Net profit) Display */}
-          <div className="flex flex-col gap-1">
-            <span className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(208,188,255,0.8)]"></span>
-              Sobrou em Caixa
-            </span>
-            <div className="flex items-baseline gap-2 mt-0.5">
-              <h1 className={`text-3xl sm:text-4xl font-black tracking-tight ${totalSobrou >= 0 ? 'text-on-surface' : 'text-error glow-text-red'}`}>
+          {/* Sobrou Header & Value */}
+          <div className="flex flex-col gap-1.5 relative z-10">
+            <div className="flex items-center justify-between">
+              <span className="text-[13px] font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(208,188,255,0.8)]"></span>
+                Sobrou em Caixa
+              </span>
+              <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border ${
+                totalSobrou >= 0 
+                  ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' 
+                  : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
+              }`}>
+                {totalSobrou >= 0 ? 'Positivo' : 'Alerta'}
+              </span>
+            </div>
+
+            {/* Protagonist Typography: 40-44px ExtraBold */}
+            <div className="flex items-baseline gap-2 mt-1">
+              <h1 className={`text-4xl sm:text-[42px] font-extrabold tracking-tight ${totalSobrou >= 0 ? 'text-white' : 'text-rose-400'}`}>
                 {formatBRL(totalSobrou)}
               </h1>
             </div>
-            <div className="flex items-center gap-2.5 mt-1.5">
-              <div className="flex-1 bg-surface-container-low h-2.5 rounded-full overflow-hidden border border-white/5">
+
+            {/* Progress Bar & Support micro-text */}
+            <div className="flex items-center gap-3 mt-2">
+              <div className="flex-1 bg-black/40 h-2.5 rounded-full overflow-hidden border border-white/5">
                 <div 
-                  className="bg-gradient-to-r from-primary to-[#8b6eff] h-full transition-all duration-500 rounded-full bar-glow-purple"
+                  className="bg-gradient-to-r from-primary to-[#9333ea] h-full transition-all duration-500 rounded-full shadow-[0_0_10px_rgba(124,58,237,0.5)]"
                   style={{ width: `${sobrouPercentage}%` }}
                 ></div>
               </div>
@@ -173,83 +199,157 @@ export default function Dashboard({ profile, userId = 'default_user', transactio
               </span>
             </div>
           </div>
-
-          {/* Grid de Cards (Entrou / Saiu / Você retirou) */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 border-t border-white/[0.08] pt-3.5">
-            {/* Entradas */}
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04]">
-              <div className="w-9 h-9 rounded-xl bg-tertiary/10 flex items-center justify-center border border-tertiary/25 shrink-0 shadow-[0_0_12px_rgba(78,222,163,0.15)]">
-                <span className="material-symbols-outlined text-tertiary text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
-                  arrow_upward
-                </span>
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider truncate">
-                  Entrou
-                </span>
-                <span className="text-sm font-extrabold text-tertiary glow-text-green truncate">
-                  {formatBRL(totalEntradas)}
-                </span>
-              </div>
-            </div>
-
-            {/* Saídas */}
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04]">
-              <div className="w-9 h-9 rounded-xl bg-error/10 flex items-center justify-center border border-error/25 shrink-0 shadow-[0_0_12px_rgba(255,180,171,0.15)]">
-                <span className="material-symbols-outlined text-error text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
-                  arrow_downward
-                </span>
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider truncate">
-                  Saiu
-                </span>
-                <span className="text-sm font-extrabold text-error glow-text-red truncate">
-                  {formatBRL(totalSaidas)}
-                </span>
-              </div>
-            </div>
-
-            {/* Retiradas MEI / Pró-labore */}
-            <div className="col-span-2 sm:col-span-1 flex items-center gap-2.5 p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04]">
-              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/25 shrink-0 shadow-[0_0_12px_rgba(208,188,255,0.15)]">
-                <span className="material-symbols-outlined text-primary text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
-                  account_balance
-                </span>
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider truncate">
-                  Você Retirou
-                </span>
-                <span className="text-sm font-extrabold text-primary truncate">
-                  {formatBRL(totalRetiradas)}
-                </span>
-              </div>
-            </div>
-          </div>
         </motion.div>
 
-        {/* Wide Action Buttons */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+        {/* Primary Action Button (Fixed & Prominent) */}
+        <div className="flex flex-col sm:flex-row gap-3 w-full">
           <button
             onClick={() => { setTxType('entrada'); setShowQuickAdd(true); }}
-            className="w-full bg-[#6d3bd7] hover:bg-[#8455ef] text-white font-bold h-[52px] px-4 rounded-2xl flex items-center justify-center gap-2 btn-primary-pulse cursor-pointer border border-primary/40 text-base select-none tap-target"
+            className="w-full bg-gradient-to-r from-[#6d3bd7] to-[#8b4bf0] hover:from-[#7c44ea] hover:to-[#9a5df7] text-white font-extrabold h-[52px] px-5 rounded-2xl flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(109,59,215,0.4)] cursor-pointer border border-primary/40 text-base select-none active:scale-[0.98] transition-all"
           >
-            <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>add_circle</span>
-            <span className="tracking-wide font-bold">Lançar Movimentação</span>
+            <span className="material-symbols-outlined text-xl font-bold" style={{ fontVariationSettings: "'FILL' 1" }}>add_circle</span>
+            <span className="tracking-wide">Lançar Movimentação</span>
           </button>
           
           <button
             onClick={() => setShowImportModal(true)}
-            className="w-full bg-white/[0.04] hover:bg-white/[0.08] text-white font-bold h-[52px] px-4 rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 border border-white/[0.08] hover:border-primary/25 cursor-pointer active:scale-[0.98] shadow-sm hover:shadow-[0_0_15px_rgba(160,120,255,0.12)] text-base select-none tap-target"
+            className="w-full sm:w-auto bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white font-bold h-[48px] sm:h-[52px] px-4 rounded-2xl flex items-center justify-center gap-2 transition-all border border-white/[0.08] hover:border-primary/30 cursor-pointer active:scale-[0.98] text-xs select-none"
           >
-            <span className="material-symbols-outlined text-xl text-primary animate-pulse" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
-            <span className="tracking-wide font-bold">Importação Inteligente</span>
+            <span className="material-symbols-outlined text-lg text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+            <span>Importação Inteligente</span>
           </button>
         </div>
 
-        {/* Pro Growth Insights Panel ou Card Compacto PRO */}
-        <div className="flex flex-col gap-4 sm:gap-5">
+        {/* ================= LEVEL 2: BELOW THE FOLD ================= */}
+
+        {/* Section: Resumo de Entradas e Saídas (Opção A - 2 cards + 1 card pró-labore) */}
+        <div className="flex flex-col gap-3 mt-4">
+          <div className="flex items-center justify-between">
+            <span className="text-[13px] uppercase tracking-[0.5px] text-zinc-400 font-semibold">
+              Movimentação do Mês
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {/* Entrou */}
+            <div className="flex flex-col justify-between p-4 rounded-2xl bg-[#130f21]/90 border border-emerald-500/20 min-h-[84px] shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] uppercase font-bold text-zinc-400 tracking-wider">
+                  Entrou
+                </span>
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/15 flex items-center justify-center text-emerald-400">
+                  <span className="material-symbols-outlined text-base">arrow_downward</span>
+                </div>
+              </div>
+              <div className="text-xl sm:text-2xl font-extrabold text-emerald-400 tracking-tight mt-1 truncate">
+                {formatBRL(totalEntradas)}
+              </div>
+            </div>
+
+            {/* Saiu */}
+            <div className="flex flex-col justify-between p-4 rounded-2xl bg-[#130f21]/90 border border-rose-500/20 min-h-[84px] shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] uppercase font-bold text-zinc-400 tracking-wider">
+                  Saiu
+                </span>
+                <div className="w-7 h-7 rounded-lg bg-rose-500/15 flex items-center justify-center text-rose-400">
+                  <span className="material-symbols-outlined text-base">arrow_upward</span>
+                </div>
+              </div>
+              <div className="text-xl sm:text-2xl font-extrabold text-rose-400 tracking-tight mt-1 truncate">
+                {formatBRL(totalSaidas)}
+              </div>
+            </div>
+
+            {/* Você Retirou (Pró-Labore) - Centralizado/Full width */}
+            <div className="col-span-2 flex items-center justify-between p-4 rounded-2xl bg-[#130f21]/90 border border-primary/20 min-h-[72px] shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-primary/15 flex items-center justify-center text-primary border border-primary/30">
+                  <span className="material-symbols-outlined text-lg">account_balance</span>
+                </div>
+                <div>
+                  <span className="text-[11px] uppercase font-bold text-zinc-400 tracking-wider block">
+                    Você Retirou (Pró-Labore)
+                  </span>
+                  <span className="text-[11px] text-zinc-500 font-medium">
+                    Transferências e retiradas pessoais
+                  </span>
+                </div>
+              </div>
+              <div className="text-lg font-extrabold text-primary tracking-tight">
+                {formatBRL(totalRetiradas)}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Section: Últimas Movimentações (3 itens no feed, toque para abrir detalhes) */}
+        <div className="flex flex-col gap-3 mt-4">
+          <div className="flex items-center justify-between">
+            <span className="text-[13px] uppercase tracking-[0.5px] text-zinc-400 font-semibold">
+              Últimos Lançamentos
+            </span>
+            <button 
+              onClick={() => onNavigateToTab('historico')}
+              className="text-xs font-bold text-[#c4b5fd] hover:text-white flex items-center gap-1 cursor-pointer transition-all"
+            >
+              <span>Ver todos</span>
+              <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+            </button>
+          </div>
+
+          {recent3Transactions.length === 0 ? (
+            <div className="p-8 rounded-2xl bg-white/[0.02] border border-white/5 text-center flex flex-col items-center gap-2">
+              <span className="material-symbols-outlined text-zinc-500 text-3xl">folder_off</span>
+              <span className="text-xs text-zinc-400">Nenhum lançamento no momento</span>
+            </div>
+          ) : (
+            <div className="bg-[#141022]/90 border border-white/5 rounded-2xl overflow-hidden divide-y divide-white/5">
+              {recent3Transactions.map((tx) => {
+                const catInfo = getCategoryInfo(tx.category, tx.type, userId);
+                const dateObj = tx.date ? new Date(tx.date + 'T12:00:00') : new Date();
+                const formattedDate = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+
+                return (
+                  <div 
+                    key={tx.id} 
+                    onClick={() => setSelectedTxForDetail(tx)}
+                    className="h-16 px-4 flex items-center justify-between hover:bg-white/[0.03] active:bg-white/[0.06] transition-colors cursor-pointer select-none"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1 text-left">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                        tx.type === 'entrada' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
+                      }`}>
+                        <span className="material-symbols-outlined text-base">
+                          {tx.type === 'entrada' ? 'arrow_downward' : 'arrow_upward'}
+                        </span>
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <h4 className="text-xs sm:text-sm font-semibold text-white truncate tracking-tight">
+                          {tx.title}
+                        </h4>
+                        <span className="text-[11px] text-zinc-500 font-medium truncate mt-0.5">
+                          {tx.category} • {formattedDate}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="text-right shrink-0 pl-3">
+                      <span className={`text-sm font-extrabold tracking-tight ${
+                        tx.type === 'entrada' ? 'text-emerald-400' : 'text-rose-400'
+                      }`}>
+                        {tx.type === 'entrada' ? '+' : '-'} {formatBRL(tx.amount)}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Section: Insights & Plano (PRO) */}
+        <div className="flex flex-col gap-4 mt-4">
           {isPro ? (
             <ProGrowthPanel
               transactions={transactions}
@@ -258,137 +358,48 @@ export default function Dashboard({ profile, userId = 'default_user', transactio
             />
           ) : (
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="glass-card rounded-[24px] p-4 sm:p-5 shadow-xl flex flex-col gap-3.5 relative overflow-hidden text-left"
+              className="rounded-2xl p-5 border border-primary/20 bg-gradient-to-r from-primary/10 to-transparent flex flex-col gap-3 relative overflow-hidden text-left"
             >
-              <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full filter blur-lg pointer-events-none"></div>
-              
-              {/* Discret badge in the top right */}
-              <div className="absolute top-4 sm:top-5 right-4 sm:top-5">
+              <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black text-white bg-[#6934D1] px-2.5 py-0.5 rounded-full tracking-wider">
-                  PRO
+                  MCO PRO
                 </span>
               </div>
 
-              <div className="flex flex-col gap-2">
-                <h3 className="text-base font-black text-on-surface tracking-tight pr-10">
-                  Você está utilizando o plano Essencial
+              <div className="flex flex-col gap-1">
+                <h3 className="text-sm font-bold text-white tracking-tight">
+                  Desbloqueie o potencial completo do MCO
                 </h3>
-                <p className="text-xs text-on-surface-variant font-medium leading-relaxed">
-                  Desbloqueie recursos exclusivos do MCO PRO e acompanhe a evolução do seu negócio com muito mais inteligência.
+                <p className="text-xs text-zinc-400 font-medium leading-relaxed">
+                  Gráficos avançados, relatórios comparativos, projeções de crescimento e mais.
                 </p>
               </div>
 
               <button
                 type="button"
                 onClick={() => setShowProModal(true)}
-                className="mt-1 w-full py-3 rounded-xl sm:rounded-2xl bg-gradient-to-r from-primary to-[#8b6eff] hover:from-[#8b6eff] hover:to-[#a18cff] text-on-primary font-black text-xs transition-all duration-300 flex items-center justify-center gap-2 border border-primary/30 shadow-[0_4px_14px_rgba(109,59,215,0.25)] hover:shadow-[0_4px_20px_rgba(109,59,215,0.45)] cursor-pointer active:scale-95"
+                className="mt-1 w-full py-2.5 rounded-xl bg-primary hover:bg-[#8b6eff] text-white font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
               >
-                Visualizar benefícios do PRO
+                Conhecer o MCO PRO
               </button>
             </motion.div>
           )}
         </div>
 
-        {/* Insights PRO (Exclusivo PRO) - apenas se for PRO */}
+        {/* Insights PRO Adicionais */}
         {isPro && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-            {/* Evolução do Negócio */}
+          <div className="flex flex-col gap-4 mt-2">
             <EvolutionCard transactions={transactions} />
-
-            {/* Comparativo entre Meses */}
             <MonthComparison transactions={transactions} />
-
-            {/* Insights Inteligentes */}
-            <div className="md:col-span-2 relative overflow-hidden rounded-[24px]">
-              <ProInsights transactions={transactions} />
-            </div>
-
-            {/* Informativo de Atualizações Vitalícias */}
-            <div className="md:col-span-2 glass-card rounded-[20px] p-4 border border-primary/20 bg-primary/5 flex items-start gap-3 text-left">
-              <span className="material-symbols-outlined text-primary text-lg shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>verified_user</span>
-              <p className="text-[11px] text-on-surface-variant font-medium leading-normal">
-                Você tem <span className="text-primary font-bold">acesso vitalício</span> a todas as futuras atualizações, melhorias e novos recursos exclusivos do MCO PRO sem nenhuma taxa recorrente.
-              </p>
-            </div>
+            <ProInsights transactions={transactions} />
           </div>
         )}
 
-        {/* Short list of Recent Transactions */}
-        <div className="flex flex-col gap-4 mt-2">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-on-surface flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-lg">list_alt</span>
-              Últimos Lançamentos
-            </h3>
-            <button 
-              onClick={() => onNavigateToTab('historico')}
-              className="text-xs font-semibold text-primary hover:underline flex items-center gap-1 cursor-pointer transition-all active:scale-95"
-            >
-              Ver tudo
-              <span className="material-symbols-outlined text-[10px]">arrow_forward</span>
-            </button>
-          </div>
-
-          {transactions.length === 0 ? (
-            <div className="p-8 rounded-2xl bg-surface-container-low border border-outline-variant/10 text-center flex flex-col items-center gap-2">
-              <span className="material-symbols-outlined text-on-surface-variant/40 text-4xl">folder_off</span>
-              <span className="text-xs text-on-surface-variant">Nenhum lançamento cadastrado</span>
-            </div>
-          ) : (
-            <div className="glass-card rounded-[24px] border border-outline-variant/10 overflow-hidden bg-surface-container/20">
-              <div className="flex flex-col divide-y divide-outline-variant/5">
-                {transactions.slice(0, 3).map((tx) => {
-                  const dateObj = tx.date ? new Date(tx.date + 'T12:00:00') : new Date();
-                  const formattedDate = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-
-                  return (
-                    <div 
-                      key={tx.id} 
-                      className="group px-3 sm:px-5 py-3 flex items-center justify-between hover:bg-white/[0.02] transition-all duration-200 select-none min-h-[58px]"
-                    >
-                      <div className="flex items-center gap-3.5 min-w-0 flex-1 text-left">
-                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                          tx.type === 'entrada' ? 'bg-[#10b981]/15 text-[#4edea3]' : 'bg-[#ef4444]/15 text-[#f87171]'
-                        }`}>
-                          <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>
-                            {tx.type === 'entrada' ? 'arrow_upward' : 'arrow_downward'}
-                          </span>
-                        </div>
-                        <div className="flex flex-col min-w-0">
-                          <h4 className="text-xs sm:text-sm font-semibold text-on-surface truncate tracking-tight leading-tight group-hover:text-primary transition-colors">
-                            {tx.title}
-                          </h4>
-                          <span className="text-[10px] text-on-surface-variant/75 font-medium leading-none mt-1 flex items-center gap-1.5 flex-wrap">
-                            {tx.paymentMethod} • 
-                            <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/[0.03] border border-white/[0.06] ${getCategoryInfo(tx.category, tx.type, userId).color}`}>
-                              <span className="material-symbols-outlined text-[10px] leading-none" style={{ fontVariationSettings: "'FILL' 1" }}>
-                                {getCategoryInfo(tx.category, tx.type, userId).icon}
-                              </span>
-                              <span>{tx.category}</span>
-                            </span>
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="text-right shrink-0 pl-3">
-                        <span className={`text-sm font-bold tracking-tight ${
-                          tx.type === 'entrada' ? 'text-tertiary' : 'text-error'
-                        }`}>
-                          {tx.type === 'entrada' ? '+' : '-'} {formatBRL(tx.amount)}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
       </div>
 
-      {/* Desktop Experience (Premium SaaS Visual Style - Responsive & Elegant) */}
+      {/* Desktop Experience */}
       <div className="hidden lg:block w-full">
         <DesktopDashboard
           profile={profile}
@@ -410,330 +421,210 @@ export default function Dashboard({ profile, userId = 'default_user', transactio
         />
       </div>
 
-      {/* Quick Add Dialog (Mobile Bottom Sheet + Desktop Modal) */}
+      {/* Quick Add Dialog (Modal de Lançamento Limpo) */}
       <AnimatePresence>
         {showQuickAdd && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md">
-            {/* Backdrop click */}
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md">
             <div className="absolute inset-0 cursor-default" onClick={() => setShowQuickAdd(false)} />
 
             <motion.div
-              initial={{ opacity: 0, y: 60, scale: 0.96 }}
+              initial={{ opacity: 0, y: 80, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 60, scale: 0.96 }}
+              exit={{ opacity: 0, y: 80, scale: 0.96 }}
               transition={{ type: "spring", damping: 25, stiffness: 350 }}
-              className="glass-card rounded-t-[28px] sm:rounded-[28px] p-4 sm:p-6 border-t sm:border border-white/[0.08] w-full max-w-xl flex flex-col gap-4 relative bg-[#131317]/98 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.8)] max-h-[92vh] overflow-y-auto contain-scroll z-10"
+              className="glass-card rounded-t-[32px] sm:rounded-[32px] p-5 sm:p-6 border-t sm:border border-white/10 w-full max-w-lg flex flex-col gap-4 relative bg-[#131020]/98 shadow-2xl max-h-[92vh] overflow-y-auto contain-scroll z-10 text-left"
             >
               {/* Drag Handle Mobile */}
-              <div className="w-10 h-1 bg-white/25 rounded-full mx-auto -mt-1 mb-1 sm:hidden shrink-0"></div>
-
-              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full filter blur-2xl pointer-events-none"></div>
+              <div className="w-12 h-1 bg-white/25 rounded-full mx-auto -mt-1 mb-1 sm:hidden shrink-0"></div>
 
               {/* Header */}
-              <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
-                <div className="flex flex-col gap-0.5">
+              <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                <div>
                   <h3 className="text-base sm:text-lg font-extrabold text-white tracking-tight flex items-center gap-2">
                     <span className="material-symbols-outlined text-primary text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>add_circle</span>
-                    Lançar Movimentação
+                    Lançar no Caixa
                   </h3>
-                  <p className="text-[10px] sm:text-xs text-on-surface-variant/70 font-medium">
-                    Registre uma movimentação no caixa do seu negócio
+                  <p className="text-xs text-zinc-400 font-medium">
+                    Conta Empresarial
                   </p>
                 </div>
                 <button 
                   onClick={() => setShowQuickAdd(false)}
-                  className="w-9 h-9 rounded-full bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] flex items-center justify-center transition-all cursor-pointer text-on-surface-variant hover:text-white tap-target"
-                  aria-label="Fechar modal"
+                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-zinc-400 hover:text-white transition-colors cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-base">close</span>
                 </button>
               </div>
 
+              {/* Type Switcher */}
+              <div className="grid grid-cols-2 p-1 rounded-2xl bg-black/40 border border-white/5 gap-1 select-none h-12">
+                <button
+                  type="button"
+                  onClick={() => setTxType('entrada')}
+                  className={`h-full px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    txType === 'entrada'
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-md'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-base font-bold">arrow_downward</span>
+                  <span>Receita (Entrou)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTxType('saida')}
+                  className={`h-full px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    txType === 'saida'
+                      ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-md'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-base font-bold">arrow_upward</span>
+                  <span>Despesa (Saiu)</span>
+                </button>
+              </div>
+
+              {/* Form Content */}
               <form onSubmit={handleQuickAddSubmit} className="flex flex-col gap-4">
-                
-                {/* Segmented Toggles: Entrou vs Saiu */}
-                <div className="grid grid-cols-2 p-1 bg-[#0d0d12] rounded-2xl border border-white/[0.06] h-12">
-                  <button
-                    type="button"
-                    onClick={() => setTxType('entrada')}
-                    className={`h-full text-xs sm:text-sm font-extrabold rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none tap-target ${
-                      txType === 'entrada' 
-                        ? 'bg-tertiary text-on-primary shadow-[0_2px_8px_rgba(16,185,129,0.2)] border border-white/10' 
-                        : 'text-on-surface-variant/80 hover:text-white hover:bg-white/[0.02]'
-                    }`}
-                  >
-                    <span className="material-symbols-outlined text-base font-bold" style={{ fontVariationSettings: "'FILL' 1" }}>trending_up</span>
-                    Receita (Entrou)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTxType('saida')}
-                    className={`h-full text-xs sm:text-sm font-extrabold rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none tap-target ${
-                      txType === 'saida' 
-                        ? 'bg-error text-on-primary shadow-[0_2px_8px_rgba(239,68,68,0.2)] border border-white/10' 
-                        : 'text-on-surface-variant/80 hover:text-white hover:bg-white/[0.02]'
-                    }`}
-                  >
-                    <span className="material-symbols-outlined text-base font-bold" style={{ fontVariationSettings: "'FILL' 1" }}>trending_down</span>
-                    Despesa (Saiu)
-                  </button>
+                {/* Hero Amount Field */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider">
+                    Valor (R$) *
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-zinc-400">
+                      R$
+                    </span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      required
+                      placeholder="0,00"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      className={`w-full bg-[#181426] border rounded-2xl pl-12 pr-4 min-h-[48px] py-3 text-xl font-extrabold text-white placeholder:text-zinc-600 focus:outline-none transition-all ${
+                        txType === 'entrada'
+                          ? 'border-emerald-500/30 focus:border-emerald-400'
+                          : 'border-rose-500/30 focus:border-rose-400'
+                      }`}
+                    />
+                  </div>
                 </div>
 
-                {/* 2-Column Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                  
-                  {/* Left Column */}
-                  <div className="flex flex-col gap-3 sm:gap-4">
-                    {/* Quanto foi? (Amount) */}
-                    <div className="flex flex-col gap-1.5 text-left">
-                      <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Quanto foi?</label>
-                      <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary/60 rounded-xl px-4 min-h-[48px] focus-within:bg-[#1b1b26] focus-within:shadow-[0_0_20px_rgba(109,59,215,0.15)] transition-all">
-                        <span className="text-base font-extrabold text-on-surface-variant/50 mr-2 select-none">R$</span>
-                        <input
-                          type="number"
-                          step="0.01"
-                          required
-                          placeholder="0,00"
-                          value={amount}
-                          onChange={(e) => setAmount(e.target.value)}
-                          className="w-full bg-transparent border-none text-white font-extrabold text-base focus:outline-none placeholder:text-white/[0.15] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Categoria */}
-                    <div className="flex flex-col gap-1.5 text-left">
-                      <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Categoria</label>
-                      <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary focus-within:bg-[#1b1b26] rounded-xl px-4 min-h-[48px] transition-all">
-                        <select
-                          value={category}
-                          onChange={(e) => setCategory(e.target.value)}
-                          required
-                          className="w-full bg-transparent border-none text-base sm:text-xs text-white focus:outline-none cursor-pointer appearance-none pr-8"
+                {/* Categorias Chips */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider">
+                    Categoria
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-36 overflow-y-auto pr-1">
+                    {getCategoryNamesByType(userId, txType).map((catName) => {
+                      const isSelected = category === catName;
+                      return (
+                        <button
+                          key={catName}
+                          type="button"
+                          onClick={() => setCategory(catName)}
+                          className={`p-2.5 rounded-xl border text-left text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                            isSelected
+                              ? 'bg-primary/20 border-primary text-primary shadow-sm'
+                              : 'bg-white/[0.02] border-white/5 text-zinc-400 hover:text-white hover:bg-white/5'
+                          }`}
                         >
-                          {getCategoryNamesByType(userId, txType).map((cat) => (
-                            <option key={cat} value={cat} className="bg-[#131315] text-white">
-                              {cat}
-                            </option>
-                          ))}
-                        </select>
-                        <span className="material-symbols-outlined absolute right-4 text-on-surface-variant/70 pointer-events-none text-base">category</span>
-                      </div>
-                    </div>
+                          <span className="truncate">{catName}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
-                    {/* Forma de Pagamento */}
-                    <div className="flex flex-col gap-1.5 text-left">
-                      <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Forma de Pagamento</label>
-                      <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary focus-within:bg-[#1b1b26] rounded-xl px-4 min-h-[48px] transition-all">
-                        <select
-                          value={paymentMethod}
-                          onChange={(e) => setPaymentMethod(e.target.value)}
-                          className="w-full bg-transparent border-none text-base sm:text-xs text-white focus:outline-none cursor-pointer appearance-none pr-8"
-                        >
-                          {PAYMENT_METHODS.map((method) => (
-                            <option key={method} value={method} className="bg-[#131315] text-white">
-                              {method}
-                            </option>
-                          ))}
-                        </select>
-                        <span className="material-symbols-outlined absolute right-4 text-on-surface-variant/70 pointer-events-none text-base">payments</span>
-                      </div>
-                    </div>
+                {/* Descrição Opcional */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider">
+                    Descrição (Opcional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Venda de produto, Aluguel..."
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="w-full bg-[#181426] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary"
+                  />
+                </div>
+
+                {/* Forma de Pagamento */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase">
+                      Pagamento
+                    </label>
+                    <select
+                      value={paymentMethod}
+                      onChange={(e) => setPaymentMethod(e.target.value)}
+                      className="bg-[#181426] border border-white/10 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-primary cursor-pointer"
+                    >
+                      {PAYMENT_METHODS.map(m => (
+                        <option key={m} value={m} className="bg-[#131020] text-white">{m}</option>
+                      ))}
+                    </select>
                   </div>
 
-                  {/* Right Column */}
-                  <div className="flex flex-col gap-3 sm:gap-4">
-                    {/* Quando foi? (Date) */}
-                    <div className="flex flex-col gap-1.5 text-left">
-                      <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Data</label>
-                      <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary focus-within:bg-[#1b1b26] rounded-xl px-4 min-h-[48px] transition-all">
-                        <input
-                          type="date"
-                          required
-                          value={date}
-                          onChange={(e) => setDate(e.target.value)}
-                          className="w-full bg-transparent border-none text-base sm:text-xs text-white focus:outline-none cursor-pointer scheme-dark"
-                        />
-                        <span className="material-symbols-outlined absolute right-4 text-on-surface-variant/70 pointer-events-none text-base">calendar_today</span>
-                      </div>
-                    </div>
-
-                    {/* Descrição */}
-                    <div className="flex flex-col gap-1.5 text-left">
-                      <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Identificação</label>
-                      <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary focus-within:bg-[#1b1b26] rounded-xl px-4 min-h-[48px] transition-all">
-                        <input
-                          type="text"
-                          required
-                          placeholder="Ex: Pagamento Cliente João"
-                          value={title}
-                          onChange={(e) => setTitle(e.target.value)}
-                          className="w-full bg-transparent border-none text-base sm:text-xs text-white focus:outline-none placeholder:text-white/[0.15]"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Conta de Origem/Destino */}
-                    <div className="flex flex-col gap-1.5 text-left">
-                      <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">
-                        {txType === 'entrada' ? 'Conta de Destino (Opcional)' : 'Conta de Origem (Opcional)'}
-                      </label>
-                      <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary focus-within:bg-[#1b1b26] rounded-xl px-4 min-h-[48px] transition-all">
-                        <select
-                          value={account || ''}
-                          onChange={(e) => setAccount(e.target.value || undefined)}
-                          className="w-full bg-transparent border-none text-base sm:text-xs text-white focus:outline-none cursor-pointer appearance-none pr-8"
-                        >
-                          <option value="" className="bg-[#131315] text-on-surface-variant/50">Não especificada</option>
-                          {ACCOUNT_OPTIONS.map((acc) => (
-                            <option key={acc} value={acc} className="bg-[#131315] text-white">
-                              {acc}
-                            </option>
-                          ))}
-                        </select>
-                        <span className="material-symbols-outlined absolute right-4 text-on-surface-variant/70 pointer-events-none text-base">account_balance_wallet</span>
-                      </div>
-                    </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase">
+                      Data
+                    </label>
+                    <input
+                      type="date"
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
+                      className="bg-[#181426] border border-white/10 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-primary"
+                    />
                   </div>
-
                 </div>
 
-                {/* CTA Buttons */}
-                <div className="flex gap-3 pt-3 border-t border-white/[0.06] mt-1">
-                  <button
-                    type="button"
-                    onClick={() => setShowQuickAdd(false)}
-                    className="flex-1 h-[52px] bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] rounded-xl text-base sm:text-sm font-extrabold text-white transition-all active:scale-[0.98] cursor-pointer tap-target"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 h-[52px] bg-primary hover:bg-[#8455ef] text-white font-extrabold rounded-xl text-base sm:text-sm transition-all duration-300 shadow-[0_4px_14px_rgba(109,59,215,0.25)] hover:shadow-[0_4px_20px_rgba(109,59,215,0.45)] active:scale-[0.98] border border-primary/30 flex items-center justify-center gap-1.5 cursor-pointer tap-target"
-                  >
-                    <span className="material-symbols-outlined text-lg font-bold">done</span>
-                    <span>Salvar lançamento</span>
-                  </button>
-                </div>
+                {/* Submit button */}
+                <button
+                  type="submit"
+                  className="mt-2 w-full h-12 rounded-xl bg-gradient-to-r from-primary to-[#9333ea] hover:from-[#8b6eff] hover:to-[#a855f7] text-white font-black text-xs transition-all shadow-lg cursor-pointer flex items-center justify-center gap-2 active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-lg">check</span>
+                  <span>Salvar Lançamento</span>
+                </button>
               </form>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
 
-      {/* Modal de confirmação/aquisição do Plano PRO */}
-      {showProModal && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 15 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 15 }}
-            className="w-full max-w-md bg-[#131315]/95 border border-white/10 rounded-[28px] p-5 sm:p-6 text-center shadow-2xl relative overflow-hidden flex flex-col gap-4 sm:gap-6 max-h-[92vh] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
-          >
-            {/* Background premium gradient glow */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-primary/10 rounded-full filter blur-3xl pointer-events-none"></div>
+      {/* Transaction Detail Bottom Sheet (Progressive Disclosure) */}
+      <TransactionDetailSheet
+        transaction={selectedTxForDetail}
+        isOpen={Boolean(selectedTxForDetail)}
+        onClose={() => setSelectedTxForDetail(null)}
+        userId={userId}
+        onEdit={(tx) => {
+          if (onEditTransaction) {
+            onEditTransaction(tx);
+          } else {
+            onNavigateToTab('historico');
+          }
+        }}
+        onDelete={(id) => {
+          if (onDeleteTransaction) {
+            onDeleteTransaction(id);
+          }
+        }}
+      />
 
-            {/* Premium Crown/Star icon decoration with premium purple glow behind it */}
-            <div className="relative mx-auto mt-1 sm:mt-2 shrink-0">
-              <div className="absolute inset-0 bg-primary/35 rounded-full filter blur-xl scale-150 pointer-events-none"></div>
-              <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
-                <span className="material-symbols-outlined text-xl sm:text-2xl font-black">workspace_premium</span>
-              </div>
-            </div>
-
-            {/* Premium Messaging */}
-            <div className="flex flex-col gap-1 sm:gap-1.5 shrink-0">
-              <h3 className="text-lg sm:text-xl font-black text-on-surface tracking-tight leading-snug">
-                Conheça o MCO PRO
-              </h3>
-              <p className="text-[11px] sm:text-xs text-on-surface-variant leading-relaxed font-bold max-w-[320px] mx-auto">
-                Tudo que você já possui no Essencial, mais:
-              </p>
-            </div>
-
-            {/* Feature Check List (Oriented to benefits with emojis!) */}
-            <div className="flex flex-col gap-3 text-left bg-white/[0.01] border border-white/5 rounded-2xl p-4">
-              {[
-                { emoji: '📈', title: 'Evolução do Lucro', text: 'Monitore receitas, despesas e margem líquida com comparativos reais MoM.' },
-                { emoji: '🎯', title: 'Metas Inteligentes', text: 'Defina alvos mensais de faturamento com barras de progresso dinâmicas.' },
-                { emoji: '💚', title: 'Saúde Financeira', text: 'Status em tempo real (🟢 Saudável, 🟡 Atenção, 🔴 Crítico) do seu caixa.' },
-                { emoji: '💡', title: 'Insights com IA', text: 'Análises automatizadas e alertas acionáveis sob medida para seu negócio.' },
-                { emoji: '📊', title: 'Comparativos Avançados', text: 'Alterne rápido entre períodos com gráficos interativos e minimalistas.' },
-                { emoji: '⚡', title: 'Atualizações Vitalícias', text: 'Acesso vitalício garantido a todas as melhorias e novos recursos PRO.' }
-              ].map((item, i) => (
-                <div key={i} className="flex items-start gap-3 text-xs leading-normal">
-                  <span className="text-base shrink-0 select-none mt-0.5">{item.emoji}</span>
-                  <div className="flex flex-col">
-                    <span className="font-extrabold text-on-surface">{item.title}</span>
-                    <span className="text-[10px] text-on-surface-variant/80 font-medium">{item.text}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Bottom pricing info formatted as a dedicated high-focus card */}
-            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 sm:p-5 flex flex-col gap-1 items-center justify-center relative overflow-hidden shrink-0">
-              <span className="text-[9px] sm:text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-widest text-center">
-                Upgrade do Plano Essencial
-              </span>
-              <span className="text-xs font-semibold text-on-surface-variant/45 line-through mt-0.5">
-                R$ 37,90
-              </span>
-              <span className="text-[9px] sm:text-[10px] font-bold text-primary uppercase tracking-wider">
-                Upgrade por apenas
-              </span>
-              <span className="text-3xl sm:text-4xl font-black text-on-surface tracking-tight">
-                R$ 18,00
-              </span>
-              <span className="text-[9px] text-on-surface-variant/60 font-black uppercase tracking-wider mt-0.5 bg-white/5 px-2 py-0.5 rounded-full border border-white/5">
-                Pagamento único
-              </span>
-            </div>
-
-            {/* Actions */}
-            <div className="flex flex-col gap-2 sm:gap-2.5 shrink-0">
-              {/* Trust proof line */}
-              <span className="text-[10px] sm:text-[10.5px] text-on-surface-variant/75 font-semibold flex items-center justify-center gap-1.5">
-                <span className="material-symbols-outlined text-xs text-primary font-black" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-                Mais de 300 empreendedores já utilizam o MCO.
-              </span>
-
-              <a
-                href={CHECKOUT_PRO_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setShowProModal(false)}
-                className="w-full py-3 sm:py-3.5 mt-0.5 rounded-2xl bg-gradient-to-r from-primary to-[#8b6eff] hover:from-[#8b6eff] hover:to-[#a18cff] text-on-primary font-black text-xs transition-all duration-300 flex items-center justify-center gap-2 border border-primary/30 shadow-[0_4px_14px_rgba(109,59,215,0.25)] hover:shadow-[0_6px_20px_rgba(109,59,215,0.45)] cursor-pointer active:scale-95 text-center select-none"
-              >
-                <span className="material-symbols-outlined text-sm font-black">lock_open</span>
-                Fazer Upgrade
-              </a>
-              
-              <button
-                type="button"
-                onClick={() => setShowProModal(false)}
-                className="w-full py-3 rounded-2xl bg-surface-container-low hover:bg-surface-container-highest text-on-surface-variant hover:text-on-surface border border-outline-variant/10 transition-all duration-200 text-xs font-bold cursor-pointer"
-              >
-                Agora não
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
       {/* Import Modal */}
-      {showImportModal && (
-        <ImportModal
-          isOpen={showImportModal}
-          onClose={() => setShowImportModal(false)}
-          profile={profile}
-          userId={userId}
-          onAddTransaction={onAddTransaction}
-          onUpgradePlan={() => {
-            setShowImportModal(false);
-            setShowProModal(true);
-          }}
-        />
-      )}
+      <ImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        profile={profile}
+        userId={userId}
+        onAddTransaction={onAddTransaction}
+        onUpgradePlan={() => setShowProModal(true)}
+      />
     </div>
   );
 }

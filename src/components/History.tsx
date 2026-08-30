@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Transaction, UserProfile, TransactionType } from '../types';
 import { AVAILABLE_CATEGORIES, PAYMENT_METHODS, ACCOUNT_OPTIONS } from '../initialData';
 import { getCategoryNamesByType, getCategoryInfo } from '../lib/categories';
+import TransactionDetailSheet from './TransactionDetailSheet';
 
 const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://pay.cakto.com.br/rdvxqwt';
 
@@ -23,6 +24,7 @@ const MONTHS_PT = [
 export default function History({ profile, userId = 'default_user', transactions, onAddTransaction, onEditTransaction, onDeleteTransaction }: HistoryProps) {
   const isPro = (profile.plan || 'essential') === 'pro';
   const [showProModal, setShowProModal] = useState(false);
+  const [selectedTxForDetail, setSelectedTxForDetail] = useState<Transaction | null>(null);
   const [filterType, setFilterType] = useState<'tudo' | 'entrada' | 'saida'>('tudo');
   const [selectedMonthIndex, setSelectedMonthIndex] = useState(new Date().getMonth()); // default to current month
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -628,187 +630,39 @@ export default function History({ profile, userId = 'default_user', transactions
               </h3>
 
               {/* Transactions on this Date */}
-              <div className="flex flex-col gap-2">
+              <div className="bg-surface-container border border-outline-variant/15 rounded-2xl overflow-hidden divide-y divide-outline-variant/10 shadow-sm">
                 {grouped[dateStr].map(tx => {
-                  const isEditingThis = editingTx?.id === tx.id;
-                  
                   return (
                     <div 
                       key={tx.id} 
-                      className={`rounded-2xl transition-all duration-300 relative overflow-hidden ${
-                        isEditingThis 
-                          ? 'bg-surface-container-high border-2 border-primary/40 p-4 sm:p-5' 
-                          : 'bg-surface-container border border-outline-variant/15 p-3 sm:p-4 hover:bg-surface-container-high'
-                      }`}
+                      onClick={() => setSelectedTxForDetail(tx)}
+                      className="h-16 px-4 flex items-center justify-between hover:bg-surface-container-high active:bg-surface-container-highest transition-colors cursor-pointer select-none"
                     >
-                      {/* Normal Row view */}
-                      {!isEditingThis ? (
-                        <div className="flex items-center justify-between gap-3 sm:gap-4">
-                          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-                            <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0 ${getCategoryInfo(tx.category, tx.type, userId).bgColor} ${getCategoryInfo(tx.category, tx.type, userId).color}`}>
-                              <span className="material-symbols-outlined text-lg sm:text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-                                {getCategoryIcon(tx.category, tx.type)}
-                              </span>
-                            </div>
-                            <div className="min-w-0">
-                              <h4 className="text-sm font-bold text-on-surface leading-tight truncate">{tx.title}</h4>
-                              <p className="text-[11px] text-on-surface-variant/80 mt-0.5 flex items-center gap-1.5 flex-wrap">
-                                {tx.paymentMethod} • 
-                                <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/[0.03] border border-white/[0.06] ${getCategoryInfo(tx.category, tx.type, userId).color}`}>
-                                  <span className="material-symbols-outlined text-[10px] leading-none" style={{ fontVariationSettings: "'FILL' 1" }}>
-                                    {getCategoryIcon(tx.category, tx.type)}
-                                  </span>
-                                  <span>{tx.category}</span>
-                                </span>
-                                {tx.account && ` (${tx.account})`}
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Values and Action triggers */}
-                          <div className="flex items-center gap-3">
-                            <div className="text-right">
-                              <span className={`text-sm font-extrabold tracking-tight ${
-                                tx.type === 'entrada' ? 'text-tertiary' : 'text-on-surface'
-                              }`}>
-                                {tx.type === 'entrada' ? '+' : '-'} {formatBRL(tx.amount)}
-                              </span>
-                            </div>
-                            
-                            {/* Actions overlay / Inline triggers */}
-                            <div className="flex items-center gap-1">
-                              <button 
-                                onClick={() => startEdit(tx)}
-                                className="w-8 h-8 rounded-full bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant/20 flex items-center justify-center text-on-surface-variant hover:text-primary transition-all duration-200"
-                                title="Editar"
-                              >
-                                <span className="material-symbols-outlined text-base">edit</span>
-                              </button>
-                              <button 
-                                onClick={() => setDeletingTxId(tx.id)}
-                                className="w-8 h-8 rounded-full bg-error/10 hover:bg-error/20 flex items-center justify-center text-error transition-all duration-200 cursor-pointer"
-                                title="Excluir"
-                              >
-                                <span className="material-symbols-outlined text-base">delete</span>
-                              </button>
-                            </div>
-                          </div>
+                      <div className="flex items-center gap-3 min-w-0 flex-1 text-left">
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${getCategoryInfo(tx.category, tx.type, userId).bgColor} ${getCategoryInfo(tx.category, tx.type, userId).color}`}>
+                          <span className="material-symbols-outlined text-base">
+                            {tx.type === 'entrada' ? 'arrow_downward' : 'arrow_upward'}
+                          </span>
                         </div>
-                      ) : (
-                        /* Inline Edit Form view */
-                        <form onSubmit={handleFormSubmit} className="flex flex-col gap-4">
-                          <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                            <span className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
-                              <span className="material-symbols-outlined text-xs">edit</span>
-                              Editando Lançamento
-                            </span>
-                            <button 
-                              type="button" 
-                              onClick={() => setEditingTx(null)}
-                              className="text-xs font-bold text-on-surface-variant hover:text-on-surface"
-                            >
-                              Cancelar
-                            </button>
-                          </div>
+                        <div className="min-w-0">
+                          <h4 className="text-xs sm:text-sm font-semibold text-on-surface leading-tight truncate">{tx.title}</h4>
+                          <p className="text-[11px] text-on-surface-variant/80 mt-0.5 truncate">
+                            {tx.category} • {tx.paymentMethod}
+                          </p>
+                        </div>
+                      </div>
 
-                          {/* Quick inputs */}
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="flex flex-col gap-1">
-                              <label className="text-[10px] font-bold text-on-surface-variant">Especificação do Item/Serviço</label>
-                              <input 
-                                type="text"
-                                required
-                                value={formTitle}
-                                onChange={(e) => setFormTitle(e.target.value)}
-                                className="bg-surface-container-low border border-outline-variant/40 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:border-primary text-on-surface"
-                              />
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <label className="text-[10px] font-bold text-on-surface-variant">Valor (R$)</label>
-                              <input 
-                                type="number"
-                                step="0.01"
-                                required
-                                value={formAmount}
-                                onChange={(e) => setFormAmount(e.target.value)}
-                                className="bg-surface-container-low border border-outline-variant/40 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:border-primary text-on-surface"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="flex flex-col gap-1">
-                              <label className="text-[10px] font-bold text-on-surface-variant">Categoria</label>
-                              <select 
-                                value={formCategory}
-                                onChange={(e) => setFormCategory(e.target.value)}
-                                className="bg-surface-container-low border border-outline-variant/40 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:border-primary text-on-surface"
-                              >
-                                {getCategoryNamesByType(userId, formType).map(cat => (
-                                  <option key={cat} value={cat}>{cat}</option>
-                                ))}
-                              </select>
-                            </div>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="flex flex-col gap-1">
-                              <label className="text-[10px] font-bold text-on-surface-variant">Método</label>
-                              <select 
-                                value={formPaymentMethod}
-                                onChange={(e) => setFormPaymentMethod(e.target.value)}
-                                className="bg-surface-container-low border border-outline-variant/40 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:border-primary text-on-surface"
-                              >
-                                {PAYMENT_METHODS.map(method => (
-                                  <option key={method} value={method}>{method}</option>
-                                ))}
-                              </select>
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <label className="text-[10px] font-bold text-on-surface-variant">
-                                {formType === 'entrada' ? 'Conta Destino' : 'Conta Origem'}
-                              </label>
-                              <select 
-                                value={formAccount || ''}
-                                onChange={(e) => setFormAccount(e.target.value || undefined)}
-                                className="bg-surface-container-low border border-outline-variant/40 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:border-primary text-on-surface w-full"
-                              >
-                                <option value="">Não especificada</option>
-                                {ACCOUNT_OPTIONS.map(acc => (
-                                  <option key={acc} value={acc}>{acc}</option>
-                                ))}
-                              </select>
-                            </div>
-                          </div>
-                          </div>
-
-                          <div className="flex flex-col gap-1">
-                            <label className="text-[10px] font-bold text-on-surface-variant">Data</label>
-                            <input 
-                              type="date"
-                              required
-                              value={formDate}
-                              onChange={(e) => setFormDate(e.target.value)}
-                              className="bg-surface-container-low border border-outline-variant/40 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:border-primary text-on-surface"
-                            />
-                          </div>
-
-                          <div className="flex gap-2 justify-end pt-2">
-                            <button
-                              type="button"
-                              onClick={() => setEditingTx(null)}
-                              className="px-3 py-2 bg-surface-container rounded-lg text-[11px] font-bold text-on-surface hover:bg-surface-container-low border border-outline-variant/20"
-                            >
-                              Voltar
-                            </button>
-                            <button
-                              type="submit"
-                              className="px-4 py-2 bg-primary text-on-primary rounded-lg text-[11px] font-bold hover:bg-[#c0aeff] flex items-center gap-1"
-                            >
-                              <span className="material-symbols-outlined text-xs">done</span>
-                              Salvar Alterações
-                            </button>
-                          </div>
-                        </form>
-                      )}
+                      {/* Values and Action triggers */}
+                      <div className="flex items-center gap-2 shrink-0 pl-3">
+                        <div className="text-right">
+                          <span className={`text-sm font-extrabold tracking-tight ${
+                            tx.type === 'entrada' ? 'text-tertiary' : 'text-on-surface'
+                          }`}>
+                            {tx.type === 'entrada' ? '+' : '-'} {formatBRL(tx.amount)}
+                          </span>
+                        </div>
+                        <span className="material-symbols-outlined text-on-surface-variant/40 text-sm">chevron_right</span>
+                      </div>
                     </div>
                   );
                 })}
@@ -1301,6 +1155,30 @@ export default function History({ profile, userId = 'default_user', transactions
           );
         })()}
       </AnimatePresence>
+
+      {/* Transaction Detail Bottom Sheet (Progressive Disclosure) */}
+      <TransactionDetailSheet
+        transaction={selectedTxForDetail}
+        isOpen={Boolean(selectedTxForDetail)}
+        onClose={() => setSelectedTxForDetail(null)}
+        userId={userId}
+        onEdit={(tx) => {
+          setSelectedTxForDetail(null);
+          setEditingTx(tx);
+          setFormTitle(tx.title);
+          setFormAmount(String(tx.amount));
+          setFormCategory(tx.category);
+          setFormType(tx.type);
+          setFormPaymentMethod(tx.paymentMethod);
+          setFormDate(tx.date);
+          setFormAccount(tx.account);
+          setShowAddModal(true);
+        }}
+        onDelete={(id) => {
+          onDeleteTransaction(id);
+          setSelectedTxForDetail(null);
+        }}
+      />
 
       {/* Modal de confirmação/aquisição do Plano PRO */}
       {showProModal && (
