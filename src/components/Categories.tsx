@@ -201,7 +201,7 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
           </div>
 
           <span className="text-[10px] font-black tracking-widest text-primary uppercase bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
-            Recurso Exclusivo MCO PRO
+            Recurso Exclusivo MCO Completo
           </span>
 
           <h3 className="text-2xl font-extrabold text-on-surface mt-4 tracking-tight">
@@ -232,7 +232,7 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
             className="w-full bg-[#6d3bd7] hover:bg-[#8455ef] text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2.5 transition-all duration-300 shadow-[0_4px_16px_rgba(109,59,215,0.35)] cursor-pointer mt-8 select-none border border-primary/20"
           >
             <span className="material-symbols-outlined text-sm font-bold">workspace_premium</span>
-            <span>Fazer Upgrade para o PRO</span>
+            <span>Fazer Upgrade para o MCO Completo</span>
           </button>
         </motion.div>
       </div>

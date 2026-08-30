@@ -155,21 +155,13 @@ export default function App() {
         email?.toLowerCase() === 'joaorodriguesamancio@gmail.com';
 
       if (dbProfile) {
-        if (isKaio && dbProfile.plan !== 'essential') {
-          dbProfile.plan = 'essential';
-          try {
-            await upsertProfile(userId, dbProfile);
-            localStorage.setItem(`mco_profile_plan_${userId}`, 'essential');
-          } catch (e) {
-            console.warn('Set profile to essential failed:', e);
-          }
-        } else if (isPromoUser && dbProfile.plan !== 'pro') {
+        if ((isKaio || isPromoUser) && dbProfile.plan !== 'pro') {
           dbProfile.plan = 'pro';
           try {
             await upsertProfile(userId, dbProfile);
             localStorage.setItem(`mco_profile_plan_${userId}`, 'pro');
           } catch (e) {
-            console.warn('Silent upgrade profile to pro failed:', e);
+            console.warn('Set profile to pro failed:', e);
           }
         }
         setProfile(dbProfile);
@@ -242,8 +234,11 @@ export default function App() {
     setLoading(true);
     setDbError(null);
     try {
+      const emailLower = session?.user?.email?.toLowerCase();
       const isPromoUser = 
-        session?.user?.email?.toLowerCase() === 'joaorodriguesamancio@gmail.com';
+        emailLower === 'joaorodriguesamancio@gmail.com' ||
+        emailLower === 'kaiopatrick42@gmail.com' ||
+        emailLower === 'kaioparick42@gmail.com';
       if (isPromoUser) {
         newProfile.plan = 'pro';
       } else {
@@ -1034,7 +1029,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                           ? 'bg-primary/20 text-primary border-primary/30'
                           : 'bg-white/10 text-on-surface-variant border-white/10'
                       }`}>
-                        {profile.plan || 'essential'}
+                        {(profile.plan || 'essential') === 'pro' ? 'MCO Completo' : 'MCO Essencial'}
                       </span>
                     </div>
                   )}
@@ -1114,7 +1109,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                                 ? 'bg-primary/20 text-primary border-primary/30'
                                 : 'bg-white/5 text-on-surface-variant border-white/10'
                             }`}>
-                              {profile.plan || 'essential'}
+                              {(profile.plan || 'essential') === 'pro' ? 'MCO Completo' : 'MCO Essencial'}
                             </span>
                           </div>
                           <h4 className="text-xs font-bold text-on-surface mt-0.5 truncate">{profile.name}</h4>
@@ -1783,14 +1778,14 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
               <div className="mx-auto w-16 h-16 rounded-3xl bg-[#7C3AED]/20 border border-[#7C3AED]/40 flex items-center justify-center text-[#c4b5fd] relative mt-1 shadow-[0_0_20px_rgba(124,58,237,0.3)]">
                 <span className="material-symbols-outlined text-3xl font-bold">account_circle</span>
                 <span className="absolute -top-1 -right-1 bg-amber-400 text-black text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider scale-90 shadow-md">
-                  PRO
+                  COMPLETO
                 </span>
               </div>
 
               {/* Information */}
               <div className="flex flex-col gap-2">
                 <h3 className="text-lg font-black text-white tracking-tight leading-snug">
-                  Conta Pessoal é exclusiva do Plano PRO
+                  Conta Pessoal é exclusiva do MCO Completo
                 </h3>
                 <p className="text-xs text-zinc-300 leading-relaxed font-normal px-2">
                   Separe completamente seus gastos pessoais dos custos da sua empresa. Tenha controle de orçamentos, metas de economia, despesas recorrentes e histórico isolado com um toque.
@@ -1799,7 +1794,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
 
               {/* Highlight Perks Box */}
               <div className="bg-[#1e1932] border border-white/5 rounded-2xl p-3.5 flex flex-col gap-2 text-left">
-                <span className="text-[10px] font-bold text-[#c4b5fd] uppercase tracking-wider">O que você ganha no PRO:</span>
+                <span className="text-[10px] font-bold text-[#c4b5fd] uppercase tracking-wider">O que você ganha no MCO Completo:</span>
                 <div className="flex flex-col gap-1.5 text-xs text-zinc-300">
                   <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-xs text-emerald-400">check_circle</span>
@@ -1826,7 +1821,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                   className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#9333ea] hover:from-[#8b4bf0] hover:to-[#a855f7] text-white font-black text-xs transition-all duration-300 flex items-center justify-center gap-2 border border-[#c4b5fd]/40 shadow-[0_6px_24px_rgba(124,58,237,0.45)] hover:shadow-[0_8px_30px_rgba(124,58,237,0.65)] hover:-translate-y-0.5 select-none text-center"
                 >
                   <span className="material-symbols-outlined text-base">workspace_premium</span>
-                  <span>Fazer Upgrade para o PRO (R$ 17,90)</span>
+                  <span>Fazer Upgrade para o MCO Completo (R$ 17,90)</span>
                 </a>
 
                 <button
@@ -1838,7 +1833,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                   }}
                   className="w-full py-3 rounded-2xl bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white border border-white/5 transition-all text-xs font-bold cursor-pointer"
                 >
-                  Conhecer todos os benefícios do Plano PRO
+                  Conhecer todos os benefícios do MCO Completo
                 </button>
               </div>
             </motion.div>

@@ -69,7 +69,7 @@ export default function DesktopDashboard({
                   ? 'bg-primary/20 text-primary border-primary/30'
                   : 'bg-white/10 text-on-surface-variant border-white/10'
               }`}>
-                {profile.plan || 'essential'}
+                {isPro ? 'MCO Completo' : 'MCO Essencial'}
               </span>
             </div>
             <h2 className="text-xl font-extrabold text-on-surface tracking-tight mt-1">
@@ -376,7 +376,7 @@ export default function DesktopDashboard({
                 <h3 className="text-sm font-bold text-on-surface">Comparativo Analítico Mensal</h3>
               </div>
               <span className="text-[10px] text-on-surface-variant/60 font-medium bg-white/5 border border-white/5 px-2.5 py-0.5 rounded-full">
-                Exclusivo PRO
+                Exclusivo MCO Completo
               </span>
             </div>
             
@@ -394,7 +394,7 @@ export default function DesktopDashboard({
                     onClick={() => setShowProModal(true)}
                     className="mt-4 px-4 py-2 bg-[#6934D1] hover:bg-[#834aff] text-white font-extrabold text-[11px] uppercase tracking-wider rounded-xl transition-all shadow-[0_0_15px_rgba(105,52,209,0.3)] hover:shadow-[0_0_25px_rgba(105,52,209,0.55)] cursor-pointer"
                   >
-                    Desbloquear com o PRO
+                    Desbloquear com o MCO Completo
                   </button>
                 </div>
               )}
@@ -497,7 +497,7 @@ export default function DesktopDashboard({
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-primary text-base font-bold">workspace_premium</span>
-                <h3 className="text-sm font-extrabold text-on-surface">Análise de Performance PRO</h3>
+                <h3 className="text-sm font-extrabold text-on-surface">Análise de Performance Completo</h3>
               </div>
             </div>
 
@@ -515,7 +515,7 @@ export default function DesktopDashboard({
                     onClick={() => setShowProModal(true)}
                     className="mt-3.5 px-3 py-1.5 bg-primary hover:bg-[#8455ef] text-white font-extrabold text-[10px] uppercase tracking-wider rounded-lg transition-all cursor-pointer"
                   >
-                    Ativar com o PRO
+                    Ativar com MCO Completo
                   </button>
                 </div>
               )}
@@ -550,7 +550,7 @@ export default function DesktopDashboard({
                     onClick={() => setShowProModal(true)}
                     className="mt-3.5 px-3 py-1.5 bg-primary hover:bg-[#8455ef] text-white font-extrabold text-[10px] uppercase tracking-wider rounded-lg transition-all cursor-pointer"
                   >
-                    Ativar com o PRO
+                    Ativar com MCO Completo
                   </button>
                 </div>
               )}
@@ -581,7 +581,7 @@ export default function DesktopDashboard({
                     onClick={() => setShowProModal(true)}
                     className="mt-3.5 px-3 py-1.5 bg-primary hover:bg-[#8455ef] text-white font-extrabold text-[10px] uppercase tracking-wider rounded-lg transition-all cursor-pointer"
                   >
-                    Ativar com o PRO
+                    Ativar com MCO Completo
                   </button>
                 </div>
               )}
@@ -595,7 +595,7 @@ export default function DesktopDashboard({
             <div className="flex flex-col gap-0.5">
               <span className="text-[10px] text-primary font-black uppercase tracking-wider">Acesso Vitalício Garantido</span>
               <p className="text-[11px] text-on-surface-variant font-medium leading-relaxed mt-1">
-                Membros PRO possuem <span className="text-primary font-extrabold">atualizações vitalícias</span> a novos recursos e melhorias no Meu Caixa Organizado.
+                Membros do MCO Completo possuem <span className="text-primary font-extrabold">atualizações vitalícias</span> a novos recursos e melhorias no Meu Caixa Organizado.
               </p>
             </div>
           </div>

@@ -224,12 +224,12 @@ export default function Summary({ transactions, profile, onNavigateToPlanos }: S
             </div>
             {isPro ? (
               <span className="text-[9px] uppercase font-bold text-primary px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20">
-                Desbloqueado Pro
+                Desbloqueado MCO Completo
               </span>
             ) : (
               <span className="text-[9px] uppercase font-bold text-outline px-2 py-0.5 rounded-full bg-white/5 border border-white/10 flex items-center gap-1">
                 <span className="material-symbols-outlined text-[10px]">lock</span>
-                Recurso Pro
+                Recurso MCO Completo
               </span>
             )}
           </div>

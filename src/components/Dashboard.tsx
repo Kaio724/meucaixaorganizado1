@@ -138,7 +138,7 @@ export default function Dashboard({
                   ? 'bg-primary/20 text-primary border-primary/30'
                   : 'bg-white/10 text-zinc-400 border-white/10'
               }`}>
-                {profile.plan || 'essential'}
+                {(profile.plan || 'essential') === 'pro' ? 'MCO Completo' : 'MCO Essencial'}
               </span>
             </div>
             <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight truncate mt-0.5">

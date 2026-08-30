@@ -39,7 +39,7 @@ export default function Plans({ profile, onUpdatePlan, onNavigateToTab }: PlansP
       <div className="flex items-start justify-between mt-2">
         <div className="flex flex-col gap-2.5 text-left col-span-12">
           <span className="self-start text-[9px] text-primary/90 font-bold tracking-widest uppercase bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-full leading-none">
-            Plano Atual: {currentPlan === 'pro' ? 'Pro' : 'Essencial'}
+            Plano Atual: {currentPlan === 'pro' ? 'MCO Completo' : 'MCO Essencial'}
           </span>
           <h2 className="text-xl sm:text-2xl font-light text-on-surface tracking-tight mt-1">
             Escolha o plano ideal para o seu negócio
@@ -61,7 +61,7 @@ export default function Plans({ profile, onUpdatePlan, onNavigateToTab }: PlansP
       {/* Plans comparison cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
-        {/* Card Essencial */}
+        {/* Card MCO Essencial */}
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
@@ -76,7 +76,7 @@ export default function Plans({ profile, onUpdatePlan, onNavigateToTab }: PlansP
           <div className="flex justify-between items-start">
             <div className="flex flex-col gap-1.5 text-left">
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-on-surface">Essencial</h3>
+                <h3 className="text-base font-bold text-on-surface">MCO Essencial</h3>
                 <span className="text-[9px] uppercase tracking-wider font-medium px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-on-surface-variant/80">
                   Plano de Entrada
                 </span>
@@ -120,7 +120,7 @@ export default function Plans({ profile, onUpdatePlan, onNavigateToTab }: PlansP
               onClick={() => handleSelectPlan('essential')}
               className="w-full py-3 rounded-xl text-xs font-bold bg-surface-container-high hover:bg-surface-container-highest text-on-surface border border-outline-variant/30 hover:-translate-y-0.5 cursor-pointer text-center transition-all"
             >
-              Ativar Plano Essencial
+              Ativar MCO Essencial
             </button>
           )}
 
@@ -153,10 +153,10 @@ export default function Plans({ profile, onUpdatePlan, onNavigateToTab }: PlansP
           {/* Divider to premium features lock */}
           <div className="border-t border-white/5" />
 
-          {/* Locked Pro features (SaaS design, premium look, natural evolution) */}
+          {/* Locked Pro features */}
           <div className="flex flex-col gap-3">
             <span className="text-[9px] font-bold text-on-surface-variant/50 tracking-wider uppercase text-left leading-none">
-              Recursos disponíveis apenas no PRO
+              Recursos disponíveis apenas no MCO Completo
             </span>
             <div className="flex flex-col gap-2.5 text-left opacity-60">
               {[
@@ -177,7 +177,7 @@ export default function Plans({ profile, onUpdatePlan, onNavigateToTab }: PlansP
 
         </motion.div>
 
-        {/* Card PRO (70% Attention weight, elegant, spacious, quiet sophistication) */}
+        {/* Card MCO Completo */}
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
@@ -195,7 +195,7 @@ export default function Plans({ profile, onUpdatePlan, onNavigateToTab }: PlansP
           <div className="flex justify-between items-start">
             <div className="flex flex-col gap-2 text-left">
               <div className="flex items-center gap-2">
-                <h3 className="text-lg font-bold text-on-surface">Pro</h3>
+                <h3 className="text-lg font-bold text-on-surface">MCO Completo</h3>
                 <span className="text-[9px] uppercase tracking-wider font-extrabold px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary">
                   Recomendado
                 </span>
@@ -206,7 +206,7 @@ export default function Plans({ profile, onUpdatePlan, onNavigateToTab }: PlansP
             </div>
           </div>
 
-          {/* Price Layout (Big emphasis, beautifully integrated) */}
+          {/* Price Layout */}
           <div className="flex items-baseline justify-between py-1 border-b border-primary/10 pb-4">
             <div className="flex items-baseline gap-2 text-left">
               <span className="text-4xl font-extrabold text-primary tracking-tight">R$ 17,90</span>
@@ -239,14 +239,14 @@ export default function Plans({ profile, onUpdatePlan, onNavigateToTab }: PlansP
               rel="noopener noreferrer"
               className="w-full py-3.5 rounded-xl text-xs font-black bg-primary hover:bg-[#c0aeff] text-on-primary border border-primary/30 transition-all duration-200 shadow-[0_4px_12px_rgba(160,120,255,0.15)] hover:shadow-[0_6px_20px_rgba(160,120,255,0.3)] hover:-translate-y-0.5 cursor-pointer text-center flex items-center justify-center select-none"
             >
-              Fazer Upgrade
+              Fazer Upgrade para MCO Completo
             </a>
           )}
 
           {/* Features Checklist */}
           <div className="flex flex-col gap-3">
             <span className="text-[9px] font-bold text-primary/80 tracking-wider uppercase text-left leading-none">
-              Tudo do Plano Essencial +
+              Tudo do MCO Essencial +
             </span>
             <div className="flex flex-col gap-2.5 text-left">
               {[
@@ -282,7 +282,7 @@ export default function Plans({ profile, onUpdatePlan, onNavigateToTab }: PlansP
         </div>
       </div>
 
-      {/* Modal de confirmação/aquisição do Plano PRO */}
+      {/* Modal de confirmação/aquisição do MCO Completo */}
       {showProModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <motion.div
@@ -299,17 +299,17 @@ export default function Plans({ profile, onUpdatePlan, onNavigateToTab }: PlansP
             <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary relative">
               <span className="material-symbols-outlined text-2xl">workspace_premium</span>
               <span className="absolute -top-1 -right-1 bg-amber-400 text-black text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider scale-90">
-                PRO
+                COMPLETO
               </span>
             </div>
 
             {/* Warning Message */}
             <div className="flex flex-col gap-1.5">
               <h3 className="text-base font-bold text-on-surface tracking-tight leading-snug">
-                Você ainda não tem acesso ao Plano PRO.
+                Você ainda não tem acesso ao MCO Completo.
               </h3>
               <p className="text-xs text-on-surface-variant/80 leading-relaxed font-normal">
-                Libere recursos avançados como relatórios completos em PDF/Excel, metas de economia automáticas com IA, múltiplos caixas de controle e suporte prioritário!
+                Libere recursos avançados como Conta Pessoal com Gestão Dupla (PF + PJ), metas e orçamentos, comparativos mensais e suporte prioritário!
               </p>
             </div>
 
@@ -323,7 +323,7 @@ export default function Plans({ profile, onUpdatePlan, onNavigateToTab }: PlansP
                 className="w-full py-3.5 rounded-xl bg-primary hover:bg-[#c0aeff] text-on-primary font-bold text-xs transition-all duration-200 flex items-center justify-center gap-2 border border-primary/30 shadow-[0_4px_12px_rgba(160,120,255,0.15)] hover:shadow-[0_6px_20px_rgba(160,120,255,0.3)] select-none text-center"
               >
                 <span className="material-symbols-outlined text-sm">shopping_bag</span>
-                Quero Acessar o PRO
+                Quero Acessar o MCO Completo
               </a>
               
               <button

@@ -413,9 +413,9 @@ export default function ImportModal({ isOpen, onClose, profile, userId = 'defaul
               {!isPro && (
                 <div className="bg-gradient-to-r from-primary/10 to-indigo-500/10 border border-primary/25 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <h4 className="text-sm font-bold text-on-surface">Upgrade para MCO PRO</h4>
+                    <h4 className="text-sm font-bold text-on-surface">Upgrade para MCO Completo</h4>
                     <p className="text-xs text-on-surface-variant leading-relaxed mt-0.5">
-                      No plano Essencial você possui limite de 20 créditos mensais. No **PRO** você tem **50 créditos mensais**, e-mail marketing, inteligência avançada e relatórios expansivos.
+                      No plano MCO Essencial você possui limite de 20 créditos mensais. No **MCO Completo** você tem **50 créditos mensais**, conta pessoal, inteligência avançada e relatórios expansivos.
                     </p>
                   </div>
                   <button 
@@ -615,11 +615,11 @@ export default function ImportModal({ isOpen, onClose, profile, userId = 'defaul
               <div className="w-full bg-white/[0.02] border border-white/5 rounded-2xl p-4 flex flex-col gap-3">
                 <div className="flex justify-between text-xs border-b border-white/5 pb-2">
                   <span className="text-on-surface-variant">Seu Limite Atual</span>
-                  <span className="font-bold text-on-surface">{monthlyLimit} créditos / mês ({isPro ? 'Plano PRO' : 'Plano Essencial'})</span>
+                  <span className="font-bold text-on-surface">{monthlyLimit} créditos / mês ({isPro ? 'MCO Completo' : 'MCO Essencial'})</span>
                 </div>
                 {!isPro && (
                   <p className="text-[11px] text-primary font-medium leading-normal">
-                    💡 Faça o upgrade para o **Plano PRO** agora mesmo e aumente seu limite para **50 créditos mensais**, além de desbloquear todos os gráficos de análise avançada do fluxo de caixa!
+                    💡 Faça o upgrade para o **MCO Completo** agora mesmo e aumente seu limite para **50 créditos mensais**, além de desbloquear todos os gráficos de análise avançada do fluxo de caixa e conta pessoal!
                   </p>
                 )}
               </div>
