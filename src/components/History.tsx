@@ -323,45 +323,67 @@ export default function History({ profile, userId = 'default_user', transactions
 
       return (
         <div className="flex flex-col gap-6 w-full max-w-lg md:max-w-4xl lg:max-w-full pb-24 lg:pb-0 text-left">
-          {/* Month Selector Header */}
-          <div className="flex items-center justify-between gap-4">
-            <h2 className="text-xl font-bold text-on-surface tracking-tight">Histórico</h2>
+          {/* Top Header & Month Selector */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-[#140f24]/90 p-5 rounded-[28px] border border-primary/20 backdrop-blur-xl shadow-xl">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-primary/15 border border-primary/30 flex items-center justify-center text-primary shadow-[0_0_20px_rgba(208,188,255,0.2)]">
+                <span className="material-symbols-outlined text-2xl font-bold">receipt_long</span>
+              </div>
+              <div>
+                <span className="text-[10px] font-bold text-primary uppercase tracking-wider bg-primary/10 px-2 py-0.5 rounded-full border border-primary/25">
+                  Histórico Empresarial
+                </span>
+                <h2 className="text-lg sm:text-xl font-black text-white tracking-tight mt-0.5">
+                  Extrato do Caixa
+                </h2>
+              </div>
+            </div>
             
-            {/* Month Picker controls */}
-            <div className="flex items-center bg-surface-container-high rounded-full p-1 border border-outline-variant/20">
-              <button 
-                onClick={handlePrevMonth}
-                className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-surface-container-highest text-on-surface transition-colors"
+            {/* Month Picker controls & Action Button */}
+            <div className="flex items-center gap-2 self-stretch sm:self-auto justify-between sm:justify-start">
+              <div className="flex items-center bg-black/40 p-1.5 rounded-2xl border border-white/5">
+                <button 
+                  onClick={handlePrevMonth}
+                  className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-base">chevron_left</span>
+                </button>
+                <span className="text-xs font-bold text-white px-3 min-w-[130px] text-center select-none uppercase tracking-wide">
+                  {MONTHS_PT[selectedMonthIndex]} {selectedYear}
+                </span>
+                <button 
+                  onClick={handleNextMonth}
+                  className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-base">chevron_right</span>
+                </button>
+              </div>
+
+              <button
+                onClick={startAdd}
+                className="w-10 h-10 rounded-2xl bg-gradient-to-r from-primary to-[#9333ea] hover:from-[#c0aeff] hover:to-[#a855f7] text-white flex items-center justify-center transition-all duration-200 shadow-md cursor-pointer shrink-0"
+                title="Adicionar Lançamento"
               >
-                <span className="material-symbols-outlined text-sm font-bold">chevron_left</span>
-              </button>
-              <span className="text-xs font-bold text-on-surface px-3 min-w-[90px] text-center select-none">
-                {MONTHS_PT[selectedMonthIndex]}
-              </span>
-              <button 
-                onClick={handleNextMonth}
-                className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-surface-container-highest text-on-surface transition-colors"
-              >
-                <span className="material-symbols-outlined text-sm font-bold">chevron_right</span>
+                <span className="material-symbols-outlined text-lg font-bold">add</span>
               </button>
             </div>
           </div>
     
           {/* Filter and Search Section */}
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3.5 p-4 sm:p-5 rounded-[28px] bg-[#120e20]/80 border border-white/5 backdrop-blur-md">
             {/* Search Input and Filters Button Row */}
             <div className="flex gap-2 w-full">
-              <div className="relative flex-1 flex items-center bg-surface-container-low rounded-xl border border-outline-variant/30 px-3 py-2.5">
-                <span className="material-symbols-outlined text-on-surface-variant text-lg mr-2">search</span>
+              <div className="relative flex-1 flex items-center bg-black/40 rounded-2xl border border-white/10 px-3.5 py-2.5">
+                <span className="material-symbols-outlined text-zinc-400 text-lg mr-2">search</span>
                 <input 
                   type="text"
                   placeholder="Buscar por descrição, tipo, valor, data..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-transparent border-none text-xs text-on-surface focus:outline-none w-full placeholder:text-on-surface-variant/40"
+                  className="bg-transparent border-none text-xs text-white focus:outline-none w-full placeholder:text-zinc-600"
                 />
                 {searchQuery && (
-                  <button onClick={() => setSearchQuery('')} className="text-on-surface-variant hover:text-on-surface text-xs mr-2 cursor-pointer">
+                  <button onClick={() => setSearchQuery('')} className="text-zinc-400 hover:text-white text-xs mr-2 cursor-pointer">
                     <span className="material-symbols-outlined text-sm">close</span>
                   </button>
                 )}
@@ -369,10 +391,10 @@ export default function History({ profile, userId = 'default_user', transactions
               
               <button
                 onClick={() => setShowFilterPanel(!showFilterPanel)}
-                className={`px-4 py-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                className={`px-4 py-2.5 rounded-2xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                   showFilterPanel || isAnyAdvancedFilterActive()
-                    ? 'bg-primary/10 border-primary/40 text-primary'
-                    : 'bg-surface-container-low border-outline-variant/30 text-on-surface-variant hover:text-on-surface'
+                    ? 'bg-primary/20 border-primary/40 text-primary shadow-sm'
+                    : 'bg-black/40 border-white/10 text-zinc-400 hover:text-white hover:bg-white/5'
                 }`}
               >
                 <span className="material-symbols-outlined text-sm">tune</span>
@@ -390,14 +412,14 @@ export default function History({ profile, userId = 'default_user', transactions
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="overflow-hidden bg-surface-container border border-outline-variant/20 rounded-2xl p-4 flex flex-col gap-4 shadow-xl z-20"
+                  className="overflow-hidden bg-[#161226]/95 border border-white/10 rounded-2xl p-4 flex flex-col gap-4 shadow-xl z-20"
                 >
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {/* Column 1: Scope */}
                     <div className="flex flex-col gap-2">
-                      <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-wider">Pesquisar em</label>
+                      <label className="text-[10px] font-black text-zinc-400 uppercase tracking-wider">Pesquisar em</label>
                       <div className="flex flex-col gap-1.5">
-                        <label className="flex items-center gap-2 text-xs text-on-surface cursor-pointer">
+                        <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
                           <input 
                             type="radio" 
                             name="searchScope" 
@@ -407,7 +429,7 @@ export default function History({ profile, userId = 'default_user', transactions
                           />
                           Todo histórico (padrão)
                         </label>
-                        <label className="flex items-center gap-2 text-xs text-on-surface cursor-pointer">
+                        <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
                           <input 
                             type="radio" 
                             name="searchScope" 
@@ -417,7 +439,7 @@ export default function History({ profile, userId = 'default_user', transactions
                           />
                           Apenas mês atual
                         </label>
-                        <label className="flex items-center gap-2 text-xs text-on-surface cursor-pointer">
+                        <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
                           <input 
                             type="radio" 
                             name="searchScope" 
@@ -432,21 +454,21 @@ export default function History({ profile, userId = 'default_user', transactions
                       {searchScope === 'custom' && (
                         <div className="grid grid-cols-2 gap-2 mt-1.5">
                           <div className="flex flex-col gap-1">
-                            <span className="text-[9px] text-on-surface-variant font-semibold">Início</span>
+                            <span className="text-[9px] text-zinc-400 font-semibold">Início</span>
                             <input 
                               type="date" 
                               value={customStartDate}
                               onChange={(e) => setCustomStartDate(e.target.value)}
-                              className="bg-surface-container-low border border-outline-variant/40 rounded-lg px-2 py-1 text-xs text-on-surface focus:outline-none focus:border-primary"
+                              className="bg-black/40 border border-white/10 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-primary"
                             />
                           </div>
                           <div className="flex flex-col gap-1">
-                            <span className="text-[9px] text-on-surface-variant font-semibold">Fim</span>
+                            <span className="text-[9px] text-zinc-400 font-semibold">Fim</span>
                             <input 
                               type="date" 
                               value={customEndDate}
                               onChange={(e) => setCustomEndDate(e.target.value)}
-                              className="bg-surface-container-low border border-outline-variant/40 rounded-lg px-2 py-1 text-xs text-on-surface focus:outline-none focus:border-primary"
+                              className="bg-black/40 border border-white/10 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-primary"
                             />
                           </div>
                         </div>
@@ -455,15 +477,15 @@ export default function History({ profile, userId = 'default_user', transactions
 
                     {/* Column 2: Types & Categories */}
                     <div className="flex flex-col gap-2">
-                      <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-wider">Filtros adicionais</label>
+                      <label className="text-[10px] font-black text-zinc-400 uppercase tracking-wider">Filtros adicionais</label>
                       
                       <div className="flex flex-col gap-2">
                         <div className="flex flex-col gap-1">
-                          <span className="text-[9px] text-on-surface-variant font-semibold">Tipo</span>
+                          <span className="text-[9px] text-zinc-400 font-semibold">Tipo</span>
                           <select
                             value={advType}
                             onChange={(e) => setAdvType(e.target.value as any)}
-                            className="bg-surface-container-low border border-outline-variant/40 rounded-lg px-2.5 py-1.5 text-xs text-on-surface focus:outline-none focus:border-primary cursor-pointer"
+                            className="bg-black/40 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-primary cursor-pointer"
                           >
                             <option value="tudo" className="bg-[#121217] text-white">Todos os tipos</option>
                             <option value="entrada" className="bg-[#121217] text-white">Entrada</option>
@@ -473,11 +495,11 @@ export default function History({ profile, userId = 'default_user', transactions
                         </div>
 
                         <div className="flex flex-col gap-1">
-                          <span className="text-[9px] text-on-surface-variant font-semibold">Categoria</span>
+                          <span className="text-[9px] text-zinc-400 font-semibold">Categoria</span>
                           <select
                             value={advCategory}
                             onChange={(e) => setAdvCategory(e.target.value)}
-                            className="bg-surface-container-low border border-outline-variant/40 rounded-lg px-2.5 py-1.5 text-xs text-on-surface focus:outline-none focus:border-primary cursor-pointer"
+                            className="bg-black/40 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-primary cursor-pointer"
                           >
                             <option value="todas" className="bg-[#121217] text-white">Todas as categorias</option>
                             {allCategories.map(cat => (
@@ -490,15 +512,15 @@ export default function History({ profile, userId = 'default_user', transactions
 
                     {/* Column 3: Payment & Amount */}
                     <div className="flex flex-col gap-2">
-                      <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-wider">Forma & Valores</label>
+                      <label className="text-[10px] font-black text-zinc-400 uppercase tracking-wider">Forma & Valores</label>
                       
                       <div className="flex flex-col gap-2">
                         <div className="flex flex-col gap-1">
-                          <span className="text-[9px] text-on-surface-variant font-semibold">Forma de pagamento</span>
+                          <span className="text-[9px] text-zinc-400 font-semibold">Forma de pagamento</span>
                           <select
                             value={advPaymentMethod}
                             onChange={(e) => setAdvPaymentMethod(e.target.value)}
-                            className="bg-surface-container-low border border-outline-variant/40 rounded-lg px-2.5 py-1.5 text-xs text-on-surface focus:outline-none focus:border-primary cursor-pointer"
+                            className="bg-black/40 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-primary cursor-pointer"
                           >
                             <option value="todas" className="bg-[#121217] text-white">Todas as formas</option>
                             {PAYMENT_METHODS.map(method => (
@@ -509,23 +531,23 @@ export default function History({ profile, userId = 'default_user', transactions
 
                         <div className="grid grid-cols-2 gap-2">
                           <div className="flex flex-col gap-1">
-                            <span className="text-[9px] text-on-surface-variant font-semibold">Min (R$)</span>
+                            <span className="text-[9px] text-zinc-400 font-semibold">Min (R$)</span>
                             <input 
                               type="number" 
                               placeholder="0"
                               value={advMinAmount}
                               onChange={(e) => setAdvMinAmount(e.target.value)}
-                              className="bg-surface-container-low border border-outline-variant/40 rounded-lg px-2 py-1 text-xs text-on-surface focus:outline-none focus:border-primary"
+                              className="bg-black/40 border border-white/10 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-primary"
                             />
                           </div>
                           <div className="flex flex-col gap-1">
-                            <span className="text-[9px] text-on-surface-variant font-semibold">Max (R$)</span>
+                            <span className="text-[9px] text-zinc-400 font-semibold">Max (R$)</span>
                             <input 
                               type="number" 
                               placeholder="Indefinido"
                               value={advMaxAmount}
                               onChange={(e) => setAdvMaxAmount(e.target.value)}
-                              className="bg-surface-container-low border border-outline-variant/40 rounded-lg px-2 py-1 text-xs text-on-surface focus:outline-none focus:border-primary"
+                              className="bg-black/40 border border-white/10 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-primary"
                             />
                           </div>
                         </div>
@@ -533,7 +555,7 @@ export default function History({ profile, userId = 'default_user', transactions
                     </div>
                   </div>
 
-                  <div className="flex justify-end gap-2 border-t border-outline-variant/10 pt-3">
+                  <div className="flex justify-end gap-2 border-t border-white/10 pt-3">
                     <button
                       type="button"
                       onClick={() => {
@@ -546,7 +568,7 @@ export default function History({ profile, userId = 'default_user', transactions
                         setAdvMinAmount('');
                         setAdvMaxAmount('');
                       }}
-                      className="px-3.5 py-1.5 bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant hover:text-on-surface rounded-xl font-bold text-xs transition-all cursor-pointer border border-outline-variant/10"
+                      className="px-3.5 py-1.5 bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white rounded-xl font-bold text-xs transition-all cursor-pointer border border-white/10"
                     >
                       Limpar Filtros
                     </button>
@@ -566,41 +588,33 @@ export default function History({ profile, userId = 'default_user', transactions
             <div className="flex gap-2 items-center">
               <button
                 onClick={() => { setFilterType('tudo'); setAdvType('tudo'); }}
-                className={`px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 ${
+                className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all duration-200 cursor-pointer ${
                   filterType === 'tudo' && advType === 'tudo'
-                    ? 'bg-primary text-on-primary shadow-md'
-                    : 'bg-surface-container text-on-surface-variant hover:text-on-surface border border-outline-variant/10'
+                    ? 'bg-primary/20 text-primary border border-primary/40 shadow-sm'
+                    : 'bg-black/40 text-zinc-400 hover:text-white border border-white/5'
                 }`}
               >
                 Tudo
               </button>
               <button
                 onClick={() => { setFilterType('entrada'); setAdvType('entrada'); }}
-                className={`px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 ${
+                className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all duration-200 cursor-pointer ${
                   filterType === 'entrada' || advType === 'entrada'
-                    ? 'bg-tertiary/20 text-tertiary border border-tertiary/40 shadow-sm'
-                    : 'bg-surface-container text-on-surface-variant hover:text-on-surface border border-outline-variant/10'
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm'
+                    : 'bg-black/40 text-zinc-400 hover:text-white border border-white/5'
                 }`}
               >
                 Entradas
               </button>
               <button
                 onClick={() => { setFilterType('saida'); setAdvType('saida'); }}
-                className={`px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 ${
+                className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all duration-200 cursor-pointer ${
                   filterType === 'saida' || advType === 'saida'
-                    ? 'bg-error/20 text-error border border-error/40 shadow-sm'
-                    : 'bg-surface-container text-on-surface-variant hover:text-on-surface border border-outline-variant/10'
+                    ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40 shadow-sm'
+                    : 'bg-black/40 text-zinc-400 hover:text-white border border-white/5'
                 }`}
               >
                 Saídas
-              </button>
-    
-              {/* Quick Add Floating Button trigger */}
-              <button
-                onClick={startAdd}
-                className="ml-auto w-8 h-8 rounded-full bg-primary hover:bg-[#c0aeff] text-on-primary flex items-center justify-center transition-all duration-200 shadow-md"
-              >
-                <span className="material-symbols-outlined text-sm font-bold">add</span>
               </button>
             </div>
           </div>
@@ -608,15 +622,15 @@ export default function History({ profile, userId = 'default_user', transactions
           {/* Main Groups Container (Mobile Card List) */}
           <div className="flex flex-col gap-6 relative min-h-[300px] lg:hidden">
             {Object.keys(grouped).length === 0 ? (
-          <div className="p-12 rounded-3xl bg-surface-container-low border border-outline-variant/10 text-center flex flex-col items-center gap-3">
-            <span className="material-symbols-outlined text-on-surface-variant/30 text-5xl">inventory_2</span>
+          <div className="p-12 rounded-3xl bg-[#140f24]/60 border border-white/5 text-center flex flex-col items-center gap-3">
+            <span className="material-symbols-outlined text-zinc-600 text-5xl">inventory_2</span>
             <div>
-              <p className="text-sm font-bold text-on-surface">Sem registros para este período</p>
-              <p className="text-xs text-on-surface-variant mt-1">Altere o filtro ou adicione um novo lançamento para começar.</p>
+              <p className="text-sm font-bold text-white">Sem registros para este período</p>
+              <p className="text-xs text-zinc-500 mt-1">Altere o filtro ou adicione um novo lançamento para começar.</p>
             </div>
             <button
               onClick={startAdd}
-              className="mt-2 bg-primary/10 border border-primary/20 hover:bg-primary/20 text-primary font-bold text-xs px-4 py-2 rounded-xl transition-colors"
+              className="mt-2 bg-primary/20 border border-primary/30 hover:bg-primary/30 text-primary font-bold text-xs px-4 py-2 rounded-xl transition-colors cursor-pointer"
             >
               Adicionar Lançamento
             </button>
@@ -625,28 +639,30 @@ export default function History({ profile, userId = 'default_user', transactions
           Object.keys(grouped).map(dateStr => (
             <div key={dateStr} className="flex flex-col gap-3">
               {/* Date Header */}
-              <h3 className="text-xs font-bold text-on-surface-variant/80 tracking-wide px-1">
+              <h3 className="text-xs font-bold text-zinc-400 tracking-wide px-1">
                 {formatDateHeader(dateStr)}
               </h3>
 
               {/* Transactions on this Date */}
-              <div className="bg-surface-container border border-outline-variant/15 rounded-2xl overflow-hidden divide-y divide-outline-variant/10 shadow-sm">
+              <div className="bg-[#141022]/90 border border-white/5 rounded-2xl overflow-hidden divide-y divide-white/5 shadow-sm">
                 {grouped[dateStr].map(tx => {
                   return (
                     <div 
                       key={tx.id} 
                       onClick={() => setSelectedTxForDetail(tx)}
-                      className="h-16 px-4 flex items-center justify-between hover:bg-surface-container-high active:bg-surface-container-highest transition-colors cursor-pointer select-none"
+                      className="h-16 px-4 flex items-center justify-between hover:bg-white/[0.03] active:bg-white/[0.06] transition-colors cursor-pointer select-none"
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1 text-left">
-                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${getCategoryInfo(tx.category, tx.type, userId).bgColor} ${getCategoryInfo(tx.category, tx.type, userId).color}`}>
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                          tx.type === 'entrada' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
+                        }`}>
                           <span className="material-symbols-outlined text-base">
                             {tx.type === 'entrada' ? 'arrow_downward' : 'arrow_upward'}
                           </span>
                         </div>
                         <div className="min-w-0">
-                          <h4 className="text-xs sm:text-sm font-semibold text-on-surface leading-tight truncate">{tx.title}</h4>
-                          <p className="text-[11px] text-on-surface-variant/80 mt-0.5 truncate">
+                          <h4 className="text-xs sm:text-sm font-semibold text-white leading-tight truncate">{tx.title}</h4>
+                          <p className="text-[11px] text-zinc-500 mt-0.5 truncate">
                             {tx.category} • {tx.paymentMethod}
                           </p>
                         </div>
@@ -656,12 +672,12 @@ export default function History({ profile, userId = 'default_user', transactions
                       <div className="flex items-center gap-2 shrink-0 pl-3">
                         <div className="text-right">
                           <span className={`text-sm font-extrabold tracking-tight ${
-                            tx.type === 'entrada' ? 'text-tertiary' : 'text-on-surface'
+                            tx.type === 'entrada' ? 'text-emerald-400' : 'text-rose-400'
                           }`}>
                             {tx.type === 'entrada' ? '+' : '-'} {formatBRL(tx.amount)}
                           </span>
                         </div>
-                        <span className="material-symbols-outlined text-on-surface-variant/40 text-sm">chevron_right</span>
+                        <span className="material-symbols-outlined text-zinc-600 text-sm">chevron_right</span>
                       </div>
                     </div>
                   );
@@ -675,34 +691,34 @@ export default function History({ profile, userId = 'default_user', transactions
       {/* Desktop Table View */}
       <div className="hidden lg:block min-h-[300px]">
         {sortedFilteredTransactions.length === 0 ? (
-          <div className="p-16 rounded-3xl bg-surface-container-low border border-outline-variant/10 text-center flex flex-col items-center gap-4">
-            <span className="material-symbols-outlined text-on-surface-variant/30 text-6xl">inventory_2</span>
+          <div className="p-16 rounded-3xl bg-[#140f24]/60 border border-white/5 text-center flex flex-col items-center gap-4">
+            <span className="material-symbols-outlined text-zinc-600 text-6xl">inventory_2</span>
             <div>
-              <p className="text-base font-bold text-on-surface">Sem registros para este período</p>
-              <p className="text-xs text-on-surface-variant mt-1.5">Altere o filtro ou adicione um novo lançamento para começar.</p>
+              <p className="text-base font-bold text-white">Sem registros para este período</p>
+              <p className="text-xs text-zinc-500 mt-1.5">Altere o filtro ou adicione um novo lançamento para começar.</p>
             </div>
             <button
               onClick={startAdd}
-              className="mt-2 bg-primary/10 border border-primary/20 hover:bg-primary/20 text-primary font-bold text-xs px-5 py-2.5 rounded-xl transition-colors"
+              className="mt-2 bg-primary/20 border border-primary/30 hover:bg-primary/30 text-primary font-bold text-xs px-5 py-2.5 rounded-xl transition-colors cursor-pointer"
             >
               Adicionar Lançamento
             </button>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-2xl border border-outline-variant/15 bg-surface-container shadow-xl">
+          <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#130f21]/90 shadow-xl backdrop-blur-xl">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-surface-container-high border-b border-outline-variant/20 select-none">
-                  <th className="p-4 font-bold text-on-surface-variant/80 uppercase tracking-wider">Tipo</th>
-                  <th className="p-4 font-bold text-on-surface-variant/80 uppercase tracking-wider">Data</th>
-                  <th className="p-4 font-bold text-on-surface-variant/80 uppercase tracking-wider">Especificação</th>
-                  <th className="p-4 font-bold text-on-surface-variant/80 uppercase tracking-wider">Categoria</th>
-                  <th className="p-4 font-bold text-on-surface-variant/80 uppercase tracking-wider">Pagamento</th>
-                  <th className="p-4 font-bold text-on-surface-variant/80 uppercase tracking-wider text-right">Valor</th>
-                  <th className="p-4 font-bold text-on-surface-variant/80 uppercase tracking-wider text-center">Ações</th>
+                <tr className="bg-black/40 border-b border-white/10 select-none">
+                  <th className="p-4 font-bold text-zinc-400 uppercase tracking-wider">Tipo</th>
+                  <th className="p-4 font-bold text-zinc-400 uppercase tracking-wider">Data</th>
+                  <th className="p-4 font-bold text-zinc-400 uppercase tracking-wider">Especificação</th>
+                  <th className="p-4 font-bold text-zinc-400 uppercase tracking-wider">Categoria</th>
+                  <th className="p-4 font-bold text-zinc-400 uppercase tracking-wider">Pagamento</th>
+                  <th className="p-4 font-bold text-zinc-400 uppercase tracking-wider text-right">Valor</th>
+                  <th className="p-4 font-bold text-zinc-400 uppercase tracking-wider text-center">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-outline-variant/10">
+              <tbody className="divide-y divide-white/5">
                 {sortedFilteredTransactions.map(tx => {
                   const isEditingThis = editingTx?.id === tx.id;
                   const dateObj = new Date(tx.date + 'T12:00:00');

@@ -128,15 +128,15 @@ export default function EvolutionCard({ transactions }: EvolutionCardProps) {
       <motion.div
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass-card rounded-[24px] p-6 shadow-xl border border-white/5 flex flex-col items-center text-center gap-4 relative overflow-hidden bg-gradient-to-b from-surface-container/60 to-surface-container-low/80"
+        className="rounded-[28px] p-6 shadow-xl border border-white/5 flex flex-col items-center text-center gap-4 relative overflow-hidden bg-[#130f21]/90 backdrop-blur-xl"
       >
-        <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full filter blur-xl pointer-events-none"></div>
-        <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
-          <span className="material-symbols-outlined text-2xl">analytics</span>
+        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full filter blur-2xl pointer-events-none"></div>
+        <div className="w-12 h-12 rounded-2xl bg-primary/15 border border-primary/25 flex items-center justify-center text-primary shadow-[0_0_20px_rgba(208,188,255,0.2)]">
+          <span className="material-symbols-outlined text-2xl font-bold">analytics</span>
         </div>
         <div className="flex flex-col gap-1 max-w-[280px]">
-          <h4 className="text-sm font-extrabold text-on-surface">Evolução do Negócio</h4>
-          <p className="text-[11px] text-on-surface-variant leading-relaxed font-semibold">
+          <h4 className="text-sm font-black text-white">Evolução do Negócio</h4>
+          <p className="text-xs text-zinc-400 leading-relaxed font-medium">
             Ainda não há dados suficientes para mostrar sua evolução. Continue registrando suas movimentações para acompanhar o crescimento do seu negócio.
           </p>
         </div>
@@ -178,8 +178,8 @@ export default function EvolutionCard({ transactions }: EvolutionCardProps) {
       variation: varReceitas,
       isPositive: isReceitasPositive,
       icon: 'trending_up',
-      iconColor: 'text-tertiary',
-      iconBg: 'bg-tertiary/10 border-tertiary/20'
+      iconColor: 'text-emerald-400',
+      iconBg: 'bg-emerald-500/15 border-emerald-500/30'
     },
     {
       title: 'Despesas',
@@ -188,8 +188,8 @@ export default function EvolutionCard({ transactions }: EvolutionCardProps) {
       variation: varDespesas,
       isPositive: isDespesasPositive, // Going down is good
       icon: 'trending_down',
-      iconColor: isDespesasPositive ? 'text-tertiary' : 'text-error',
-      iconBg: isDespesasPositive ? 'bg-tertiary/10 border-tertiary/20' : 'bg-error/10 border-error/20'
+      iconColor: isDespesasPositive ? 'text-emerald-400' : 'text-rose-400',
+      iconBg: isDespesasPositive ? 'bg-emerald-500/15 border-emerald-500/30' : 'bg-rose-500/15 border-rose-500/30'
     },
     {
       title: 'Lucro',
@@ -198,8 +198,8 @@ export default function EvolutionCard({ transactions }: EvolutionCardProps) {
       variation: varSaldo,
       isPositive: isSaldoPositive,
       icon: 'account_balance_wallet',
-      iconColor: isSaldoPositive ? 'text-tertiary' : 'text-error',
-      iconBg: isSaldoPositive ? 'bg-tertiary/10 border-tertiary/20' : 'bg-error/10 border-error/20'
+      iconColor: isSaldoPositive ? 'text-emerald-400' : 'text-rose-400',
+      iconBg: isSaldoPositive ? 'bg-emerald-500/15 border-emerald-500/30' : 'bg-rose-500/15 border-rose-500/30'
     },
     {
       title: 'Retiradas',
@@ -208,8 +208,8 @@ export default function EvolutionCard({ transactions }: EvolutionCardProps) {
       variation: varRetiradas,
       isPositive: isRetiradasPositive, // Going down is good for the company treasury
       icon: 'payments',
-      iconColor: isRetiradasPositive ? 'text-tertiary' : 'text-error',
-      iconBg: isRetiradasPositive ? 'bg-tertiary/10 border-tertiary/20' : 'bg-error/10 border-error/20'
+      iconColor: isRetiradasPositive ? 'text-emerald-400' : 'text-rose-400',
+      iconBg: isRetiradasPositive ? 'bg-emerald-500/15 border-emerald-500/30' : 'bg-rose-500/15 border-rose-500/30'
     }
   ];
 
@@ -222,24 +222,24 @@ export default function EvolutionCard({ transactions }: EvolutionCardProps) {
     const rounded = Math.round(varSaldo);
     insightText = `Seu lucro líquido aumentou ${rounded}% em relação ao mês passado.`;
     insightIcon = 'trending_up';
-    insightColor = 'text-tertiary bg-tertiary/10 border-tertiary/20';
+    insightColor = 'text-emerald-400 bg-emerald-500/10 border-emerald-500/25';
   } else if (varReceitas > 0) {
     insightText = 'Excelente! Você faturou mais este mês.';
     insightIcon = 'celebrate';
-    insightColor = 'text-tertiary bg-tertiary/10 border-tertiary/20';
+    insightColor = 'text-emerald-400 bg-emerald-500/10 border-emerald-500/25';
   } else if (varDespesas < 0) {
     const rounded = Math.abs(Math.round(varDespesas));
     insightText = `Suas despesas diminuíram ${rounded}%! Parabéns pela economia de recursos.`;
     insightIcon = 'savings';
-    insightColor = 'text-tertiary bg-tertiary/10 border-tertiary/20';
+    insightColor = 'text-emerald-400 bg-emerald-500/10 border-emerald-500/25';
   } else if (varRetiradas < 0) {
     insightText = 'Você retirou menos dinheiro do negócio este mês, fortalecendo seu caixa.';
     insightIcon = 'shield_with_heart';
-    insightColor = 'text-primary bg-primary/10 border-primary/20';
+    insightColor = 'text-primary bg-primary/10 border-primary/25';
   } else if (varSaldo === 0 && varReceitas === 0 && varDespesas === 0) {
     insightText = 'Seus resultados estão estáveis. Continue mantendo o controle rigoroso.';
     insightIcon = 'info';
-    insightColor = 'text-on-surface-variant bg-white/5 border-white/10';
+    insightColor = 'text-zinc-400 bg-white/5 border-white/10';
   } else {
     // If things worsened slightly, generate a constructive tip
     if (varDespesas > 0) {
@@ -261,27 +261,27 @@ export default function EvolutionCard({ transactions }: EvolutionCardProps) {
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="glass-card rounded-[24px] p-5 shadow-xl border border-white/5 flex flex-col gap-5 relative overflow-hidden bg-gradient-to-b from-surface-container/60 to-surface-container-low/40"
+      className="rounded-[28px] p-5 shadow-xl border border-white/10 flex flex-col gap-4 relative overflow-hidden bg-[#130f21]/90 backdrop-blur-xl"
     >
-      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full filter blur-2xl pointer-events-none"></div>
+      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full filter blur-2xl pointer-events-none"></div>
 
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex flex-col">
-          <h4 className="text-sm font-black text-on-surface tracking-tight">
+          <h4 className="text-sm font-black text-white tracking-tight">
             Evolução do Negócio
           </h4>
-          <span className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider mt-0.5">
+          <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mt-0.5">
             Comparado ao mês anterior ({prevMonthName} vs. {currentMonthName})
           </span>
         </div>
-        <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary" title="Insights Inteligentes">
+        <div className="w-8 h-8 rounded-xl bg-primary/15 border border-primary/25 flex items-center justify-center text-primary" title="Insights Inteligentes">
           <span className="material-symbols-outlined text-base">monitoring</span>
         </div>
       </div>
 
       {/* Grid comparing month-over-month */}
-      <div className="grid grid-cols-2 gap-3.5">
+      <div className="grid grid-cols-2 gap-3">
         {metrics.map((item) => {
           const hasChange = item.variation !== 0;
           const isGoodChange = item.isPositive;
@@ -289,7 +289,7 @@ export default function EvolutionCard({ transactions }: EvolutionCardProps) {
           return (
             <div 
               key={item.title}
-              className="p-3.5 rounded-2xl bg-black/15 border border-white/5 flex flex-col justify-between min-h-[110px] relative hover:bg-black/25 transition-all"
+              className="p-3.5 rounded-2xl bg-black/40 border border-white/5 flex flex-col justify-between min-h-[110px] relative hover:bg-black/60 transition-all"
             >
               {/* Metric Icon and Trend Badge */}
               <div className="flex items-start justify-between">
@@ -303,7 +303,7 @@ export default function EvolutionCard({ transactions }: EvolutionCardProps) {
                 <div className="flex items-center gap-0.5 select-none font-sans">
                   {hasChange ? (
                     <span className={`text-[10px] font-black tracking-tight flex items-center gap-0.5 ${
-                      isGoodChange ? 'text-tertiary' : 'text-error'
+                      isGoodChange ? 'text-emerald-400' : 'text-rose-400'
                     }`}>
                       <span className="text-xs">
                         {isGoodChange ? '📈' : '📉'}
@@ -311,7 +311,7 @@ export default function EvolutionCard({ transactions }: EvolutionCardProps) {
                       <AnimatedPercentage value={item.variation} />
                     </span>
                   ) : (
-                    <span className="text-[10px] font-bold text-on-surface-variant/65">
+                    <span className="text-[10px] font-bold text-zinc-500">
                       0%
                     </span>
                   )}
@@ -320,17 +320,17 @@ export default function EvolutionCard({ transactions }: EvolutionCardProps) {
 
               {/* Values comparison */}
               <div className="flex flex-col mt-3.5">
-                <span className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wide">
+                <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">
                   {item.title}
                 </span>
                 
                 {/* Current Value */}
-                <span className="text-sm font-black text-on-surface mt-1 leading-none">
+                <span className="text-sm font-black text-white mt-1 leading-none">
                   {formatBRL(item.current)}
                 </span>
 
                 {/* Previous Value */}
-                <span className="text-[9px] text-on-surface-variant/70 font-semibold mt-1">
+                <span className="text-[9px] text-zinc-500 font-semibold mt-1">
                   {prevMonthName}: {formatBRL(item.previous)}
                 </span>
               </div>
@@ -340,13 +340,13 @@ export default function EvolutionCard({ transactions }: EvolutionCardProps) {
       </div>
 
       {/* Automatic Insight Footer */}
-      <div className={`rounded-xl p-3.5 border flex items-start gap-2.5 transition-all ${insightColor}`}>
+      <div className={`rounded-2xl p-3.5 border flex items-start gap-2.5 transition-all ${insightColor}`}>
         <span className="material-symbols-outlined text-lg mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>
           {insightIcon}
         </span>
         <div className="flex flex-col gap-0.5">
           <span className="text-[10px] font-black uppercase tracking-wider opacity-90 leading-none">Insight do Negócio</span>
-          <p className="text-xs font-semibold leading-relaxed mt-1 text-on-surface/90">
+          <p className="text-xs font-semibold leading-relaxed mt-1 text-white/90">
             {insightText}
           </p>
         </div>

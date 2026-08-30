@@ -364,7 +364,7 @@ export default function Dashboard({
             >
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black text-white bg-[#6934D1] px-2.5 py-0.5 rounded-full tracking-wider">
-                  MCO PRO
+                  MCO Completo
                 </span>
               </div>
 
@@ -382,7 +382,7 @@ export default function Dashboard({
                 onClick={() => setShowProModal(true)}
                 className="mt-1 w-full py-2.5 rounded-xl bg-primary hover:bg-[#8b6eff] text-white font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
               >
-                Conhecer o MCO PRO
+                Conhecer o MCO Completo
               </button>
             </motion.div>
           )}

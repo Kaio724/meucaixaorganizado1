@@ -188,31 +188,31 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
   // Lock screen if user is not Pro
   if (!isPro) {
     return (
-      <div className="flex-1 flex items-center justify-center py-12 px-4 select-none">
+      <div className="flex flex-col items-center justify-center py-10 px-4 select-none">
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="w-full max-w-lg glass-card rounded-[32px] p-8 bg-gradient-to-b from-[#1a1a22]/80 to-[#121217]/90 border border-primary/20 text-center shadow-2xl relative overflow-hidden"
+          className="w-full max-w-lg rounded-[32px] p-6 sm:p-8 bg-gradient-to-b from-[#1c1533] via-[#140e26] to-[#0e0a1b] border border-primary/30 text-center shadow-2xl relative overflow-hidden"
         >
-          <div className="absolute top-0 right-0 w-40 h-40 bg-primary/5 rounded-full filter blur-2xl pointer-events-none"></div>
+          <div className="absolute top-0 right-0 w-48 h-48 bg-primary/20 rounded-full filter blur-3xl pointer-events-none"></div>
           
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center border border-primary/30 shadow-[0_0_20px_rgba(208,188,255,0.2)] mx-auto mb-6">
+          <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center border border-primary/35 shadow-[0_0_25px_rgba(208,188,255,0.3)] mx-auto mb-4 text-primary">
             <span className="material-symbols-outlined text-primary text-3xl font-black">lock</span>
           </div>
 
-          <span className="text-[10px] font-black tracking-widest text-primary uppercase bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
+          <span className="text-[10px] font-black tracking-widest text-primary uppercase bg-primary/15 px-3 py-1 rounded-full border border-primary/30">
             Recurso Exclusivo MCO Completo
           </span>
 
-          <h3 className="text-2xl font-extrabold text-on-surface mt-4 tracking-tight">
+          <h3 className="text-xl sm:text-2xl font-black text-white mt-4 tracking-tight">
             Gerenciamento de Categorias
           </h3>
           
-          <p className="text-xs text-on-surface-variant leading-relaxed mt-3 max-w-sm mx-auto">
+          <p className="text-xs text-zinc-400 leading-relaxed mt-2 max-w-sm mx-auto font-medium">
             Crie categorias financeiras personalizadas ilimitadas com cores e ícones dedicados para mapear o seu negócio com precisão cirúrgica.
           </p>
 
-          <div className="mt-6 p-4 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col gap-2.5 text-left text-xs text-on-surface-variant">
+          <div className="mt-6 p-4 rounded-2xl bg-black/40 border border-white/5 flex flex-col gap-2.5 text-left text-xs text-zinc-300">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-primary text-base">check_circle</span>
               <span>Personalize ícones e cores de categorias</span>
@@ -229,9 +229,9 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
 
           <button
             onClick={onNavigateToPlanos}
-            className="w-full bg-[#6d3bd7] hover:bg-[#8455ef] text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2.5 transition-all duration-300 shadow-[0_4px_16px_rgba(109,59,215,0.35)] cursor-pointer mt-8 select-none border border-primary/20"
+            className="w-full bg-gradient-to-r from-[#6d3bd7] to-[#8b4bf0] hover:from-[#7c44ea] hover:to-[#9a5df7] text-white font-extrabold py-4 rounded-2xl flex items-center justify-center gap-2.5 transition-all duration-300 shadow-[0_4px_20px_rgba(109,59,215,0.4)] cursor-pointer mt-6 select-none border border-primary/40 text-sm"
           >
-            <span className="material-symbols-outlined text-sm font-bold">workspace_premium</span>
+            <span className="material-symbols-outlined text-base font-bold">workspace_premium</span>
             <span>Fazer Upgrade para o MCO Completo</span>
           </button>
         </motion.div>
@@ -240,19 +240,27 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
   }
 
   return (
-    <div className="flex flex-col gap-6 select-none pb-12">
+    <div className="flex flex-col gap-6 select-none pb-12 text-left">
       {/* Upper header action area */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="text-left">
-          <h2 className="text-2xl font-black text-on-surface tracking-tight">Categorias</h2>
-          <p className="text-xs text-on-surface-variant font-medium mt-0.5">
-            Gerencie as categorias utilizadas nas movimentações financeiras do seu negócio.
-          </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-[#140f24]/90 p-5 rounded-[28px] border border-primary/20 backdrop-blur-xl shadow-xl">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-primary/15 border border-primary/30 flex items-center justify-center text-primary shadow-[0_0_20px_rgba(208,188,255,0.2)] shrink-0">
+            <span className="material-symbols-outlined text-2xl font-bold">category</span>
+          </div>
+          <div>
+            <span className="text-[10px] font-bold text-primary uppercase tracking-wider bg-primary/10 px-2 py-0.5 rounded-full border border-primary/25">
+              Personalização PJ
+            </span>
+            <h2 className="text-lg sm:text-xl font-black text-white tracking-tight mt-0.5">Categorias</h2>
+            <p className="text-xs text-zinc-400 font-medium">
+              Gerencie as categorias utilizadas nas movimentações financeiras da sua empresa.
+            </p>
+          </div>
         </div>
         
         <button
           onClick={handleCreateClick}
-          className="px-5 py-3 rounded-2xl bg-[#6d3bd7] hover:bg-[#8455ef] text-white font-bold text-xs tracking-wide uppercase transition-all duration-200 shadow-[0_4px_12px_rgba(109,59,215,0.25)] flex items-center justify-center gap-2 cursor-pointer border border-primary/20 self-start sm:self-auto"
+          className="px-5 py-3 rounded-2xl bg-gradient-to-r from-[#6d3bd7] to-[#8b4bf0] hover:from-[#7c44ea] hover:to-[#9a5df7] text-white font-extrabold text-xs tracking-wide uppercase transition-all duration-200 shadow-[0_4px_16px_rgba(109,59,215,0.35)] flex items-center justify-center gap-2 cursor-pointer border border-primary/40 self-start sm:self-auto shrink-0"
         >
           <span className="material-symbols-outlined text-base">add_circle</span>
           Nova Categoria
@@ -260,10 +268,10 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
       </div>
 
       {/* Realtime Search & Filter Tabs */}
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3">
         {/* Search Bar */}
         <div className="relative">
-          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/40 text-lg">
+          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 text-lg">
             search
           </span>
           <input
@@ -271,7 +279,7 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
             placeholder="Pesquisar categoria..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-surface-container-low border border-white/5 rounded-2xl pl-11 pr-4 py-3.5 text-xs text-on-surface placeholder:text-on-surface-variant/30 focus:outline-none focus:border-primary/50 transition-colors font-semibold"
+            className="w-full bg-[#130f21]/90 border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-primary/60 transition-colors font-medium shadow-sm backdrop-blur-md"
           />
         </div>
 
@@ -287,10 +295,10 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
             <button
               key={filt.id}
               onClick={() => setActiveFilter(filt.id as any)}
-              className={`px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer border shrink-0 ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border shrink-0 ${
                 activeFilter === filt.id
-                  ? 'bg-primary/10 text-primary border-primary/20 shadow-md'
-                  : 'text-on-surface-variant hover:text-on-surface hover:bg-white/5 border-transparent'
+                  ? 'bg-primary/20 text-primary border-primary/40 shadow-sm'
+                  : 'bg-[#130f21]/60 text-zinc-400 hover:text-white border-white/5'
               }`}
             >
               {filt.label}
@@ -300,19 +308,19 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
       </div>
 
       {/* Categories View Lists */}
-      <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-6">
         {/* First section: Categorias do Sistema */}
         {systemGroups.length > 0 && (
-          <div className="flex flex-col gap-4">
-            <h3 className="text-xs font-bold text-on-surface-variant/60 uppercase tracking-widest text-left">
+          <div className="flex flex-col gap-3">
+            <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider text-left px-1">
               Categorias do Sistema ({systemGroups.length})
             </h3>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               {systemGroups.map((cat) => (
                 <div 
                   key={cat.id}
-                  className="group relative bg-[#1c1b1d] border border-white/5 rounded-2xl p-4 flex flex-col justify-between gap-4 hover:border-white/10 hover:bg-white/[0.01] transition-all duration-300 min-h-[140px] text-left"
+                  className="group relative bg-[#130f21]/90 border border-white/5 rounded-2xl p-4 flex flex-col justify-between gap-3 hover:border-primary/30 hover:bg-[#181329] transition-all duration-300 min-h-[130px] text-left shadow-md backdrop-blur-md"
                 >
                   <div className="flex items-start justify-between">
                     {/* Category Icon and Color badge */}
@@ -324,33 +332,33 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
                     
                     {/* Category Badges */}
                     <div className="flex flex-col items-end gap-1">
-                      <span className={`text-[8px] font-bold px-2 py-0.5 rounded-full uppercase border ${
+                      <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase border ${
                         cat.type === 'entrada'
-                          ? 'bg-[#10b981]/10 text-[#4edea3] border-[#10b981]/10'
-                          : 'bg-[#ef4444]/10 text-[#f87171] border-[#ef4444]/10'
+                          ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                          : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
                       }`}>
                         {cat.type === 'entrada' ? 'Receita' : 'Despesa'}
                       </span>
-                      <span className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase bg-white/5 text-on-surface-variant/60 border border-white/5">
+                      <span className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase bg-white/5 text-zinc-500 border border-white/5">
                         Sistema
                       </span>
                     </div>
                   </div>
 
                   <div>
-                    <h4 className="text-sm font-bold text-on-surface truncate tracking-tight">
+                    <h4 className="text-sm font-extrabold text-white truncate tracking-tight">
                       {cat.name}
                     </h4>
-                    <p className="text-[10px] text-on-surface-variant/50 line-clamp-1 mt-0.5">
+                    <p className="text-[11px] text-zinc-500 line-clamp-1 mt-0.5">
                       {cat.description || `Categoria nativa para ${cat.type === 'entrada' ? 'entradas' : 'saídas'}`}
                     </p>
                   </div>
 
                   {/* Actions layer - System locked */}
-                  <div className="flex items-center gap-2 border-t border-white/[0.03] pt-3 justify-end group/actions relative">
+                  <div className="flex items-center gap-2 border-t border-white/5 pt-2.5 justify-end group/actions relative">
                     <button 
                       disabled
-                      className="text-[10px] font-bold text-on-surface-variant/30 flex items-center gap-1 cursor-not-allowed opacity-50"
+                      className="text-[10px] font-bold text-zinc-600 flex items-center gap-1 cursor-not-allowed opacity-50"
                     >
                       <span className="material-symbols-outlined text-xs">edit</span>
                       Editar
@@ -358,14 +366,14 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
                     <span className="w-1 h-1 rounded-full bg-white/10" />
                     <button 
                       disabled
-                      className="text-[10px] font-bold text-on-surface-variant/30 flex items-center gap-1 cursor-not-allowed opacity-50"
+                      className="text-[10px] font-bold text-zinc-600 flex items-center gap-1 cursor-not-allowed opacity-50"
                     >
                       <span className="material-symbols-outlined text-xs">delete</span>
                       Excluir
                     </button>
 
                     {/* Tooltip on Actions Hover */}
-                    <div className="pointer-events-none absolute bottom-full mb-2 right-0 bg-surface-container border border-outline-variant text-[9px] font-bold text-on-surface-variant px-2.5 py-1 rounded-lg opacity-0 group-hover/actions:opacity-100 transition-opacity duration-200 shadow-xl whitespace-nowrap z-20">
+                    <div className="pointer-events-none absolute bottom-full mb-2 right-0 bg-[#1e1932] border border-white/10 text-[10px] font-semibold text-zinc-300 px-2.5 py-1 rounded-lg opacity-0 group-hover/actions:opacity-100 transition-opacity duration-200 shadow-xl whitespace-nowrap z-20">
                       Categorias do sistema não podem ser alteradas.
                     </div>
                   </div>
@@ -376,29 +384,29 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
         )}
 
         {/* Second section: Categorias Personalizadas */}
-        <div className="flex flex-col gap-4">
-          <h3 className="text-xs font-bold text-on-surface-variant/60 uppercase tracking-widest text-left">
+        <div className="flex flex-col gap-3">
+          <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider text-left px-1">
             Categorias Personalizadas ({customGroups.length})
           </h3>
 
           {customGroups.length === 0 ? (
-            <div className="p-8 text-center bg-white/[0.01] border border-dashed border-white/5 rounded-[24px] flex flex-col items-center justify-center gap-2.5">
-              <span className="material-symbols-outlined text-on-surface-variant/20 text-4xl">
+            <div className="p-8 text-center bg-[#130f21]/40 border border-dashed border-white/10 rounded-[24px] flex flex-col items-center justify-center gap-2.5">
+              <span className="material-symbols-outlined text-zinc-600 text-4xl">
                 category
               </span>
               <div className="flex flex-col">
-                <span className="text-xs font-bold text-on-surface-variant">Nenhuma categoria personalizada criada</span>
-                <p className="text-[10px] text-on-surface-variant/50 mt-0.5 leading-relaxed">
+                <span className="text-xs font-bold text-white">Nenhuma categoria personalizada criada</span>
+                <p className="text-[11px] text-zinc-500 mt-0.5 leading-relaxed">
                   Crie suas próprias categorias para adaptar as movimentações perfeitamente às suas necessidades.
                 </p>
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               {customGroups.map((cat) => (
                 <div 
                   key={cat.id}
-                  className="group relative bg-[#1c1b1d] border border-white/5 rounded-2xl p-4 flex flex-col justify-between gap-4 hover:border-primary/20 hover:bg-white/[0.02] transition-all duration-300 min-h-[140px] text-left"
+                  className="group relative bg-[#130f21]/90 border border-white/5 rounded-2xl p-4 flex flex-col justify-between gap-3 hover:border-primary/40 hover:bg-[#181329] transition-all duration-300 min-h-[130px] text-left shadow-md backdrop-blur-md"
                 >
                   <div className="flex items-start justify-between">
                     {/* Category Icon & Color badge */}
@@ -410,33 +418,33 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
 
                     {/* Category Badges */}
                     <div className="flex flex-col items-end gap-1">
-                      <span className={`text-[8px] font-bold px-2 py-0.5 rounded-full uppercase border ${
+                      <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase border ${
                         cat.type === 'entrada'
-                          ? 'bg-[#10b981]/10 text-[#4edea3] border-[#10b981]/10'
-                          : 'bg-[#ef4444]/10 text-[#f87171] border-[#ef4444]/10'
+                          ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                          : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
                       }`}>
                         {cat.type === 'entrada' ? 'Receita' : 'Despesa'}
                       </span>
-                      <span className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase bg-primary/10 text-primary border border-primary/10">
+                      <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase bg-primary/20 text-primary border border-primary/30">
                         Personalizada
                       </span>
                     </div>
                   </div>
 
                   <div>
-                    <h4 className="text-sm font-bold text-on-surface truncate tracking-tight">
+                    <h4 className="text-sm font-extrabold text-white truncate tracking-tight">
                       {cat.name}
                     </h4>
-                    <p className="text-[10px] text-on-surface-variant/50 line-clamp-1 mt-0.5">
+                    <p className="text-[11px] text-zinc-500 line-clamp-1 mt-0.5">
                       {cat.description || 'Sem descrição cadastrada'}
                     </p>
                   </div>
 
                   {/* Actions Row */}
-                  <div className="flex items-center gap-2 border-t border-white/[0.03] pt-3 justify-end relative">
+                  <div className="flex items-center gap-2 border-t border-white/5 pt-2.5 justify-end relative">
                     <button 
                       onClick={() => handleEditClick(cat)}
-                      className="text-[10px] font-bold text-primary hover:text-[#c0aeff] flex items-center gap-1 cursor-pointer transition-colors"
+                      className="text-[10px] font-extrabold text-primary hover:text-[#c0aeff] flex items-center gap-1 cursor-pointer transition-colors"
                     >
                       <span className="material-symbols-outlined text-xs">edit</span>
                       Editar
@@ -444,7 +452,7 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
                     <span className="w-1 h-1 rounded-full bg-white/10" />
                     <button 
                       onClick={() => setCategoryToDelete(cat)}
-                      className="text-[10px] font-bold text-error hover:text-red-400 flex items-center gap-1 cursor-pointer transition-colors"
+                      className="text-[10px] font-extrabold text-rose-400 hover:text-rose-300 flex items-center gap-1 cursor-pointer transition-colors"
                     >
                       <span className="material-symbols-outlined text-xs">delete</span>
                       Excluir
@@ -460,7 +468,7 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
       {/* CREATE / EDIT CATEGORY MODAL */}
       <AnimatePresence>
         {showFormModal && (
-          <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
             
             {/* Backdrop click closer */}
             <div className="absolute inset-0 cursor-default" onClick={() => setShowFormModal(false)} />
@@ -469,32 +477,33 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
               initial={{ opacity: 0, y: 50, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 50, scale: 0.95 }}
-              className="relative w-full sm:max-w-md bg-[#131315] border-t sm:border border-white/10 rounded-t-[28px] sm:rounded-[28px] p-4 sm:p-6 shadow-2xl overflow-hidden flex flex-col gap-4 sm:gap-5 max-h-[92vh] overflow-y-auto contain-scroll z-10 text-left"
+              className="relative w-full sm:max-w-md bg-[#131020]/98 border-t sm:border border-white/10 rounded-t-[32px] sm:rounded-[32px] p-5 sm:p-6 shadow-2xl overflow-hidden flex flex-col gap-4 sm:gap-5 max-h-[92vh] overflow-y-auto contain-scroll z-10 text-left"
             >
               {/* Mobile Drag Handle */}
-              <div className="w-10 h-1 bg-white/20 rounded-full mx-auto -mt-1 mb-1 sm:hidden shrink-0"></div>
+              <div className="w-12 h-1 bg-white/25 rounded-full mx-auto -mt-1 mb-1 sm:hidden shrink-0"></div>
 
               {/* Header */}
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between border-b border-white/5 pb-3">
                 <div className="flex flex-col">
-                  <h3 className="text-base sm:text-lg font-bold text-on-surface">
+                  <h3 className="text-base sm:text-lg font-extrabold text-white tracking-tight flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>category</span>
                     {editingCategory ? 'Editar Categoria' : 'Nova Categoria'}
                   </h3>
-                  <p className="text-[10px] text-on-surface-variant font-medium mt-0.5">
+                  <p className="text-xs text-zinc-400 font-medium">
                     Preencha os dados e escolha um ícone e cor correspondente
                   </p>
                 </div>
                 <button 
                   onClick={() => setShowFormModal(false)}
-                  className="w-10 h-10 rounded-full bg-surface-container-high hover:bg-surface-container-highest flex items-center justify-center transition-colors cursor-pointer tap-target"
+                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer select-none"
                   aria-label="Fechar modal"
                 >
-                  <span className="material-symbols-outlined text-on-surface-variant">close</span>
+                  <span className="material-symbols-outlined text-sm">close</span>
                 </button>
               </div>
 
               {formError && (
-                <div className="p-3.5 rounded-xl text-xs bg-error/10 border border-error/20 text-error font-semibold flex items-center gap-2">
+                <div className="p-3.5 rounded-xl text-xs bg-rose-500/15 border border-rose-500/30 text-rose-400 font-semibold flex items-center gap-2">
                   <span className="material-symbols-outlined text-sm font-bold">warning</span>
                   <span>{formError}</span>
                 </div>
@@ -503,7 +512,7 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
               <form onSubmit={handleSaveCategory} className="flex flex-col gap-3.5 sm:gap-4">
                 {/* Nome do Campo */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-on-surface-variant/90 uppercase tracking-wider">Nome da Categoria</label>
+                  <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Nome da Categoria</label>
                   <input
                     type="text"
                     required
@@ -511,21 +520,21 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
                     placeholder="Ex: Consultoria, Embalagens"
                     value={formName}
                     onChange={(e) => setFormName(e.target.value)}
-                    className="w-full bg-surface-container-low border border-white/5 rounded-2xl px-4 py-3 min-h-[48px] text-base sm:text-xs focus:outline-none focus:border-primary text-on-surface font-semibold placeholder:text-on-surface-variant/35"
+                    className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 min-h-[48px] text-xs focus:outline-none focus:border-primary text-white font-medium placeholder:text-zinc-600"
                   />
                 </div>
 
                 {/* Tipo de Categoria */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-on-surface-variant/90 uppercase tracking-wider">Tipo</label>
-                  <div className="flex bg-black/30 p-1 rounded-2xl border border-white/5 gap-1 h-12">
+                  <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Tipo</label>
+                  <div className="flex bg-black/40 p-1 rounded-2xl border border-white/5 gap-1 h-12">
                     <button
                       type="button"
                       onClick={() => setFormType('entrada')}
-                      className={`flex-1 h-full px-3 text-xs font-bold uppercase rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 tap-target ${
+                      className={`flex-1 h-full px-3 text-xs font-bold uppercase rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 ${
                         formType === 'entrada'
-                          ? 'bg-[#10b981]/15 text-[#4edea3] border border-[#10b981]/20 shadow-sm'
-                          : 'text-on-surface-variant/60 hover:text-on-surface hover:bg-white/5'
+                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-sm'
+                          : 'text-zinc-400 hover:text-white hover:bg-white/5'
                       }`}
                     >
                       <span className="material-symbols-outlined text-sm">trending_up</span>
@@ -534,10 +543,10 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
                     <button
                       type="button"
                       onClick={() => setFormType('saida')}
-                      className={`flex-1 h-full px-3 text-xs font-bold uppercase rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 tap-target ${
+                      className={`flex-1 h-full px-3 text-xs font-bold uppercase rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 ${
                         formType === 'saida'
-                          ? 'bg-[#ef4444]/15 text-[#f87171] border border-[#ef4444]/20 shadow-sm'
-                          : 'text-on-surface-variant/60 hover:text-on-surface hover:bg-white/5'
+                          ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30 shadow-sm'
+                          : 'text-zinc-400 hover:text-white hover:bg-white/5'
                       }`}
                     >
                       <span className="material-symbols-outlined text-sm">trending_down</span>
@@ -548,7 +557,7 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
 
                 {/* Selecionador de Cor */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-on-surface-variant/90 uppercase tracking-wider">Cor de Identificação</label>
+                  <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Cor de Identificação</label>
                   <div className="grid grid-cols-4 gap-2">
                     {PRESET_COLORS.map((col) => {
                       const isSelected = formColor === col.color;
@@ -560,16 +569,16 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
                             setFormColor(col.color);
                             setFormBgColor(col.bgColor);
                           }}
-                          className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border transition-all cursor-pointer min-h-[48px] tap-target ${
+                          className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border transition-all cursor-pointer min-h-[48px] ${
                             isSelected 
-                              ? 'bg-white/5 border-primary shadow-lg shadow-primary/10' 
-                              : 'bg-surface-container-low border-white/5 hover:bg-white/[0.02]'
+                              ? 'bg-primary/20 border-primary shadow-lg' 
+                              : 'bg-black/40 border-white/5 hover:bg-white/5'
                           }`}
                         >
                           <div className={`w-5 h-5 rounded-full ${col.bgColor} border border-white/10 flex items-center justify-center`}>
                             {isSelected && <span className="material-symbols-outlined text-[10px] text-primary font-black">done</span>}
                           </div>
-                          <span className="text-[8px] text-on-surface-variant/60 truncate w-full text-center">
+                          <span className="text-[9px] text-zinc-400 truncate w-full text-center">
                             {col.name.split(' ')[0]}
                           </span>
                         </button>
@@ -580,8 +589,8 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
 
                 {/* Selecionador de Ícone */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-on-surface-variant/90 uppercase tracking-wider">Ícone representativo</label>
-                  <div className="grid grid-cols-6 gap-2 bg-surface-container-low p-2.5 rounded-2xl border border-white/5 max-h-[140px] overflow-y-auto">
+                  <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Ícone representativo</label>
+                  <div className="grid grid-cols-6 gap-2 bg-black/40 p-2.5 rounded-2xl border border-white/5 max-h-[140px] overflow-y-auto">
                     {PRESET_ICONS.map((ico) => {
                       const isSelected = formIcon === ico.icon;
                       return (
@@ -589,10 +598,10 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
                           key={ico.icon}
                           type="button"
                           onClick={() => setFormIcon(ico.icon)}
-                          className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all cursor-pointer shrink-0 tap-target ${
+                          className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all cursor-pointer shrink-0 ${
                             isSelected
-                              ? `${formBgColor} ${formColor} border-primary/25 scale-105 shadow-md`
-                              : 'text-on-surface-variant/50 hover:text-on-surface hover:bg-white/5'
+                              ? `${formBgColor} ${formColor} border-primary/40 scale-105 shadow-md`
+                              : 'text-zinc-500 hover:text-white hover:bg-white/5'
                           }`}
                           title={ico.name}
                         >
@@ -607,13 +616,13 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
 
                 {/* Descrição (Opcional) */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-on-surface-variant/90 uppercase tracking-wider">Descrição (Opcional)</label>
+                  <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Descrição (Opcional)</label>
                   <textarea
                     placeholder="Ex: Entradas referentes aos serviços mensais"
                     rows={2}
                     value={formDescription}
                     onChange={(e) => setFormDescription(e.target.value)}
-                    className="w-full bg-surface-container-low border border-white/5 rounded-2xl px-4 py-3 text-base sm:text-xs focus:outline-none focus:border-primary text-on-surface font-semibold placeholder:text-on-surface-variant/35 resize-none"
+                    className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-xs focus:outline-none focus:border-primary text-white font-medium placeholder:text-zinc-600 resize-none"
                   />
                 </div>
 
@@ -622,13 +631,13 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
                   <button
                     type="button"
                     onClick={() => setShowFormModal(false)}
-                    className="flex-1 h-[50px] rounded-2xl bg-white/5 hover:bg-white/10 text-on-surface font-bold text-xs uppercase tracking-wide transition-all border border-white/5 cursor-pointer text-center tap-target flex items-center justify-center"
+                    className="flex-1 h-[50px] rounded-2xl bg-white/5 hover:bg-white/10 text-white font-bold text-xs uppercase tracking-wide transition-all border border-white/5 cursor-pointer text-center flex items-center justify-center"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 h-[50px] rounded-2xl bg-[#6d3bd7] hover:bg-[#8455ef] text-white font-bold text-xs uppercase tracking-wide transition-all shadow-[0_4px_12px_rgba(109,59,215,0.25)] cursor-pointer border border-primary/20 text-center tap-target flex items-center justify-center"
+                    className="flex-1 h-[50px] rounded-2xl bg-gradient-to-r from-[#6d3bd7] to-[#8b4bf0] hover:from-[#7c44ea] hover:to-[#9a5df7] text-white font-extrabold text-xs uppercase tracking-wide transition-all shadow-[0_4px_16px_rgba(109,59,215,0.35)] cursor-pointer border border-primary/40 text-center flex items-center justify-center"
                   >
                     Salvar Categoria
                   </button>
@@ -642,7 +651,7 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
       {/* EXCLUSION CONFIRMATION MODAL */}
       <AnimatePresence>
         {categoryToDelete && (
-          <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
             
             <div className="absolute inset-0 cursor-default" onClick={() => setCategoryToDelete(null)} />
 
@@ -650,29 +659,29 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
               initial={{ opacity: 0, scale: 0.95, y: 25 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 25 }}
-              className="relative w-full sm:max-w-md bg-[#131315] border-t sm:border border-white/10 rounded-t-[28px] sm:rounded-[28px] p-5 sm:p-6 shadow-2xl flex flex-col gap-4 sm:gap-5 z-10 text-left contain-scroll"
+              className="relative w-full sm:max-w-md bg-[#131020]/98 border-t sm:border border-white/10 rounded-t-[32px] sm:rounded-[32px] p-5 sm:p-6 shadow-2xl flex flex-col gap-4 sm:gap-5 z-10 text-left contain-scroll"
             >
               {/* Mobile Drag Handle */}
-              <div className="w-10 h-1 bg-white/20 rounded-full mx-auto -mt-1 mb-1 sm:hidden shrink-0"></div>
+              <div className="w-12 h-1 bg-white/25 rounded-full mx-auto -mt-1 mb-1 sm:hidden shrink-0"></div>
 
               {/* Header */}
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-error/15 flex items-center justify-center border border-error/20 text-error animate-pulse shrink-0">
-                  <span className="material-symbols-outlined text-xl">delete_forever</span>
+                <div className="w-12 h-12 rounded-2xl bg-rose-500/15 flex items-center justify-center border border-rose-500/30 text-rose-400 shrink-0">
+                  <span className="material-symbols-outlined text-2xl">delete_forever</span>
                 </div>
                 <div className="flex flex-col text-left">
-                  <h3 className="text-base sm:text-lg font-black text-on-surface">Excluir categoria</h3>
-                  <p className="text-[10px] text-on-surface-variant font-medium mt-0.5">
+                  <h3 className="text-base sm:text-lg font-black text-white">Excluir categoria</h3>
+                  <p className="text-xs text-zinc-400 font-medium">
                     Esta ação não pode ser desfeita
                   </p>
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-surface-container-low border border-white/5">
-                <p className="text-xs text-on-surface-variant leading-relaxed">
-                  Tem certeza que deseja excluir a categoria <strong className="text-on-surface">"{categoryToDelete.name}"</strong>? 
+              <div className="p-4 rounded-2xl bg-black/40 border border-white/5">
+                <p className="text-xs text-zinc-300 leading-relaxed">
+                  Tem certeza que deseja excluir a categoria <strong className="text-white">"{categoryToDelete.name}"</strong>? 
                   <br />
-                  <span className="text-primary mt-1.5 block font-medium">💡 Movimentações antigas permanecerão registradas normalmente.</span>
+                  <span className="text-primary mt-1.5 block font-semibold">💡 Movimentações antigas permanecerão registradas normalmente.</span>
                 </p>
               </div>
 
@@ -681,14 +690,14 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
                 <button
                   type="button"
                   onClick={() => setCategoryToDelete(null)}
-                  className="flex-1 h-[50px] rounded-2xl bg-white/5 hover:bg-white/10 text-on-surface font-bold text-xs uppercase tracking-wide transition-all border border-white/5 cursor-pointer text-center tap-target flex items-center justify-center"
+                  className="flex-1 h-[50px] rounded-2xl bg-white/5 hover:bg-white/10 text-white font-bold text-xs uppercase tracking-wide transition-all border border-white/5 cursor-pointer text-center flex items-center justify-center"
                 >
                   Cancelar
                 </button>
                 <button
                   type="button"
                   onClick={handleDeleteConfirm}
-                  className="flex-1 h-[50px] rounded-2xl bg-[#ef4444] hover:bg-red-500 text-white font-bold text-xs uppercase tracking-wide transition-all shadow-[0_4px_12px_rgba(239,68,68,0.2)] cursor-pointer border border-[#ef4444]/25 text-center tap-target flex items-center justify-center"
+                  className="flex-1 h-[50px] rounded-2xl bg-rose-500 hover:bg-rose-600 text-white font-extrabold text-xs uppercase tracking-wide transition-all shadow-[0_4px_16px_rgba(244,63,94,0.35)] cursor-pointer border border-rose-500/40 text-center flex items-center justify-center"
                 >
                   Excluir Categoria
                 </button>
