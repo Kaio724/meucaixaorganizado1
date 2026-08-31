@@ -1016,6 +1016,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                     activeAccount={activeAccount}
                     onAccountChange={handleAccountChange}
                     size="sm"
+                    isPro={isPro}
                   />
 
                   {/* Plano atual pill (Empresarial only) */}
@@ -1158,7 +1159,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                 </div>
 
                 {/* Centered Account Switcher */}
-                <div className="flex-1 flex justify-center px-1 max-w-[200px] mx-auto z-10">
+                <div className="flex-1 flex justify-center px-1 max-w-[224px] mx-auto z-10">
                   <AccountToggle
                     activeAccount={activeAccount}
                     onAccountChange={handleAccountChange}
