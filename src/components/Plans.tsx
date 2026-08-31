@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { UserProfile, PlanType } from '../types';
 
-const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://pay.cakto.com.br/rdvxqwt';
+const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://pay.kiwify.com.br/JJEbB3O';
 
 interface PlansProps {
   profile: UserProfile;
@@ -89,7 +89,7 @@ export default function Plans({ profile, onUpdatePlan, onNavigateToTab }: PlansP
 
           {/* Price Layout */}
           <div className="flex items-baseline gap-2.5 text-left py-1">
-            <span className="text-3xl font-extrabold text-on-surface tracking-tight">R$ 19,90</span>
+            <span className="text-3xl font-extrabold text-on-surface tracking-tight">R$ 27,90</span>
             <div className="flex flex-col">
               <span className="text-[10px] font-medium text-emerald-400 bg-emerald-500/5 border border-emerald-500/10 px-1.5 py-0.5 rounded w-max leading-none">
                 Acesso Vitalício
@@ -208,11 +208,11 @@ export default function Plans({ profile, onUpdatePlan, onNavigateToTab }: PlansP
 
           {/* Price Layout */}
           <div className="flex items-baseline justify-between py-1 border-b border-primary/10 pb-4">
-            <div className="flex items-baseline gap-2 text-left">
-              <span className="text-4xl font-extrabold text-primary tracking-tight">R$ 17,90</span>
+            <div className="flex items-baseline gap-2.5 text-left">
+              <span className="text-4xl font-extrabold text-primary tracking-tight">R$ 12,90</span>
               <div className="flex flex-col">
                 <span className="text-[9px] font-bold text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded w-max leading-none mb-1">
-                  Valor do Upgrade
+                  Valor do Upgrade (Plano R$ 47,00)
                 </span>
                 <span className="text-xs font-bold text-emerald-400">
                   Acesso Vitalício

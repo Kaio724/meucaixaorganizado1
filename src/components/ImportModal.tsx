@@ -11,7 +11,7 @@ import { getCategoryNamesByType } from '../lib/categories';
 import * as XLSX from 'xlsx';
 
 // Plan URL
-const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://pay.cakto.com.br/rdvxqwt';
+const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://pay.kiwify.com.br/JJEbB3O';
 
 interface ImportModalProps {
   isOpen: boolean;

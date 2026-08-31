@@ -11,7 +11,7 @@ import DesktopDashboard from './DesktopDashboard';
 import ImportModal from './ImportModal';
 import TransactionDetailSheet from './TransactionDetailSheet';
 
-const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://pay.cakto.com.br/rdvxqwt';
+const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://pay.kiwify.com.br/JJEbB3O';
 
 interface DashboardProps {
   profile: UserProfile;

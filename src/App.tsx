@@ -34,7 +34,7 @@ import {
   deleteTransaction 
 } from './lib/supabase';
 
-const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://pay.cakto.com.br/rdvxqwt';
+const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://pay.kiwify.com.br/JJEbB3O';
 
 export default function App() {
   const [session, setSession] = useState<any>(null);
@@ -1806,7 +1806,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-xs text-emerald-400">check_circle</span>
-                    <span>Acesso vitalício com pagamento único de R$ 17,90</span>
+                    <span>Acesso vitalício com pagamento único de R$ 12,90</span>
                   </div>
                 </div>
               </div>
@@ -1821,7 +1821,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                   className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#9333ea] hover:from-[#8b4bf0] hover:to-[#a855f7] text-white font-black text-xs transition-all duration-300 flex items-center justify-center gap-2 border border-[#c4b5fd]/40 shadow-[0_6px_24px_rgba(124,58,237,0.45)] hover:shadow-[0_8px_30px_rgba(124,58,237,0.65)] hover:-translate-y-0.5 select-none text-center"
                 >
                   <span className="material-symbols-outlined text-base">workspace_premium</span>
-                  <span>Fazer Upgrade para o MCO Completo (R$ 17,90)</span>
+                  <span>Fazer Upgrade para o MCO Completo (R$ 12,90)</span>
                 </a>
 
                 <button
