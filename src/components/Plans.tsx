@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { UserProfile, PlanType } from '../types';
 
-const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://pay.kiwify.com.br/JJEbB3O';
+const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://checkout.wiven.com.br/checkout/cmr9mqf4p000j01q0qlrqcl4w?offer=LEJVTNC';
 
 interface PlansProps {
   profile: UserProfile;

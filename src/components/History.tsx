@@ -5,7 +5,7 @@ import { AVAILABLE_CATEGORIES, PAYMENT_METHODS, ACCOUNT_OPTIONS } from '../initi
 import { getCategoryNamesByType, getCategoryInfo } from '../lib/categories';
 import TransactionDetailSheet from './TransactionDetailSheet';
 
-const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://pay.kiwify.com.br/JJEbB3O';
+const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://checkout.wiven.com.br/checkout/cmr9mqf4p000j01q0qlrqcl4w?offer=LEJVTNC';
 
 interface HistoryProps {
   profile: UserProfile;
