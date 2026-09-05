@@ -92,8 +92,23 @@ export default function ImportModal({ isOpen, onClose, profile, userId = 'defaul
     setIsDragging(false);
   };
 
-  // Check and consume credit
-  const consumeCredit = (): boolean => {
+  // Reset test credits
+  const handleResetCredits = () => {
+    const creditsKey = `mco_credits_monthly_${profile.name || 'default'}`;
+    localStorage.removeItem(creditsKey);
+    setRemainingCredits(monthlyLimit);
+    if (step === 'limit_exceeded') {
+      setStep('upload');
+    }
+  };
+
+  // Check if credits are available
+  const hasAvailableCredits = (): boolean => {
+    return remainingCredits >= 5;
+  };
+
+  // Consume credit only after successful parsing
+  const deductCredits = () => {
     const date = new Date();
     const currentMonth = `${date.getMonth() + 1}/${date.getFullYear()}`;
     const creditsKey = `mco_credits_monthly_${profile.name || 'default'}`;
@@ -110,14 +125,9 @@ export default function ImportModal({ isOpen, onClose, profile, userId = 'defaul
       }
     }
 
-    if (count + 5 > monthlyLimit) {
-      setStep('limit_exceeded');
-      return false;
-    }
-
-    localStorage.setItem(creditsKey, JSON.stringify({ month: currentMonth, count: count + 5 }));
-    setRemainingCredits(monthlyLimit - (count + 5));
-    return true;
+    const newCount = count + 5;
+    localStorage.setItem(creditsKey, JSON.stringify({ month: currentMonth, count: newCount }));
+    setRemainingCredits(Math.max(0, monthlyLimit - newCount));
   };
 
   // Process File Select
@@ -160,8 +170,11 @@ export default function ImportModal({ isOpen, onClose, profile, userId = 'defaul
   const handleStartImport = async () => {
     if (!file) return;
 
-    // Check credits
-    if (!consumeCredit()) {
+    setErrorMsg('');
+
+    // Check credits without deducting yet
+    if (!hasAvailableCredits()) {
+      setStep('limit_exceeded');
       return;
     }
 
@@ -182,7 +195,7 @@ export default function ImportModal({ isOpen, onClose, profile, userId = 'defaul
           setStatusMessage('Lendo datas e valores...');
           return prev + 0.8;
         } else if (prev < 95) {
-          setStatusMessage('Classificando categorias com IA...');
+          setStatusMessage('Classificando categorias com ChatGPT...');
           return prev + 0.5;
         }
         return prev;
@@ -248,25 +261,37 @@ export default function ImportModal({ isOpen, onClose, profile, userId = 'defaul
       });
 
       if (!response.ok) {
-        const errObj = await response.json();
-        throw new Error(errObj.error || 'Erro na resposta do servidor.');
+        const errObj = await response.json().catch(() => ({}));
+        throw new Error(errObj.error || 'Erro ao comunicar com o servidor de IA.');
       }
 
       const result = await response.json();
       const rawTxs = result.transactions || [];
 
+      if (rawTxs.length === 0) {
+        throw new Error('Nenhuma transação financeira foi identificada no documento. Certifique-se de que o arquivo contém lançamentos legíveis de extrato.');
+      }
+
       // Structure parsed items for review table
-      const formattedTxs: ParsedTransaction[] = rawTxs.map((t: any, index: number) => ({
-        id: String(index + Date.now()),
-        date: t.date || new Date().toISOString().split('T')[0],
-        title: t.title || 'Lançamento',
-        type: t.type === 'entrada' ? 'entrada' : 'saida',
-        amount: Math.abs(Number(t.amount)) || 0,
-        paymentMethod: t.paymentMethod || 'Pix',
-        category: t.category || 'Não identificada',
-        confidence: Number(t.confidence) || 70,
-        selected: true
-      }));
+      const formattedTxs: ParsedTransaction[] = rawTxs.map((t: any, index: number) => {
+        const typeStr = String(t.type || '').toLowerCase();
+        const isEntrada = ['entrada', 'credit', 'crédito', 'receita', 'deposito', 'depósito'].some(k => typeStr.includes(k));
+        
+        return {
+          id: String(index + Date.now()),
+          date: t.date || new Date().toISOString().split('T')[0],
+          title: t.title || 'Lançamento',
+          type: isEntrada ? 'entrada' : 'saida',
+          amount: Math.abs(Number(t.amount)) || 0,
+          paymentMethod: t.paymentMethod || 'Pix',
+          category: t.category || 'Não identificada',
+          confidence: Number(t.confidence) || 70,
+          selected: true
+        };
+      });
+
+      // Deduct credit only upon successful extraction
+      deductCredits();
 
       // Finish progress animation smoothly
       clearInterval(progressInterval);
@@ -389,7 +414,7 @@ export default function ImportModal({ isOpen, onClose, profile, userId = 'defaul
             </div>
             <div className="text-left">
               <h3 className="text-sm sm:text-base font-bold text-on-surface">Importação Inteligente</h3>
-              <p className="text-[11px] sm:text-xs text-on-surface-variant">Lançamento de extratos com inteligência artificial</p>
+              <p className="text-[11px] sm:text-xs text-on-surface-variant">Lançamento automático de extratos via ChatGPT (OpenAI)</p>
             </div>
           </div>
           
@@ -428,14 +453,26 @@ export default function ImportModal({ isOpen, onClose, profile, userId = 'defaul
               )}
 
               {/* Credits counter */}
-              <div className="flex items-center justify-between px-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-2">
                 <span className="text-xs text-on-surface-variant font-medium flex items-center gap-1.5">
                   <Clock className="w-4 h-4 text-primary" />
                   Seu limite de créditos mensais:
                 </span>
-                <span className="text-xs font-bold text-on-surface bg-white/5 border border-white/5 px-2.5 py-1 rounded-lg">
-                  <span className="text-primary">{remainingCredits}</span> / {monthlyLimit} créditos restantes este mês <span className="text-[10px] text-on-surface-variant font-normal ml-1">(Consumo: 5 por importação)</span>
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-on-surface bg-white/5 border border-white/5 px-2.5 py-1 rounded-lg">
+                    <span className="text-primary">{remainingCredits}</span> / {monthlyLimit} créditos restantes este mês <span className="text-[10px] text-on-surface-variant font-normal ml-1">(Consumo: 5 por importação)</span>
+                  </span>
+                  {remainingCredits < 5 && (
+                    <button
+                      type="button"
+                      onClick={handleResetCredits}
+                      className="text-[10px] text-primary/80 hover:text-primary underline cursor-pointer"
+                      title="Restaurar saldo mensal de créditos"
+                    >
+                      Recarregar
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Error messages */}
@@ -501,9 +538,9 @@ export default function ImportModal({ isOpen, onClose, profile, userId = 'defaul
                 <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl flex items-start gap-3">
                   <span className="material-symbols-outlined text-primary text-xl mt-0.5">auto_awesome</span>
                   <div>
-                    <h5 className="text-xs font-bold text-on-surface">Categorização Automática</h5>
+                    <h5 className="text-xs font-bold text-on-surface">Categorização Automática com ChatGPT</h5>
                     <p className="text-[11px] text-on-surface-variant leading-relaxed mt-0.5">
-                      Nossa Inteligência Artificial tenta deduzir a categoria correta e calcula um indicador de confiança.
+                      A tecnologia ChatGPT (OpenAI) identifica e classifica cada lançamento com precisão contábil.
                     </p>
                   </div>
                 </div>
@@ -525,7 +562,7 @@ export default function ImportModal({ isOpen, onClose, profile, userId = 'defaul
                   className={`bg-primary hover:bg-[#8455ef] text-white font-bold text-xs py-3 px-6 rounded-xl flex items-center gap-1.5 transition-all shadow-[0_4px_12px_rgba(109,59,215,0.25)] hover:shadow-[0_6px_20px_rgba(109,59,215,0.4)] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed`}
                 >
                   <Sparkles className="w-4 h-4" />
-                  Analisar Extrato com IA
+                  Analisar com ChatGPT
                 </button>
               </div>
 
@@ -547,7 +584,7 @@ export default function ImportModal({ isOpen, onClose, profile, userId = 'defaul
               <div className="flex flex-col gap-2">
                 <h4 className="text-lg font-bold text-on-surface">{statusMessage}</h4>
                 <p className="text-xs text-on-surface-variant max-w-xs leading-relaxed">
-                  Isso pode levar alguns segundos. Nossa IA está estruturando e classificando suas movimentações.
+                  Isso pode levar alguns segundos. O ChatGPT está analisando e classificando cada linha do seu extrato.
                 </p>
               </div>
 
@@ -585,7 +622,7 @@ export default function ImportModal({ isOpen, onClose, profile, userId = 'defaul
                   <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold ${progress >= 80 ? 'bg-green-500/10 text-green-400' : progress >= 55 ? 'bg-primary/20 text-primary animate-pulse' : 'bg-white/5 text-white/20'}`}>
                     {progress >= 80 ? '✓' : '•'}
                   </div>
-                  <span className={progress >= 80 ? 'text-on-surface-variant/50 line-through' : progress >= 55 ? 'text-on-surface font-semibold' : 'text-white/20'}>Classificando categorias com IA...</span>
+                  <span className={progress >= 80 ? 'text-on-surface-variant/50 line-through' : progress >= 55 ? 'text-on-surface font-semibold' : 'text-white/20'}>Classificando categorias com ChatGPT...</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs">
                   <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold ${progress >= 100 ? 'bg-green-500/10 text-green-400' : progress >= 80 ? 'bg-primary/20 text-primary animate-pulse' : 'bg-white/5 text-white/20'}`}>
@@ -631,6 +668,14 @@ export default function ImportModal({ isOpen, onClose, profile, userId = 'defaul
                   className="flex-1 bg-white/5 hover:bg-white/10 text-on-surface font-bold text-xs py-3.5 px-4 rounded-xl transition-colors cursor-pointer"
                 >
                   Voltar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResetCredits}
+                  className="bg-white/5 hover:bg-white/10 text-on-surface-variant hover:text-on-surface text-xs font-semibold py-3.5 px-3 rounded-xl transition-colors cursor-pointer"
+                  title="Restaurar saldo mensal de créditos para testes"
+                >
+                  Restaurar Créditos
                 </button>
                 {!isPro && (
                   <button

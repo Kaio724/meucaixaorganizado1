@@ -1,6 +1,7 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import OpenAI from 'openai';
 import { GoogleGenAI, Type } from '@google/genai';
 import dotenv from 'dotenv';
 
@@ -17,7 +18,20 @@ const PORT = 3000;
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Initialize Google GenAI
+// Initialize OpenAI (ChatGPT)
+let openaiClient: OpenAI | null = null;
+function getOpenAI(): OpenAI | null {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    return null;
+  }
+  if (!openaiClient) {
+    openaiClient = new OpenAI({ apiKey });
+  }
+  return openaiClient;
+}
+
+// Initialize Google GenAI as secondary fallback
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
   httpOptions: {
@@ -53,7 +67,49 @@ function getYearFromDate(dateStr: string): string {
   return String(currentYear);
 }
 
-// API endpoint for bank statement parsing using Gemini
+// Helper to safely extract JSON array from Gemini text response
+function extractJsonTransactions(text: string): any[] {
+  let cleaned = (text || '').trim();
+  if (cleaned.startsWith('```json')) {
+    cleaned = cleaned.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+  } else if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/^```\s*/, '').replace(/\s*```$/, '');
+  }
+  
+  try {
+    const parsed = JSON.parse(cleaned);
+    if (Array.isArray(parsed)) return parsed;
+    if (parsed && Array.isArray(parsed.transactions)) return parsed.transactions;
+    if (parsed && typeof parsed === 'object') {
+      const firstArrayKey = Object.keys(parsed).find(k => Array.isArray(parsed[k]));
+      if (firstArrayKey) return parsed[firstArrayKey];
+    }
+  } catch (e) {
+    const start = cleaned.indexOf('[');
+    const end = cleaned.lastIndexOf(']');
+    if (start !== -1 && end !== -1 && end > start) {
+      try {
+        const slice = cleaned.substring(start, end + 1);
+        const parsed = JSON.parse(slice);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (err) {
+        console.error('Falha ao tentar slice JSON:', err);
+      }
+    }
+  }
+  return [];
+}
+
+// Normalized Candidate Models in order of availability and speed
+const CANDIDATE_MODELS = [
+  'gemini-flash-lite-latest',
+  'gemini-3.1-flash-lite',
+  'gemini-flash-latest',
+  'gemini-3.8-flash',
+  'gemini-3.7-flash'
+];
+
+// API endpoint for bank statement parsing using OpenAI ChatGPT (with Gemini fallback)
 app.post('/api/importar-extrato', async (req, res) => {
   try {
     const { fileType, fileData } = req.body;
@@ -62,126 +118,202 @@ app.post('/api/importar-extrato', async (req, res) => {
       return res.status(400).json({ error: 'Parâmetros fileType e fileData são obrigatórios.' });
     }
 
-    if (!process.env.GEMINI_API_KEY) {
-      console.error('GEMINI_API_KEY não configurada no servidor.');
-      return res.status(500).json({ error: 'Erro de configuração do servidor: chave de API não configurada.' });
+    console.log(`[Importação] Iniciando análise com ChatGPT (OpenAI). Tipo: ${fileType}`);
+
+    let rawJsonText = '';
+    let parsedList: any[] = [];
+    const currentYear = new Date().getFullYear();
+
+    // 1. PRIMARY ENGINE: OpenAI ChatGPT (gpt-4o-mini / gpt-4o)
+    try {
+      const openai = getOpenAI();
+      if (!openai) {
+        console.log('[OpenAI ChatGPT] OPENAI_API_KEY não definida no ambiente. Prosseguindo para o Gemini.');
+      } else {
+        const openAiModels = ['gpt-4o-mini', 'gpt-4o'];
+
+        const systemPrompt = `Você é um especialista em contabilidade financeira brasileira e conciliação de extratos bancários.
+Sua missão é extrair com precisão absoluta TODAS as movimentações financeiras do extrato fornecido (entradas e saídas de recursos).
+Retorne SEMPRE e ESTRITAMENTE um objeto JSON válido no formato:
+{
+  "transactions": [
+    {
+      "date": "YYYY-MM-DD",
+      "title": "Nome amigável, limpo e direto da movimentação (ex: PIX João Silva, Pagamento Fornecedor, Tarifa)",
+      "type": "entrada" ou "saida",
+      "amount": 0.00,
+      "paymentMethod": "Pix" | "Boleto" | "Cartão de Crédito" | "Cartão de Débito" | "Transferência Bancária" | "Dinheiro" | "Outro",
+      "category": "Vendas" | "Serviços prestados" | "Aportes / Empréstimos" | "Rendimentos" | "Outras receitas" | "Fornecedores" | "Insumos / Mercadorias" | "Aluguel / Condomínio / Luz / Água" | "Salários / Pró-labore" | "Ferramentas / Equipamentos" | "Marketing / Anúncios" | "Impostos / Taxas" | "Outras despesas" | "Não identificada",
+      "confidence": 95
     }
+  ]
+}
+Regras:
+1. Type DEVE ser estritamente "entrada" (para créditos, depósitos, PIX recebidos, transferências recebidas) ou "saida" (para débitos, pagamentos, boletos, PIX enviados, tarifas, compras).
+2. Amount deve ser um número float absoluto positivo correspondente ao valor em Reais (ex: 150.50).
+3. Data no formato YYYY-MM-DD (se o extrato omitir o ano, use o ano ${currentYear}).
+4. Ignore rigorosamente saldos acumulados, saldos parciais, saldos consolidados e dados informativos de cabeçalho.`;
 
-    console.log(`Iniciando análise de arquivo do tipo: ${fileType}`);
+        for (const model of openAiModels) {
+          try {
+            console.log(`[OpenAI ChatGPT] Tentando modelo: ${model}...`);
+            let messages: any[] = [];
 
-    let contents: any;
-
-    if (fileType === 'pdf') {
-      // Send base64 PDF directly to Gemini
-      contents = [
-        {
-          inlineData: {
-            mimeType: 'application/pdf',
-            data: fileData, // Base64 string of PDF
-          },
-        },
-        {
-          text: `Você é um especialista em contabilidade brasileira e análise de extratos bancários.
-Analise com precisão absoluta o documento fornecido (extrato bancário em formato PDF).
-Extraia TODAS as transações financeiras visíveis (entradas e saídas de recursos).
-
-Para cada transação encontrada, determine:
-1. Data (no formato YYYY-MM-DD. Se o extrato omitir o ano, assuma o ano atual ${new Date().getFullYear()}).
-2. Título (nome amigável, limpo e direto da transação, ex: 'Uber', 'Netflix', 'PIX João Silva', 'Tarifa Bancária'). Remova códigos, IDs de transação poluídos ou termos técnicos desnecessários se possível, mas mantenha identificações cruciais.
-3. Tipo: 'entrada' (para depósitos, créditos, recebimentos, PIX recebidos, rendimentos) ou 'saida' (para pagamentos, débitos, saques, compras, PIX enviados, tarifas, impostos).
-4. Valor (número decimal positivo correspondente ao valor absoluto da transação, em Reais).
-5. Forma de Pagamento (Classifique estritamente entre: 'Pix', 'Dinheiro', 'Cartão de Débito', 'Cartão de Crédito', 'Transferência Bancária', 'Boleto', 'Outro'). Se for PIX recebido/enviado, use 'Pix'. Se for compra comum ou tarifa, tente classificar ou use 'Outro' ou 'Cartão de Crédito'/'Cartão de Débito' se houver essa indicação.
-6. Categoria sugerida. Mapeie rigorosamente para uma destas categorias permitidas:
-   Para entradas: 'Vendas', 'Serviços prestados', 'Aportes / Empréstimos', 'Rendimentos', 'Outras receitas'.
-   Para saídas: 'Fornecedores', 'Insumos / Mercadorias', 'Aluguel / Condomínio / Luz / Água', 'Salários / Pró-labore', 'Ferramentas / Equipamentos', 'Marketing / Anúncios', 'Impostos / Taxas', 'Outras despesas'.
-   Caso a transação não se encaixe com clareza em nenhuma delas, ou se tiver dúvida, use 'Não identificada'.
-7. Indicador de Confiança da categoria: um número inteiro de 0 a 100 indicando o percentual de certeza da classificação da categoria (ex: Uber -> 'Outras despesas' ou 'Transporte' se estivesse disponível, mas como é 'Outras despesas', ou se for Netflix -> 'Outras despesas' com 95%). Se classificar como 'Não identificada', retorne 0.
-
-Por favor, ignore saldos parciais, saldos consolidados ou outras informações do cabeçalho que não representem transações reais.`
-        }
-      ];
-    } else if (fileType === 'text') {
-      // Send extracted text to Gemini
-      contents = `Você é um especialista em contabilidade brasileira e análise de dados brutos.
-Abaixo está o conteúdo de texto extraído de um extrato financeiro (que pode ser CSV, Excel formatado, TXT ou similar):
+            if (fileType === 'pdf') {
+              messages = [
+                { role: 'system', content: systemPrompt },
+                {
+                  role: 'user',
+                  content: [
+                    {
+                      type: 'text',
+                      text: `Analise o extrato bancário em formato PDF anexado e extraia todas as transações financeiras. O ano base é ${currentYear}.`
+                    },
+                    {
+                      type: 'file',
+                      file: {
+                        filename: 'extrato.pdf',
+                        file_data: `data:application/pdf;base64,${fileData}`
+                      }
+                    }
+                  ]
+                }
+              ];
+            } else {
+              messages = [
+                { role: 'system', content: systemPrompt },
+                {
+                  role: 'user',
+                  content: `Analise o extrato bancário abaixo (dados textuais extraídos de CSV/Excel/TXT) e extraia todas as transações financeiras. O ano base é ${currentYear}.
 
 --- INÍCIO DOS DADOS ---
 ${fileData}
---- FIM DOS DADOS ---
+--- FIM DOS DADOS ---`
+                }
+              ];
+            }
 
-Analise com precisão absoluta as linhas de texto acima para identificar e extrair TODAS as transações financeiras individuais (entradas e saídas).
+            const completion = await openai.chat.completions.create({
+              model,
+              messages,
+              response_format: { type: 'json_object' }
+            });
 
-Para cada transação encontrada, determine:
-1. Data (no formato YYYY-MM-DD. Se omitir o ano, assuma o ano atual ${new Date().getFullYear()}).
-2. Título (nome amigável, limpo e direto da transação, ex: 'Uber', 'Netflix', 'PIX João Silva', 'Tarifa Bancária'). Remova códigos, IDs poluídos de transação ou termos técnicos desnecessários se possível, mas mantenha identificações cruciais.
-3. Tipo: 'entrada' ou 'saida'.
-4. Valor (número decimal positivo correspondente ao valor absoluto da transação, em Reais).
-5. Forma de Pagamento (Classifique estritamente entre: 'Pix', 'Dinheiro', 'Cartão de Débito', 'Cartão de Crédito', 'Transferência Bancária', 'Boleto', 'Outro').
-6. Categoria sugerida. Mapeie rigorosamente para uma destas categorias permitidas:
-   Para entradas: 'Vendas', 'Serviços prestados', 'Aportes / Empréstimos', 'Rendimentos', 'Outras receitas'.
-   Para saídas: 'Fornecedores', 'Insumos / Mercadorias', 'Aluguel / Condomínio / Luz / Água', 'Salários / Pró-labore', 'Ferramentas / Equipamentos', 'Marketing / Anúncios', 'Impostos / Taxas', 'Outras despesas'.
-   Caso a transação não se encaixe com clareza em nenhuma delas, ou se tiver dúvida, use 'Não identificada'.
-7. Indicador de Confiança da categoria: um número inteiro de 0 a 100 indicando o percentual de certeza da classificação da categoria. Se for classificada como 'Não identificada', retorne 0.
-
-Por favor, ignore saldos parciais, totais ou cabeçalhos que não correspondam a transações reais.`;
-    } else {
-      return res.status(400).json({ error: 'Tipo de arquivo não suportado.' });
+            const content = completion.choices?.[0]?.message?.content;
+            if (content) {
+              console.log(`[OpenAI ChatGPT] Resposta recebida com sucesso do modelo ${model}`);
+              const list = extractJsonTransactions(content);
+              if (Array.isArray(list) && list.length > 0) {
+                parsedList = list;
+                rawJsonText = content;
+                break;
+              }
+            }
+          } catch (errModel: any) {
+            console.warn(`[OpenAI ChatGPT] Erro ao chamar modelo ${model}:`, errModel.message || errModel);
+          }
+        }
+      }
+    } catch (openAiErr: any) {
+      console.warn('[OpenAI ChatGPT] Erro geral na execução do ChatGPT:', openAiErr.message || openAiErr);
     }
 
-    // Call Gemini with JSON schema output
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.5-flash',
-      contents: contents,
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: {
+    // 2. SECONDARY FALLBACK: Google Gemini if OpenAI returned no transactions
+    if (!parsedList || parsedList.length === 0) {
+      console.log('[Fallback Gemini] OpenAI não retornou transações ou falhou. Ativando fallback Gemini...');
+
+      if (process.env.GEMINI_API_KEY) {
+        let contents: any;
+        if (fileType === 'pdf') {
+          contents = [
+            {
+              inlineData: {
+                mimeType: 'application/pdf',
+                data: fileData,
+              },
+            },
+            {
+              text: `Analise o extrato bancário PDF e extraia TODAS as transações financeiras (entradas e saídas).
+Data no formato YYYY-MM-DD (ano ${currentYear} se omitido). Retorne JSON.`
+            }
+          ];
+        } else {
+          contents = `Analise o extrato bancário e extraia todas as transações financeiras (ano ${currentYear}):
+${fileData}`;
+        }
+
+        const responseSchema = {
           type: Type.ARRAY,
           description: 'A list of parsed financial transactions from the statement.',
           items: {
             type: Type.OBJECT,
             properties: {
-              date: {
-                type: Type.STRING,
-                description: 'The date of the transaction in YYYY-MM-DD format.'
-              },
-              title: {
-                type: Type.STRING,
-                description: 'A clean and user-friendly name/title for the transaction.'
-              },
-              type: {
-                type: Type.STRING,
-                description: 'Must be either "entrada" (receipt/deposit) or "saida" (payment/expense).',
-              },
-              amount: {
-                type: Type.NUMBER,
-                description: 'The absolute positive monetary value of the transaction.'
-              },
-              paymentMethod: {
-                type: Type.STRING,
-                description: 'The payment method used. Must be one of: "Pix", "Dinheiro", "Cartão de Débito", "Cartão de Crédito", "Transferência Bancária", "Boleto", "Outro".'
-              },
-              category: {
-                type: Type.STRING,
-                description: 'The mapped category. Allowed values: Vendas, Serviços prestados, Aportes / Empréstimos, Rendimentos, Outras receitas, Fornecedores, Insumos / Mercadorias, Aluguel / Condomínio / Luz / Água, Salários / Pró-labore, Ferramentas / Equipamentos, Marketing / Anúncios, Impostos / Taxas, Outras despesas, Não identificada.'
-              },
-              confidence: {
-                type: Type.INTEGER,
-                description: 'The category classification confidence score, from 0 to 100.'
-              }
+              date: { type: Type.STRING },
+              title: { type: Type.STRING },
+              type: { type: Type.STRING },
+              amount: { type: Type.NUMBER },
+              paymentMethod: { type: Type.STRING },
+              category: { type: Type.STRING },
+              confidence: { type: Type.INTEGER }
             },
             required: ['date', 'title', 'type', 'amount', 'paymentMethod', 'category', 'confidence']
           }
+        };
+
+        for (const modelName of CANDIDATE_MODELS) {
+          try {
+            console.log(`[Gemini Fallback] Tentando ${modelName}...`);
+            const response = await ai.models.generateContent({
+              model: modelName,
+              contents: contents,
+              config: {
+                responseMimeType: 'application/json',
+                responseSchema: responseSchema
+              }
+            });
+
+            if (response && response.text) {
+              const list = extractJsonTransactions(response.text);
+              if (Array.isArray(list) && list.length > 0) {
+                parsedList = list;
+                console.log(`[Gemini Fallback] Sucesso com ${modelName}!`);
+                break;
+              }
+            }
+          } catch (geminiErr: any) {
+            console.warn(`[Gemini Fallback] Erro em ${modelName}:`, geminiErr.message || geminiErr);
+          }
         }
       }
+    }
+
+    if (!parsedList || parsedList.length === 0) {
+      throw new Error('Não foi possível identificar transações no extrato enviado com a IA do ChatGPT. Verifique se o arquivo contém movimentações financeiras legíveis.');
+    }
+
+    // Sanitize and normalize items
+    const transactions = parsedList.map((item: any) => {
+      const typeStr = String(item.type || '').toLowerCase();
+      const isEntrada = ['entrada', 'credit', 'crédito', 'receita', 'deposito', 'depósito'].some(k => typeStr.includes(k));
+      
+      return {
+        date: item.date || new Date().toISOString().split('T')[0],
+        title: String(item.title || 'Lançamento').trim(),
+        type: isEntrada ? 'entrada' : 'saida',
+        amount: Math.abs(Number(item.amount)) || 0,
+        paymentMethod: item.paymentMethod || 'Pix',
+        category: item.category || 'Não identificada',
+        confidence: Number(item.confidence) || 85
+      };
     });
 
-    const jsonText = response.text || '[]';
-    console.log('Gemini respondeu com sucesso!');
-    const transactions = JSON.parse(jsonText.trim());
+    console.log(`[Importação Concluída] ${transactions.length} transações identificadas e estruturadas com sucesso.`);
     return res.json({ transactions });
   } catch (error: any) {
     console.error('Erro na rota de processamento:', error);
-    return res.status(500).json({ error: error.message || 'Erro ao processar o extrato financeiro.' });
+    return res.status(500).json({ 
+      error: error.message || 'Erro ao processar o extrato financeiro via ChatGPT. Por favor, tente novamente.' 
+    });
   }
 });
 
