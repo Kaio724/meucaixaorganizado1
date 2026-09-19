@@ -16,7 +16,8 @@
   --color-outline: #958ea0;
   --color-outline-variant: #494454;
   
-  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-sans: "Bricolage Grotesque", system-ui, -apple-system, sans-serif;
+  --font-display: "Bricolage Grotesque", system-ui, -apple-system, sans-serif;
 }
 
 /* Mobile & Global Base Setup */
@@ -25,6 +26,8 @@
 }
 
 html, body {
+  font-family: "Bricolage Grotesque", system-ui, -apple-system, sans-serif;
+  font-optical-sizing: auto;
   width: 100%;
   max-width: 100vw;
   overflow-x: hidden;
@@ -32,6 +35,28 @@ html, body {
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+}
+
+/* Default Heading & Title Weights: Bricolage Bold */
+h1, h2, h3, h4, h5, h6, strong, b, .font-heading {
+  font-family: "Bricolage Grotesque", system-ui, -apple-system, sans-serif;
+  font-weight: 700;
+}
+
+/* Dedicated Bricolage Weights Utilities */
+.font-bricolage-bold {
+  font-family: "Bricolage Grotesque", system-ui, -apple-system, sans-serif !important;
+  font-weight: 700 !important;
+}
+
+.font-bricolage-light {
+  font-family: "Bricolage Grotesque", system-ui, -apple-system, sans-serif !important;
+  font-weight: 300 !important;
+}
+
+.font-light, .font-extralight {
+  font-family: "Bricolage Grotesque", system-ui, -apple-system, sans-serif;
+  font-weight: 300 !important;
 }
 
 #root {
