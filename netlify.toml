@@ -11,6 +11,16 @@
   status = 200
 
 [[redirects]]
+  from = "/api/webhook/wiven"
+  to = "/.netlify/functions/webhook-wiven"
+  status = 200
+
+[[redirects]]
+  from = "/api/webhook/pagamento"
+  to = "/.netlify/functions/webhook-wiven"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200

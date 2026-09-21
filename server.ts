@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import OpenAI from 'openai';
 import { GoogleGenAI, Type } from '@google/genai';
 import dotenv from 'dotenv';
+import { processWivenWebhook } from './src/lib/wivenWebhook';
 
 // Load environment variables from .env
 dotenv.config();
@@ -316,6 +317,51 @@ ${fileData}`;
     });
   }
 });
+
+// ==========================================
+// WIVEN / GATEWAY DE PAGAMENTO WEBHOOK
+// Cria usuário automaticamente com senha user1234
+// e libera plano MCO Essencial (R$ 27,90) ou MCO Completo (R$ 47,00)
+// ==========================================
+const handleWivenWebhook = async (req: express.Request, res: express.Response) => {
+  try {
+    console.log('[Webhook Wiven] Notificação recebida:', JSON.stringify(req.body));
+    const result = await processWivenWebhook(req.body);
+
+    if (!result.success) {
+      console.warn('[Webhook Wiven] Não processado:', result.message);
+      return res.status(200).json({
+        status: 'ignored_or_error',
+        message: result.message
+      });
+    }
+
+    console.log('[Webhook Wiven] Sucesso:', result.message);
+    return res.status(200).json(result);
+  } catch (error: any) {
+    console.error('[Webhook Wiven] Erro fatal:', error);
+    return res.status(500).json({
+      error: error.message || 'Erro interno ao processar webhook da Wiven.'
+    });
+  }
+};
+
+const handleWivenStatus = (req: express.Request, res: express.Response) => {
+  const hasServiceKey = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
+  res.json({
+    status: 'online',
+    service: 'MCO Wiven Webhook',
+    configured: hasServiceKey,
+    instructions: hasServiceKey
+      ? 'Webhook ativo e pronto para receber notificações de compra aprovada da Wiven!'
+      : 'Atenção: Configure a variável SUPABASE_SERVICE_ROLE_KEY no ambiente para que os usuários sejam criados no Supabase.'
+  });
+};
+
+app.get('/api/webhook/wiven', handleWivenStatus);
+app.get('/api/webhook/pagamento', handleWivenStatus);
+app.post('/api/webhook/wiven', handleWivenWebhook);
+app.post('/api/webhook/pagamento', handleWivenWebhook);
 
 // Setup Vite Dev Server / Static files middleware
 async function setupViteOrStatic() {
