@@ -8,9 +8,10 @@ interface PlansProps {
   profile: UserProfile;
   onUpdatePlan: (plan: PlanType) => Promise<void>;
   onNavigateToTab: (tab: 'dashboard' | 'historico' | 'retirar' | 'resumo') => void;
+  onShowUpgradeCelebration?: () => void;
 }
 
-export default function Plans({ profile, onUpdatePlan, onNavigateToTab }: PlansProps) {
+export default function Plans({ profile, onUpdatePlan, onNavigateToTab, onShowUpgradeCelebration }: PlansProps) {
   const currentPlan = profile.plan || 'essential';
   const [loadingPlan, setLoadingPlan] = React.useState<PlanType | null>(null);
   const [showProModal, setShowProModal] = React.useState(false);
@@ -226,17 +227,35 @@ export default function Plans({ profile, onUpdatePlan, onNavigateToTab }: PlansP
 
           {/* CTA Upgrade Button */}
           {currentPlan === 'pro' ? (
-            <button
-              disabled
-              className="w-full py-3.5 rounded-xl text-xs font-bold bg-primary/10 border border-primary/20 text-primary cursor-default text-center transition-all"
-            >
-              Seu Plano Ativo
-            </button>
+            <div className="flex flex-col gap-2">
+              <button
+                disabled
+                className="w-full py-3.5 rounded-xl text-xs font-bold bg-primary/10 border border-primary/20 text-primary cursor-default text-center transition-all flex items-center justify-center gap-1.5"
+              >
+                <span className="material-symbols-outlined text-sm">verified</span>
+                <span>Seu Plano Ativo</span>
+              </button>
+              {onShowUpgradeCelebration && (
+                <button
+                  type="button"
+                  onClick={onShowUpgradeCelebration}
+                  className="w-full py-2.5 rounded-xl text-[11px] font-bold text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-sm text-primary">workspace_premium</span>
+                  <span>Ver novidades do MCO Completo</span>
+                </button>
+              )}
+            </div>
           ) : (
             <a
               href={CHECKOUT_PRO_URL}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('mco_upgrade_intent_pending', 'true');
+                }
+              }}
               className="w-full py-3.5 rounded-xl text-xs font-black bg-primary hover:bg-[#c0aeff] text-on-primary border border-primary/30 transition-all duration-200 shadow-[0_4px_12px_rgba(160,120,255,0.15)] hover:shadow-[0_6px_20px_rgba(160,120,255,0.3)] hover:-translate-y-0.5 cursor-pointer text-center flex items-center justify-center select-none"
             >
               Fazer Upgrade para MCO Completo

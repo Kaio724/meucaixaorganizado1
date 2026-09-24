@@ -21,6 +21,7 @@ import PersonalGoals from './components/personal/PersonalGoals';
 import PersonalRecurring from './components/personal/PersonalRecurring';
 import PersonalSummary from './components/personal/PersonalSummary';
 import PersonalMoreMenuModal from './components/personal/PersonalMoreMenuModal';
+import UpgradeSuccessModal from './components/UpgradeSuccessModal';
 
 // Supabase Helpers
 import { 
@@ -57,6 +58,18 @@ export default function App() {
   const [editingPersonalTx, setEditingPersonalTx] = useState<Transaction | null>(null);
   const [showPersonalMoreModal, setShowPersonalMoreModal] = useState(false);
   const [showPersonalProModal, setShowPersonalProModal] = useState(false);
+  const [showUpgradeSuccessModal, setShowUpgradeSuccessModal] = useState(false);
+
+  const handleCloseUpgradeSuccessModal = () => {
+    const userId = session?.user?.id || 'local';
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`mco_upgrade_popup_seen_${userId}`, 'true');
+      localStorage.removeItem(`mco_upgrade_intent_${userId}`);
+      localStorage.removeItem('mco_upgrade_intent_pending');
+    }
+    setShowUpgradeSuccessModal(false);
+    setActiveTab('dashboard');
+  };
 
   const handleAccountChange = (newAccount: AccountType) => {
     if (newAccount === 'pessoal' && !isPro) {
@@ -148,14 +161,29 @@ export default function App() {
     setDbError(null);
     try {
       let dbProfile = await fetchProfile(userId);
+      const emailLower = email?.toLowerCase();
       const isKaio = 
-        email?.toLowerCase() === 'kaiopatrick42@gmail.com' || 
-        email?.toLowerCase() === 'kaioparick42@gmail.com';
+        emailLower === 'kaiopatrick42@gmail.com' || 
+        emailLower === 'kaioparick42@gmail.com';
       const isPromoUser = 
-        email?.toLowerCase() === 'joaorodriguesamancio@gmail.com';
+        emailLower === 'joaorodriguesamancio@gmail.com' ||
+        emailLower === 'aguiavideodigital@hotmail.com';
+
+      // Check auth user metadata for pro plan or recent upgrade
+      const supabase = getSupabase();
+      let authUserMetadata: any = null;
+      try {
+        const { data } = await supabase?.auth.getUser();
+        authUserMetadata = data?.user?.user_metadata;
+      } catch (e) {
+        // ignore
+      }
+      const isProByMetadata = 
+        authUserMetadata?.plano === 'pro' || 
+        session?.user?.user_metadata?.plano === 'pro';
 
       if (dbProfile) {
-        if ((isKaio || isPromoUser) && dbProfile.plan !== 'pro') {
+        if ((isKaio || isPromoUser || isProByMetadata) && dbProfile.plan !== 'pro') {
           dbProfile.plan = 'pro';
           try {
             await upsertProfile(userId, dbProfile);
@@ -171,6 +199,35 @@ export default function App() {
           if (typeof window !== 'undefined') {
             localStorage.setItem('mco_active_account_type', 'empresarial');
           }
+        }
+
+        // --- CHECK UPGRADE POPUP (APPEARS EXACTLY ONCE WHEN USER UPGRADES) ---
+        if (typeof window !== 'undefined') {
+          const previousKnownPlan = localStorage.getItem(`mco_last_known_plan_${userId}`);
+          const hasSeenUpgradePopup = localStorage.getItem(`mco_upgrade_popup_seen_${userId}`) === 'true';
+          const hadUpgradeIntent = 
+            localStorage.getItem(`mco_upgrade_intent_${userId}`) === 'true' || 
+            localStorage.getItem('mco_upgrade_intent_pending') === 'true';
+          
+          const urlParams = new URLSearchParams(window.location.search);
+          const isUpgradeUrlParam = 
+            urlParams.get('upgrade') === 'success' || 
+            urlParams.get('upgraded') === 'true' || 
+            urlParams.get('plano') === 'pro';
+          
+          const hasUpgradeMetadata = !!(authUserMetadata?.ultimo_upgrade || session?.user?.user_metadata?.ultimo_upgrade);
+
+          if (currentPlan === 'pro' && !hasSeenUpgradePopup) {
+            // Only trigger if this is an upgrade from essential, or after completing checkout/upgrade intent/metadata
+            if (previousKnownPlan === 'essential' || hadUpgradeIntent || isUpgradeUrlParam || hasUpgradeMetadata) {
+              setShowUpgradeSuccessModal(true);
+              if (isUpgradeUrlParam) {
+                window.history.replaceState({}, document.title, window.location.pathname);
+              }
+            }
+          }
+
+          localStorage.setItem(`mco_last_known_plan_${userId}`, currentPlan);
         }
         const dbTxs = await fetchTransactions(userId);
         setTransactions(dbTxs);
@@ -237,9 +294,11 @@ export default function App() {
       const emailLower = session?.user?.email?.toLowerCase();
       const isPromoUser = 
         emailLower === 'joaorodriguesamancio@gmail.com' ||
+        emailLower === 'aguiavideodigital@hotmail.com' ||
         emailLower === 'kaiopatrick42@gmail.com' ||
         emailLower === 'kaioparick42@gmail.com';
-      if (isPromoUser) {
+      const isProByMetadata = session?.user?.user_metadata?.plano === 'pro';
+      if (isPromoUser || isProByMetadata) {
         newProfile.plan = 'pro';
       } else {
         newProfile.plan = newProfile.plan || 'essential';
@@ -416,6 +475,7 @@ export default function App() {
   const handleUpdatePlan = async (newPlan: 'essential' | 'pro') => {
     if (!profile) return;
     const userId = session?.user?.id || 'local';
+    const oldPlan = profile.plan || 'essential';
     setDbError(null);
     try {
       const updatedProfile: UserProfile = {
@@ -424,9 +484,18 @@ export default function App() {
       };
       if (userId !== 'local' && typeof window !== 'undefined') {
         localStorage.setItem(`mco_profile_plan_${userId}`, newPlan);
+        localStorage.setItem(`mco_last_known_plan_${userId}`, newPlan);
       }
       await upsertProfile(userId, updatedProfile);
       setProfile(updatedProfile);
+      
+      // If upgraded from essential to pro, trigger popup if not yet seen
+      if (oldPlan === 'essential' && newPlan === 'pro') {
+        const hasSeen = typeof window !== 'undefined' ? localStorage.getItem(`mco_upgrade_popup_seen_${userId}`) === 'true' : false;
+        if (!hasSeen) {
+          setShowUpgradeSuccessModal(true);
+        }
+      }
       
       // Also update in local storage if not logged in
       if (userId === 'local') {
@@ -1345,6 +1414,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                             profile={profile}
                             onUpdatePlan={handleUpdatePlan}
                             onNavigateToTab={setActiveTab}
+                            onShowUpgradeCelebration={() => setShowUpgradeSuccessModal(true)}
                           />
                         )}
 
@@ -1818,7 +1888,14 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                   href={CHECKOUT_PRO_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={() => setShowPersonalProModal(false)}
+                  onClick={() => {
+                    const userId = session?.user?.id || 'local';
+                    if (typeof window !== 'undefined') {
+                      localStorage.setItem(`mco_upgrade_intent_${userId}`, 'true');
+                      localStorage.setItem('mco_upgrade_intent_pending', 'true');
+                    }
+                    setShowPersonalProModal(false);
+                  }}
                   className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#9333ea] hover:from-[#8b4bf0] hover:to-[#a855f7] text-white font-black text-xs transition-all duration-300 flex items-center justify-center gap-2 border border-[#c4b5fd]/40 shadow-[0_6px_24px_rgba(124,58,237,0.45)] hover:shadow-[0_8px_30px_rgba(124,58,237,0.65)] hover:-translate-y-0.5 select-none text-center"
                 >
                   <span className="material-symbols-outlined text-base">workspace_premium</span>
@@ -1841,6 +1918,13 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
           </div>
         )}
       </AnimatePresence>
+
+      {/* Upgrade Success Modal - Appears exactly 1 time when upgrading from Essential to Completo */}
+      <UpgradeSuccessModal 
+        isOpen={showUpgradeSuccessModal}
+        onClose={handleCloseUpgradeSuccessModal}
+        userName={profile?.name}
+      />
     </div>
   );
 }
