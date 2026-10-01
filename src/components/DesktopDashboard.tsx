@@ -18,13 +18,16 @@ interface DesktopDashboardProps {
   sobrouPercentage: number;
   visibleTransactions: Transaction[];
   onAddTransaction: (tx: Omit<Transaction, 'id'>) => void;
-  onNavigateToTab: (tab: 'dashboard' | 'historico' | 'retirar' | 'resumo') => void;
+  onNavigateToTab: (tab: any) => void;
   setShowQuickAdd: (show: boolean) => void;
   setShowProModal: (show: boolean) => void;
   setTxType: (type: TransactionType) => void;
   isPro: boolean;
   onOpenImport: () => void;
   userId?: string;
+  despesasFixas?: number;
+  despesasVariaveis?: number;
+  estimatedFixedTotal?: number;
 }
 
 export default function DesktopDashboard({
@@ -44,6 +47,9 @@ export default function DesktopDashboard({
   setTxType,
   isPro,
   onOpenImport,
+  despesasFixas = 0,
+  despesasVariaveis = 0,
+  estimatedFixedTotal = 0,
 }: DesktopDashboardProps) {
   const { isLight } = useTheme();
 
@@ -317,9 +323,9 @@ export default function DesktopDashboard({
             <span className="text-lg font-black text-error glow-text-red tracking-tight leading-none">
               {formatBRL(totalSaidas)}
             </span>
-            <span className="text-[9px] text-on-surface-variant/70 font-semibold mt-1 flex items-center gap-1">
+            <span className="text-[9px] text-on-surface-variant/70 font-semibold mt-1 flex items-center gap-1 truncate" title={`Fixas: ${formatBRL(despesasFixas > 0 ? despesasFixas : estimatedFixedTotal)} | Variáveis: ${formatBRL(despesasVariaveis)}`}>
               <span className="w-1 h-1 rounded-full bg-error shadow-[0_0_4px_rgba(255,180,171,0.8)]"></span>
-              Despesas totais do período
+              Fixas: {formatBRL(despesasFixas > 0 ? despesasFixas : estimatedFixedTotal)} • Var: {formatBRL(despesasVariaveis)}
             </span>
           </div>
         </div>
@@ -362,6 +368,63 @@ export default function DesktopDashboard({
               Disponível para reinvestimento
             </span>
           </div>
+        </div>
+      </div>
+
+      {/* Row 2.5: Banner Contas Fixas e Variáveis (Requirement 9) */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-[#171328] via-[#141022] to-[#100d1c] border border-primary/20 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary shrink-0">
+            <span className="material-symbols-outlined text-xl">receipt_long</span>
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h4 className="text-xs sm:text-sm font-extrabold text-white">
+                Contas Fixas & Variáveis
+              </h4>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30">
+                Previsibilidade de Caixa
+              </span>
+            </div>
+            <p className="text-[11px] text-zinc-300 mt-0.5">
+              {estimatedFixedTotal > 0
+                ? `Seu negócio possui ${formatBRL(estimatedFixedTotal)} em despesas fixas recorrentes.`
+                : 'Identifique quais despesas são fixas e onde seu dinheiro está variando.'}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
+          <div className="flex items-center gap-3 text-xs">
+            <div className="flex flex-col text-left">
+              <span className="text-[9px] text-zinc-400 uppercase font-bold">Fixas</span>
+              <span className="text-xs font-black text-primary">
+                {formatBRL(despesasFixas > 0 ? despesasFixas : estimatedFixedTotal)}
+              </span>
+            </div>
+            <span className="text-zinc-600">•</span>
+            <div className="flex flex-col text-left">
+              <span className="text-[9px] text-zinc-400 uppercase font-bold">Variáveis</span>
+              <span className="text-xs font-black text-amber-300">
+                {formatBRL(despesasVariaveis)}
+              </span>
+            </div>
+            <span className="text-zinc-600">•</span>
+            <div className="flex flex-col text-left">
+              <span className="text-[9px] text-zinc-400 uppercase font-bold">Total</span>
+              <span className="text-xs font-black text-rose-400">
+                {formatBRL(totalSaidas)}
+              </span>
+            </div>
+          </div>
+
+          <button
+            onClick={() => onNavigateToTab('contas')}
+            className="px-3.5 py-2 rounded-xl bg-primary/20 hover:bg-primary/30 border border-primary/35 text-primary font-bold text-xs flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap active:scale-95"
+          >
+            <span>Ver Contas</span>
+            <span className="material-symbols-outlined text-sm">arrow_forward</span>
+          </button>
         </div>
       </div>
 

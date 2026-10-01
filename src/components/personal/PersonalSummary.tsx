@@ -118,6 +118,18 @@ export default function PersonalSummary({
   const saldo = totalEntradas - totalSaidas;
   const savingsRate = totalEntradas > 0 ? (saldo / totalEntradas) * 100 : 0;
 
+  // Fixed vs Variable (Requirement 14)
+  const despesasFixas = currentTxs
+    .filter(t => t.type === 'saida' && t.expenseType === 'fixa')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const despesasVariaveis = currentTxs
+    .filter(t => t.type === 'saida' && t.expenseType !== 'fixa')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const pctFixas = totalSaidas > 0 ? Math.round((despesasFixas / totalSaidas) * 100) : 0;
+  const pctVariaveis = totalSaidas > 0 ? Math.round((despesasVariaveis / totalSaidas) * 100) : 0;
+
   // Previous Month totals for MoM comparison
   const prevEntradas = prevTxs
     .filter(t => t.type === 'entrada')
@@ -342,6 +354,65 @@ export default function PersonalSummary({
             </span>
           </div>
         </div>
+      </div>
+
+      {/* Contas Fixas vs Variáveis - Requirement 14 */}
+      <div className="p-5 sm:p-6 rounded-[28px] bg-gradient-to-r from-[#171026] via-[#140e24] to-[#110b20] border border-[#7C3AED]/25 shadow-xl flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-[#7C3AED]/20 border border-[#7C3AED]/35 flex items-center justify-center text-[#c4b5fd]">
+              <Wallet className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-white">Classificação de Despesas</h3>
+              <p className="text-[11px] text-zinc-400">Contas fixas recorrentes vs gastos variáveis do mês</p>
+            </div>
+          </div>
+          <span className="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-zinc-300">
+            Total Saídas: {formatBRL(totalSaidas)}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="p-4 rounded-2xl bg-black/40 border border-purple-500/20 flex flex-col">
+            <div className="flex items-center justify-between text-zinc-400 mb-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-purple-300">Contas Fixas</span>
+              <span className="text-[10px] font-extrabold text-purple-400">{pctFixas}%</span>
+            </div>
+            <span className="text-base sm:text-xl font-black text-white truncate">{formatBRL(despesasFixas)}</span>
+            <span className="text-[10px] text-zinc-500 mt-0.5">Aluguel, assinaturas, planos</span>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-black/40 border border-amber-500/20 flex flex-col">
+            <div className="flex items-center justify-between text-zinc-400 mb-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-300">Contas Variáveis</span>
+              <span className="text-[10px] font-extrabold text-amber-400">{pctVariaveis}%</span>
+            </div>
+            <span className="text-base sm:text-xl font-black text-white truncate">{formatBRL(despesasVariaveis)}</span>
+            <span className="text-[10px] text-zinc-500 mt-0.5">Mercado, lazer, compras, etc.</span>
+          </div>
+        </div>
+
+        {totalSaidas > 0 && (
+          <div className="flex flex-col gap-1.5 pt-1">
+            <div className="w-full bg-black/50 h-2.5 rounded-full flex overflow-hidden border border-white/5">
+              <div 
+                className="bg-purple-500 h-full transition-all duration-500"
+                style={{ width: `${pctFixas}%` }}
+                title={`Fixas: ${pctFixas}%`}
+              />
+              <div 
+                className="bg-amber-400 h-full transition-all duration-500"
+                style={{ width: `${pctVariaveis}%` }}
+                title={`Variáveis: ${pctVariaveis}%`}
+              />
+            </div>
+            <div className="flex items-center justify-between text-[10px] text-zinc-400 font-semibold px-0.5">
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-purple-500" /> Fixas: {pctFixas}%</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400" /> Variáveis: {pctVariaveis}%</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Dynamic AI / Personal Insight Banner */}

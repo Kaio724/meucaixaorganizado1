@@ -56,30 +56,7 @@ const DEFAULT_ORCAMENTOS = (currentMonth: number, currentYear: number): Omit<Orc
   }
 ];
 
-const DEFAULT_RECORRENCIAS: Omit<RecorrenciaPessoal, 'id' | 'user_id'>[] = [
-  {
-    tipo: 'saida',
-    descricao: 'Netflix & Streaming',
-    valor: 55.90,
-    categoria: 'Assinaturas',
-    frequencia: 'mensal',
-    dia_cobranca: 10,
-    forma_pagamento: 'Cartão de Crédito',
-    proxima_data: new Date().toISOString().split('T')[0],
-    ativo: true
-  },
-  {
-    tipo: 'saida',
-    descricao: 'Academia',
-    valor: 119.00,
-    categoria: 'Saúde',
-    frequencia: 'mensal',
-    dia_cobranca: 15,
-    forma_pagamento: 'Pix',
-    proxima_data: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    ativo: true
-  }
-];
+const DEFAULT_RECORRENCIAS: Omit<RecorrenciaPessoal, 'id' | 'user_id'>[] = [];
 
 // Helper to generate UUID-like string
 export function generateId(): string {
@@ -494,6 +471,23 @@ export async function deleteReservaMeta(
 // ----------------------------------------------------
 
 export async function fetchRecorrencias(userId: string): Promise<RecorrenciaPessoal[]> {
+  // One-time reset to ensure previous demo seed recurrences ('Netflix', 'Academia') are cleared
+  if (typeof window !== 'undefined' && localStorage.getItem('mco_recorrencias_zeroed_v1') !== 'true') {
+    try {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('mco_recorrencias_')) {
+          keysToRemove.push(k);
+        }
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+      localStorage.setItem('mco_recorrencias_zeroed_v1', 'true');
+    } catch (e) {
+      console.warn('Error clearing seed recorrencias:', e);
+    }
+  }
+
   const localKey = RECORRENCIAS_KEY(userId);
   let localData: RecorrenciaPessoal[] = [];
 
@@ -502,13 +496,8 @@ export async function fetchRecorrencias(userId: string): Promise<RecorrenciaPess
     if (raw) {
       localData = JSON.parse(raw);
     } else {
-      localData = DEFAULT_RECORRENCIAS.map(r => ({
-        ...r,
-        id: generateId(),
-        user_id: userId,
-        created_at: new Date().toISOString()
-      }));
-      localStorage.setItem(localKey, JSON.stringify(localData));
+      localData = [];
+      localStorage.setItem(localKey, JSON.stringify([]));
     }
   } catch (e) {
     console.warn('Error reading recorrencias from localStorage', e);

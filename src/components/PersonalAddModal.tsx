@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Transaction, TransactionType } from '../types';
+import { Transaction, TransactionType, ExpenseType } from '../types';
 import { PAYMENT_METHODS } from '../initialData';
 import { 
   getPersonalCategoryNamesByType, 
@@ -28,6 +28,7 @@ export default function PersonalAddModal({
   defaultType = 'entrada'
 }: PersonalAddModalProps) {
   const [txType, setTxType] = useState<TransactionType>(defaultType);
+  const [expenseType, setExpenseType] = useState<ExpenseType>('variavel');
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
@@ -46,6 +47,7 @@ export default function PersonalAddModal({
     if (isOpen) {
       if (editingTx) {
         setTxType(editingTx.type);
+        setExpenseType(editingTx.expenseType || 'variavel');
         setTitle(editingTx.title || '');
         setAmount(editingTx.amount ? editingTx.amount.toString() : '');
         setCategory(editingTx.category || '');
@@ -54,6 +56,7 @@ export default function PersonalAddModal({
         setDescription(editingTx.description || '');
       } else {
         setTxType(defaultType);
+        setExpenseType('variavel');
         setTitle('');
         setAmount('');
         const cats = getPersonalCategoryNamesByType(userId, defaultType);
@@ -118,7 +121,8 @@ export default function PersonalAddModal({
       category: category || 'Outros',
       paymentMethod,
       description: description.trim() || undefined,
-      accountType: 'pessoal'
+      accountType: 'pessoal',
+      expenseType: txType === 'saida' ? expenseType : undefined
     });
 
     onClose();
@@ -202,6 +206,41 @@ export default function PersonalAddModal({
             <span>Despesa (Saiu)</span>
           </button>
         </div>
+
+        {/* Tipo de Despesa Switcher: Fixa vs Variável (Requirement 8) */}
+        {txType === 'saida' && (
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider">
+              Classificação da Despesa
+            </label>
+            <div className="grid grid-cols-2 p-1 rounded-xl bg-black/40 border border-white/5 gap-1 select-none h-11">
+              <button
+                type="button"
+                onClick={() => setExpenseType('fixa')}
+                className={`h-full px-3 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  expenseType === 'fixa'
+                    ? 'bg-[#7C3AED] text-white shadow-sm border border-[#c4b5fd]/30'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                <span className="material-symbols-outlined text-sm">lock</span>
+                <span>Conta Fixa</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setExpenseType('variavel')}
+                className={`h-full px-3 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  expenseType === 'variavel'
+                    ? 'bg-amber-500 text-white shadow-sm border border-amber-400/30'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                <span className="material-symbols-outlined text-sm">tune</span>
+                <span>Conta Variável</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Main Form */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-3.5 sm:gap-4">

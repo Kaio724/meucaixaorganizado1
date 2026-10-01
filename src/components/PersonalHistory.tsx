@@ -30,6 +30,7 @@ export default function PersonalHistory({
 }: PersonalHistoryProps) {
   const now = new Date();
   const [filterType, setFilterType] = useState<'tudo' | 'entrada' | 'saida'>('tudo');
+  const [filterExpenseType, setFilterExpenseType] = useState<'todas' | 'fixas' | 'variaveis'>('todas');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMonthIndex, setSelectedMonthIndex] = useState(now.getMonth());
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
@@ -71,7 +72,14 @@ export default function PersonalHistory({
         return false;
       }
 
-      // 2. Month filter (if not showing all time)
+      // 2. Fixed vs Variable filter (Requirement 12)
+      if (filterExpenseType === 'fixas') {
+        if (tx.type !== 'saida' || tx.expenseType !== 'fixa') return false;
+      } else if (filterExpenseType === 'variaveis') {
+        if (tx.type !== 'saida' || tx.expenseType === 'fixa') return false;
+      }
+
+      // 3. Month filter (if not showing all time)
       if (!showAllTime && searchQuery.trim() === '') {
         const txDate = new Date(tx.date + 'T12:00:00');
         if (txDate.getMonth() !== selectedMonthIndex || txDate.getFullYear() !== selectedYear) {
@@ -240,43 +248,90 @@ export default function PersonalHistory({
           </div>
         </div>
 
-        {/* Type Switcher Tabs: Tudo | Entradas | Saídas */}
-        <div className="flex items-center gap-1.5 p-1 bg-black/40 rounded-2xl border border-white/5 self-start">
-          <button
-            type="button"
-            onClick={() => setFilterType('tudo')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              filterType === 'tudo'
-                ? 'bg-[#7C3AED] text-white shadow-[0_0_12px_rgba(124,58,237,0.4)]'
-                : 'text-zinc-400 hover:text-white'
-            }`}
-          >
-            Todas ({transactions.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilterType('entrada')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition-all cursor-pointer ${
-              filterType === 'entrada'
-                ? 'bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.4)]'
-                : 'text-zinc-400 hover:text-emerald-400'
-            }`}
-          >
-            <span className="material-symbols-outlined text-sm">arrow_downward</span>
-            <span>Entradas</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilterType('saida')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition-all cursor-pointer ${
-              filterType === 'saida'
-                ? 'bg-rose-500 text-white shadow-[0_0_12px_rgba(244,63,94,0.4)]'
-                : 'text-zinc-400 hover:text-rose-400'
-            }`}
-          >
-            <span className="material-symbols-outlined text-sm">arrow_upward</span>
-            <span>Saídas</span>
-          </button>
+        {/* Type Switcher Tabs & Expense Classification Tabs */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Main Types */}
+          <div className="flex items-center gap-1.5 p-1 bg-black/40 rounded-2xl border border-white/5">
+            <button
+              type="button"
+              onClick={() => setFilterType('tudo')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                filterType === 'tudo'
+                  ? 'bg-[#7C3AED] text-white shadow-[0_0_12px_rgba(124,58,237,0.4)]'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              Todas ({transactions.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterType('entrada')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                filterType === 'entrada'
+                  ? 'bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.4)]'
+                  : 'text-zinc-400 hover:text-emerald-400'
+              }`}
+            >
+              <span className="material-symbols-outlined text-sm">arrow_downward</span>
+              <span>Entradas</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterType('saida')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                filterType === 'saida'
+                  ? 'bg-rose-500 text-white shadow-[0_0_12px_rgba(244,63,94,0.4)]'
+                  : 'text-zinc-400 hover:text-rose-400'
+              }`}
+            >
+              <span className="material-symbols-outlined text-sm">arrow_upward</span>
+              <span>Saídas</span>
+            </button>
+          </div>
+
+          {/* Despesas Fixas vs Variáveis (Requirement 12) */}
+          <div className="flex items-center gap-1 p-1 bg-black/40 rounded-2xl border border-white/5">
+            <span className="text-[10px] font-bold text-zinc-500 uppercase px-2">Despesas:</span>
+            <button
+              type="button"
+              onClick={() => setFilterExpenseType('todas')}
+              className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
+                filterExpenseType === 'todas'
+                  ? 'bg-white/20 text-white'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              Todas
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setFilterExpenseType('fixas');
+                if (filterType === 'entrada') setFilterType('saida');
+              }}
+              className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
+                filterExpenseType === 'fixas'
+                  ? 'bg-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.4)]'
+                  : 'text-zinc-400 hover:text-purple-300'
+              }`}
+            >
+              Fixas
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setFilterExpenseType('variaveis');
+                if (filterType === 'entrada') setFilterType('saida');
+              }}
+              className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
+                filterExpenseType === 'variaveis'
+                  ? 'bg-amber-500 text-black font-extrabold shadow-[0_0_10px_rgba(245,158,11,0.4)]'
+                  : 'text-zinc-400 hover:text-amber-300'
+              }`}
+            >
+              Variáveis
+            </button>
+          </div>
         </div>
 
         {/* Summary Mini-Bar */}
@@ -370,10 +425,22 @@ export default function PersonalHistory({
                           </div>
 
                           <div className="flex flex-col min-w-0">
-                            <span className="text-xs sm:text-sm font-semibold text-white truncate">
-                              {tx.title}
-                            </span>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-xs sm:text-sm font-semibold text-white truncate">
+                                {tx.title}
+                              </span>
+                              {tx.type === 'saida' && (
+                                <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded uppercase ${
+                                  tx.expenseType === 'fixa'
+                                    ? 'bg-purple-500/20 text-[#c4b5fd] border border-purple-500/30'
+                                    : 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+                                }`}>
+                                  {tx.expenseType === 'fixa' ? 'Fixa' : 'Variável'}
+                                </span>
+                              )}
+                            </div>
                             <span className="text-[11px] text-zinc-500 font-medium truncate mt-0.5">
+                              {tx.type === 'saida' && tx.expenseType ? `${tx.expenseType === 'fixa' ? 'Fixa' : 'Variável'} • ` : ''}
                               {tx.category} • {tx.paymentMethod}
                             </span>
                           </div>

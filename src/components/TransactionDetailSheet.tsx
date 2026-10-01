@@ -12,7 +12,8 @@ import {
   Trash2, 
   ArrowUpRight, 
   ArrowDownRight,
-  Sparkles
+  Sparkles,
+  Receipt
 } from 'lucide-react';
 import { Transaction } from '../types';
 import { getCategoryInfo } from '../lib/categories';
@@ -162,6 +163,23 @@ export default function TransactionDetailSheet({
                   {transaction.paymentMethod || 'Pix'}
                 </span>
               </div>
+
+              {/* Classificação da Despesa (Fixa ou Variável) */}
+              {transaction.type === 'saida' && (
+                <div className="py-3 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 text-zinc-400">
+                    <Receipt className="w-4 h-4 text-zinc-500" />
+                    <span className="font-medium">Classificação</span>
+                  </div>
+                  <span className={`font-extrabold px-2.5 py-1 rounded-lg border uppercase text-[10px] tracking-wider ${
+                    transaction.expenseType === 'fixa'
+                      ? 'bg-purple-500/20 text-[#c4b5fd] border-purple-500/35'
+                      : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                  }`}>
+                    {transaction.expenseType === 'fixa' ? 'Conta Fixa' : 'Conta Variável'}
+                  </span>
+                </div>
+              )}
 
               {/* Conta / Destino se houver */}
               {transaction.account && (

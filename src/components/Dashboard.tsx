@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Transaction, UserProfile, TransactionType } from '../types';
+import { Transaction, UserProfile, TransactionType, ExpenseType } from '../types';
 import { AVAILABLE_CATEGORIES, PAYMENT_METHODS, ACCOUNT_OPTIONS } from '../initialData';
 import { getCategoryNamesByType, getCategoryInfo } from '../lib/categories';
+import { fetchContas } from '../lib/contasData';
 import EvolutionCard from './EvolutionCard';
 import ProGrowthPanel from './ProGrowthPanel';
 import ProInsights from './ProInsights';
@@ -20,7 +21,7 @@ interface DashboardProps {
   onAddTransaction: (tx: Omit<Transaction, 'id'>) => void;
   onEditTransaction?: (tx: Transaction) => void;
   onDeleteTransaction?: (id: string) => void;
-  onNavigateToTab: (tab: 'dashboard' | 'historico' | 'retirar' | 'resumo') => void;
+  onNavigateToTab: (tab: any) => void;
 }
 
 export default function Dashboard({ 
@@ -38,16 +39,35 @@ export default function Dashboard({
   const [showProModal, setShowProModal] = useState(false);
   const [selectedTxForDetail, setSelectedTxForDetail] = useState<Transaction | null>(null);
   const [txType, setTxType] = useState<TransactionType>('entrada');
+  const [expenseType, setExpenseType] = useState<ExpenseType>('variavel');
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('Pix');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [account, setAccount] = useState<string | undefined>(undefined);
+  const [estimatedFixedTotal, setEstimatedFixedTotal] = useState(0);
 
   const now = new Date();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
+
+  // Load estimated fixed total from registered fixed accounts
+  useEffect(() => {
+    fetchContas(userId, 'empresarial')
+      .then((contas) => {
+        const sum = contas
+          .filter((c) => c.tipo === 'fixa' && c.ativa)
+          .reduce((acc, c) => {
+            if (c.frequencia === 'semanal') return acc + c.valor * 4;
+            if (c.frequencia === 'quinzenal') return acc + c.valor * 2;
+            if (c.frequencia === 'anual') return acc + c.valor / 12;
+            return acc + c.valor;
+          }, 0);
+        setEstimatedFixedTotal(sum);
+      })
+      .catch((err) => console.warn(err));
+  }, [userId, transactions]);
 
   // For Essential plan users, main calculations only reflect the current month.
   const visibleTransactions = isPro
@@ -67,6 +87,15 @@ export default function Dashboard({
     .reduce((sum, t) => sum + t.amount, 0);
 
   const totalSobrou = totalEntradas - totalSaidas;
+
+  // Despesas Fixas vs Despesas Variáveis (Requirement 9)
+  const despesasFixas = visibleTransactions
+    .filter(t => t.type === 'saida' && t.expenseType === 'fixa')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const despesasVariaveis = visibleTransactions
+    .filter(t => t.type === 'saida' && t.expenseType !== 'fixa')
+    .reduce((sum, t) => sum + t.amount, 0);
 
   // Percentage leftover
   const sobrouPercentage = totalEntradas > 0 
@@ -93,7 +122,9 @@ export default function Dashboard({
       date,
       category,
       paymentMethod,
-      account
+      account,
+      accountType: 'empresarial',
+      expenseType: txType === 'saida' ? expenseType : undefined
     });
 
     // Reset Form
@@ -101,6 +132,7 @@ export default function Dashboard({
     setAmount('');
     setPaymentMethod('Pix');
     setAccount(undefined);
+    setExpenseType('variavel');
     setShowQuickAdd(false);
   };
 
@@ -280,6 +312,61 @@ export default function Dashboard({
                 {formatBRL(totalRetiradas)}
               </div>
             </div>
+
+            {/* Contas Fixas e Variáveis Widget (Requirement 9) */}
+            <div className="col-span-2 p-4 rounded-2xl bg-gradient-to-r from-[#171328] via-[#141022] to-[#100d1c] border border-primary/20 flex flex-col gap-3 shadow-md">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center text-primary">
+                    <span className="material-symbols-outlined text-base">receipt_long</span>
+                  </div>
+                  <div>
+                    <span className="text-[11px] uppercase font-extrabold text-white tracking-wider block">
+                      Contas Fixas & Variáveis
+                    </span>
+                    <span className="text-[10px] text-zinc-400">
+                      Estrutura de despesas do negócio
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => onNavigateToTab('contas')}
+                  className="text-[11px] font-bold text-primary hover:text-white flex items-center gap-0.5 cursor-pointer"
+                >
+                  <span>Gerenciar</span>
+                  <span className="material-symbols-outlined text-xs">arrow_forward</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 pt-1 border-t border-white/5">
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-bold text-zinc-400 uppercase">Despesas Fixas</span>
+                  <span className="text-xs sm:text-sm font-black text-primary mt-0.5 truncate">
+                    {formatBRL(despesasFixas > 0 ? despesasFixas : estimatedFixedTotal)}
+                  </span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-bold text-zinc-400 uppercase">Variáveis</span>
+                  <span className="text-xs sm:text-sm font-black text-amber-300 mt-0.5 truncate">
+                    {formatBRL(despesasVariaveis)}
+                  </span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-bold text-zinc-400 uppercase">Total Despesas</span>
+                  <span className="text-xs sm:text-sm font-black text-rose-400 mt-0.5 truncate">
+                    {formatBRL(totalSaidas)}
+                  </span>
+                </div>
+              </div>
+
+              {estimatedFixedTotal > 0 && (
+                <div className="text-[10px] text-zinc-400 font-medium bg-black/30 px-2.5 py-1.5 rounded-xl border border-white/5 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-primary text-xs">info</span>
+                  <span>Seu negócio possui {formatBRL(estimatedFixedTotal)} em despesas fixas recorrentes.</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -418,6 +505,9 @@ export default function Dashboard({
           setTxType={setTxType}
           isPro={isPro}
           onOpenImport={() => setShowImportModal(true)}
+          despesasFixas={despesasFixas}
+          despesasVariaveis={despesasVariaveis}
+          estimatedFixedTotal={estimatedFixedTotal}
         />
       </div>
 
@@ -483,6 +573,41 @@ export default function Dashboard({
                   <span>Despesa (Saiu)</span>
                 </button>
               </div>
+
+              {/* Tipo de Despesa Switcher: Fixa vs Variável (Requirement 8) */}
+              {txType === 'saida' && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider">
+                    Classificação da Despesa
+                  </label>
+                  <div className="grid grid-cols-2 p-1 rounded-xl bg-black/40 border border-white/5 gap-1 select-none h-11">
+                    <button
+                      type="button"
+                      onClick={() => setExpenseType('fixa')}
+                      className={`h-full px-3 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        expenseType === 'fixa'
+                          ? 'bg-primary text-white shadow-sm border border-primary/30'
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-sm">lock</span>
+                      <span>Conta Fixa</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setExpenseType('variavel')}
+                      className={`h-full px-3 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        expenseType === 'variavel'
+                          ? 'bg-amber-500 text-white shadow-sm border border-amber-400/30'
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-sm">tune</span>
+                      <span>Conta Variável</span>
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Form Content */}
               <form onSubmit={handleQuickAddSubmit} className="flex flex-col gap-4">

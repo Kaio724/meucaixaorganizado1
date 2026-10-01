@@ -31,6 +31,14 @@ export default function PersonalMoreMenuModal({
 
   const menuItems = [
     {
+      id: 'contas' as ActiveTab,
+      label: 'Contas Fixas e Variáveis',
+      description: 'Previsibilidade de despesas fixas e controle de variáveis',
+      icon: Sparkles,
+      color: 'text-purple-400',
+      bgColor: 'bg-purple-500/15 border-purple-500/30'
+    },
+    {
       id: 'resumo' as ActiveTab,
       label: 'Resumo Mensal',
       description: 'Análise de gastos, taxas de poupança e top categorias',

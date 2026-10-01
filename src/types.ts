@@ -12,6 +12,7 @@ export interface UserProfile {
 }
 
 export type TransactionType = 'entrada' | 'saida';
+export type ExpenseType = 'fixa' | 'variavel';
 
 export interface Transaction {
   id: string;
@@ -24,9 +25,32 @@ export interface Transaction {
   description?: string;
   account?: string; // Account origin/destination (Dinheiro, Conta Corrente, Poupança, Cartão de Crédito, Outro)
   accountType?: AccountType; // 'empresarial' | 'pessoal' (default: 'empresarial')
+  expenseType?: ExpenseType; // 'fixa' | 'variavel'
+  contaId?: string; // Reference to ContaFinanceira if generated or launched from a registered account
 }
 
-export type ActiveTab = 'dashboard' | 'historico' | 'retirar' | 'resumo' | 'planos' | 'categorias' | 'metas' | 'orcamentos' | 'recorrencias';
+export type ActiveTab = 'dashboard' | 'historico' | 'contas' | 'retirar' | 'resumo' | 'planos' | 'categorias' | 'metas' | 'orcamentos' | 'recorrencias';
+
+export type ContaTipo = 'fixa' | 'variavel';
+export type ContaFrequencia = 'mensal' | 'semanal' | 'quinzenal' | 'anual' | 'personalizada' | 'avulsa';
+
+export interface ContaFinanceira {
+  id: string;
+  user_id?: string;
+  nome: string;
+  valor: number;
+  tipo: ContaTipo; // 'fixa' | 'variavel'
+  categoria: string;
+  frequencia: ContaFrequencia;
+  frequenciaPersonalizada?: string;
+  dataVencimento?: string; // YYYY-MM-DD
+  diaVencimento?: number; // 1-31
+  observacao?: string;
+  ativa: boolean;
+  accountType: AccountType; // 'empresarial' | 'pessoal' - CRITICAL ISOLATION RULE
+  ultimoLancamentoMes?: string; // YYYY-MM
+  created_at?: string;
+}
 
 export interface OrcamentoPessoal {
   id: string;

@@ -32,7 +32,8 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     paymentMethod: 'Cartão de Crédito',
     category: 'Materiais',
     description: 'Embalagens para os doces gourmet',
-    accountType: 'empresarial'
+    accountType: 'empresarial',
+    expenseType: 'variavel'
   },
   {
     id: '3',
@@ -54,7 +55,8 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     paymentMethod: 'Débito',
     category: 'Transporte',
     description: 'Abastecimento para entregas do final de semana',
-    accountType: 'empresarial'
+    accountType: 'empresarial',
+    expenseType: 'variavel'
   }
 ];
 

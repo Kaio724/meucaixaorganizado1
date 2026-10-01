@@ -16,6 +16,7 @@ import {
 import { Transaction, UserProfile, OrcamentoPessoal, MetaPessoal, RecorrenciaPessoal } from '../types';
 import { getPersonalCategoryInfo } from '../lib/personalCategories';
 import { fetchOrcamentos, fetchMetas, fetchRecorrencias, saveRecorrencia, computeNextDate } from '../lib/personalData';
+import { fetchContas } from '../lib/contasData';
 import TransactionDetailSheet from './TransactionDetailSheet';
 
 interface PersonalDashboardProps {
@@ -51,6 +52,7 @@ export default function PersonalDashboard({
   const [orcamentos, setOrcamentos] = useState<OrcamentoPessoal[]>([]);
   const [metas, setMetas] = useState<MetaPessoal[]>([]);
   const [recorrencias, setRecorrencias] = useState<RecorrenciaPessoal[]>([]);
+  const [estimatedFixedTotal, setEstimatedFixedTotal] = useState(0);
   const [loadingExtras, setLoadingExtras] = useState(true);
   const [dashboardToast, setDashboardToast] = useState<string | null>(null);
   const [selectedTxForDetail, setSelectedTxForDetail] = useState<Transaction | null>(null);
@@ -62,14 +64,24 @@ export default function PersonalDashboard({
 
   const loadExtraData = async () => {
     try {
-      const [orc, met, rec] = await Promise.all([
+      const [orc, met, rec, cnt] = await Promise.all([
         fetchOrcamentos(userId, selectedMonthIndex + 1, selectedYear),
         fetchMetas(userId),
-        fetchRecorrencias(userId)
+        fetchRecorrencias(userId),
+        fetchContas(userId, 'pessoal')
       ]);
       setOrcamentos(orc);
       setMetas(met);
       setRecorrencias(rec);
+      const fixTotal = cnt
+        .filter((c) => c.tipo === 'fixa' && c.ativa)
+        .reduce((sum, c) => {
+          if (c.frequencia === 'semanal') return sum + c.valor * 4;
+          if (c.frequencia === 'quinzenal') return sum + c.valor * 2;
+          if (c.frequencia === 'anual') return sum + c.valor / 12;
+          return sum + c.valor;
+        }, 0);
+      setEstimatedFixedTotal(fixTotal);
     } catch (e) {
       console.warn(e);
     } finally {
@@ -116,6 +128,15 @@ export default function PersonalDashboard({
     .reduce((sum, t) => sum + t.amount, 0);
 
   const saldoPessoal = totalEntradas - totalSaidas;
+
+  // Despesas Fixas vs Variáveis (Requirement 10 & 11)
+  const despesasFixas = monthTransactions
+    .filter((t) => t.type === 'saida' && t.expenseType === 'fixa')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const despesasVariaveis = monthTransactions
+    .filter((t) => t.type === 'saida' && t.expenseType !== 'fixa')
+    .reduce((sum, t) => sum + t.amount, 0);
 
   // Format currency helper
   const formatBRL = (val: number) => {
@@ -373,6 +394,61 @@ export default function PersonalDashboard({
           </div>
         </div>
 
+      </div>
+
+      {/* Contas Fixas e Variáveis Pessoal Widget (Requirement 10 & 11) */}
+      <div className="p-5 rounded-[28px] bg-gradient-to-r from-[#171328] via-[#141022] to-[#100d1c] border border-[#7C3AED]/25 flex flex-col gap-3 shadow-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-[#7C3AED]/20 border border-[#7C3AED]/30 flex items-center justify-center text-[#c4b5fd]">
+              <span className="material-symbols-outlined text-base">receipt_long</span>
+            </div>
+            <div>
+              <span className="text-xs font-extrabold text-white tracking-wide block">
+                Contas Fixas & Variáveis (Pessoal)
+              </span>
+              <span className="text-[10px] text-zinc-400">
+                Quanto você precisa para manter seu custo de vida
+              </span>
+            </div>
+          </div>
+
+          <button
+            onClick={() => onNavigateToTab('contas')}
+            className="text-xs font-bold text-[#c4b5fd] hover:text-white flex items-center gap-1 cursor-pointer transition-colors"
+          >
+            <span>Gerenciar</span>
+            <span className="material-symbols-outlined text-sm">arrow_forward</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3 pt-2 border-t border-white/5">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold text-zinc-400 uppercase">Contas Fixas</span>
+            <span className="text-sm sm:text-base font-black text-[#c4b5fd] mt-0.5 truncate">
+              {formatBRL(despesasFixas > 0 ? despesasFixas : estimatedFixedTotal)}
+            </span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold text-zinc-400 uppercase">Variáveis</span>
+            <span className="text-sm sm:text-base font-black text-amber-300 mt-0.5 truncate">
+              {formatBRL(despesasVariaveis)}
+            </span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold text-zinc-400 uppercase">Total Despesas</span>
+            <span className="text-sm sm:text-base font-black text-rose-400 mt-0.5 truncate">
+              {formatBRL(totalSaidas)}
+            </span>
+          </div>
+        </div>
+
+        {estimatedFixedTotal > 0 && (
+          <div className="text-[10px] text-zinc-400 font-medium bg-black/30 px-3 py-1.5 rounded-xl border border-white/5 flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-[#c4b5fd] text-xs">info</span>
+            <span>Suas despesas fixas recorrentes pessoais somam {formatBRL(estimatedFixedTotal)} por mês.</span>
+          </div>
+        )}
       </div>
 
       {/* Recorrências Alert Banner if upcoming */}

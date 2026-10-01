@@ -429,7 +429,19 @@ html.light .fixed.inset-0 .bg-surface-container {
 }
 
 /* Headers and Navbars */
-html.light header,
+html.light header.desktop-top-header {
+  background: transparent !important;
+  border-bottom: 1px solid #E5E7EB !important;
+  box-shadow: none !important;
+}
+
+html.light header.mobile-top-header {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+html.light header:not(.desktop-top-header):not(.mobile-top-header),
 html.light [class*="bg-[#0e0c18]"] {
   background-color: rgba(255, 255, 255, 0.95) !important;
   border-color: #E5E7EB !important;

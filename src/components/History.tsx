@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Transaction, UserProfile, TransactionType } from '../types';
+import { Transaction, UserProfile, TransactionType, ExpenseType } from '../types';
 import { AVAILABLE_CATEGORIES, PAYMENT_METHODS, ACCOUNT_OPTIONS } from '../initialData';
 import { getCategoryNamesByType, getCategoryInfo } from '../lib/categories';
 import TransactionDetailSheet from './TransactionDetailSheet';
@@ -26,6 +26,7 @@ export default function History({ profile, userId = 'default_user', transactions
   const [showProModal, setShowProModal] = useState(false);
   const [selectedTxForDetail, setSelectedTxForDetail] = useState<Transaction | null>(null);
   const [filterType, setFilterType] = useState<'tudo' | 'entrada' | 'saida'>('tudo');
+  const [filterExpenseType, setFilterExpenseType] = useState<'todas' | 'fixas' | 'variaveis'>('todas');
   const [selectedMonthIndex, setSelectedMonthIndex] = useState(new Date().getMonth()); // default to current month
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [searchQuery, setSearchQuery] = useState('');
@@ -66,6 +67,7 @@ export default function History({ profile, userId = 'default_user', transactions
 
   // Add/Edit Form states
   const [formType, setFormType] = useState<TransactionType>('entrada');
+  const [formExpenseType, setFormExpenseType] = useState<ExpenseType>('variavel');
   const [formTitle, setFormTitle] = useState('');
   const [formAmount, setFormAmount] = useState('');
   const [formCategory, setFormCategory] = useState('');
@@ -131,6 +133,15 @@ export default function History({ profile, userId = 'default_user', transactions
         if (tx.type !== 'saida' || tx.category === 'Pro-Labore') return false;
       } else {
         if (tx.type !== activeType) return false;
+      }
+    }
+
+    // 2.1 Expense Type Filter (Requirement 12: Todas | Fixas | Variáveis)
+    if (filterExpenseType !== 'todas') {
+      if (filterExpenseType === 'fixas') {
+        if (tx.type !== 'saida' || tx.expenseType !== 'fixa') return false;
+      } else if (filterExpenseType === 'variaveis') {
+        if (tx.type !== 'saida' || tx.expenseType === 'fixa') return false;
       }
     }
 
@@ -244,6 +255,7 @@ export default function History({ profile, userId = 'default_user', transactions
   const startEdit = (tx: Transaction) => {
     setEditingTx(tx);
     setFormType(tx.type);
+    setFormExpenseType(tx.expenseType || 'variavel');
     setFormTitle(tx.title);
     setFormAmount(String(tx.amount));
     setFormCategory(tx.category);
@@ -256,6 +268,7 @@ export default function History({ profile, userId = 'default_user', transactions
   const startAdd = () => {
     setEditingTx(null);
     setFormType('entrada');
+    setFormExpenseType('variavel');
     setFormTitle('');
     setFormAmount('');
     setFormCategory(getCategoryNamesByType(userId, 'entrada')[0] || 'Outros');
@@ -277,7 +290,9 @@ export default function History({ profile, userId = 'default_user', transactions
       date: formDate,
       category: formCategory,
       paymentMethod: formPaymentMethod,
-      account: formAccount
+      account: formAccount,
+      accountType: 'empresarial' as const,
+      expenseType: formType === 'saida' ? formExpenseType : undefined
     };
 
     if (editingTx) {
@@ -294,6 +309,7 @@ export default function History({ profile, userId = 'default_user', transactions
     // Reset Form
     setFormTitle('');
     setFormAmount('');
+    setFormExpenseType('variavel');
   };
 
   // Set category dropdown when type shifts
@@ -585,37 +601,80 @@ export default function History({ profile, userId = 'default_user', transactions
             </AnimatePresence>
     
             {/* Filters pills row */}
-            <div className="flex gap-2 items-center">
-              <button
-                onClick={() => { setFilterType('tudo'); setAdvType('tudo'); }}
-                className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all duration-200 cursor-pointer ${
-                  filterType === 'tudo' && advType === 'tudo'
-                    ? 'bg-primary/20 text-primary border border-primary/40 shadow-sm'
-                    : 'bg-black/40 text-zinc-400 hover:text-white border border-white/5'
-                }`}
-              >
-                Tudo
-              </button>
-              <button
-                onClick={() => { setFilterType('entrada'); setAdvType('entrada'); }}
-                className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all duration-200 cursor-pointer ${
-                  filterType === 'entrada' || advType === 'entrada'
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm'
-                    : 'bg-black/40 text-zinc-400 hover:text-white border border-white/5'
-                }`}
-              >
-                Entradas
-              </button>
-              <button
-                onClick={() => { setFilterType('saida'); setAdvType('saida'); }}
-                className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all duration-200 cursor-pointer ${
-                  filterType === 'saida' || advType === 'saida'
-                    ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40 shadow-sm'
-                    : 'bg-black/40 text-zinc-400 hover:text-white border border-white/5'
-                }`}
-              >
-                Saídas
-              </button>
+            <div className="flex flex-wrap items-center justify-between gap-2.5">
+              {/* Type pills: Tudo | Entradas | Saídas */}
+              <div className="flex gap-1.5 items-center">
+                <button
+                  onClick={() => { setFilterType('tudo'); setAdvType('tudo'); }}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
+                    filterType === 'tudo' && advType === 'tudo'
+                      ? 'bg-primary/20 text-primary border border-primary/40 shadow-sm'
+                      : 'bg-black/40 text-zinc-400 hover:text-white border border-white/5'
+                  }`}
+                >
+                  Tudo
+                </button>
+                <button
+                  onClick={() => { setFilterType('entrada'); setAdvType('entrada'); }}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
+                    filterType === 'entrada' || advType === 'entrada'
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm'
+                      : 'bg-black/40 text-zinc-400 hover:text-white border border-white/5'
+                  }`}
+                >
+                  Entradas
+                </button>
+                <button
+                  onClick={() => { setFilterType('saida'); setAdvType('saida'); }}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
+                    filterType === 'saida' || advType === 'saida'
+                      ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40 shadow-sm'
+                      : 'bg-black/40 text-zinc-400 hover:text-white border border-white/5'
+                  }`}
+                >
+                  Saídas
+                </button>
+              </div>
+
+              {/* Expense Type Sub-Pills (Requirement 12: Todas | Fixas | Variáveis) */}
+              <div className="flex items-center gap-1 p-1 bg-black/40 rounded-xl border border-white/5">
+                <span className="text-[10px] font-bold text-zinc-500 uppercase px-1 hidden sm:inline">Despesas:</span>
+                <button
+                  type="button"
+                  onClick={() => setFilterExpenseType('todas')}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                    filterExpenseType === 'todas'
+                      ? 'bg-white/15 text-white border border-white/20'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  Todas
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterExpenseType('fixas')}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                    filterExpenseType === 'fixas'
+                      ? 'bg-primary text-white shadow-sm border border-primary/40'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[12px]">lock</span>
+                  <span>Fixas</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterExpenseType('variaveis')}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                    filterExpenseType === 'variaveis'
+                      ? 'bg-amber-500 text-white shadow-sm border border-amber-400/40'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[12px]">tune</span>
+                  <span>Variáveis</span>
+                </button>
+              </div>
             </div>
           </div>
     
@@ -662,8 +721,20 @@ export default function History({ profile, userId = 'default_user', transactions
                         </div>
                         <div className="min-w-0">
                           <h4 className="text-xs sm:text-sm font-semibold text-white leading-tight truncate">{tx.title}</h4>
-                          <p className="text-[11px] text-zinc-500 mt-0.5 truncate">
-                            {tx.category} • {tx.paymentMethod}
+                          <p className="text-[11px] text-zinc-500 mt-0.5 truncate flex items-center gap-1.5">
+                            {tx.type === 'saida' && (
+                              <span className={`text-[9.5px] font-extrabold px-1.5 py-0.2 rounded-md ${
+                                tx.expenseType === 'fixa'
+                                  ? 'bg-primary/20 text-primary border border-primary/30'
+                                  : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                              }`}>
+                                {tx.expenseType === 'fixa' ? 'Fixa' : 'Variável'}
+                              </span>
+                            )}
+                            {tx.type === 'saida' && <span>•</span>}
+                            <span>{tx.category}</span>
+                            <span>•</span>
+                            <span>{tx.paymentMethod}</span>
                           </p>
                         </div>
                       </div>
@@ -852,12 +923,23 @@ export default function History({ profile, userId = 'default_user', transactions
                       <td className="p-4 font-medium text-on-surface-variant/90">{formattedDate}</td>
                       <td className="p-4 font-bold text-on-surface">{tx.title}</td>
                       <td className="p-4">
-                        <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 bg-white/[0.03] border border-white/[0.06] rounded-full ${getCategoryInfo(tx.category, tx.type, userId).color}`}>
-                          <span className="material-symbols-outlined text-sm leading-none shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>
-                            {getCategoryIcon(tx.category, tx.type)}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {tx.type === 'saida' && (
+                            <span className={`inline-flex items-center text-[10px] font-black px-2 py-0.5 rounded-full border ${
+                              tx.expenseType === 'fixa'
+                                ? 'bg-primary/20 border-primary/35 text-primary'
+                                : 'bg-amber-500/20 border-amber-500/35 text-amber-300'
+                            }`}>
+                              {tx.expenseType === 'fixa' ? 'Fixa' : 'Variável'}
+                            </span>
+                          )}
+                          <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 bg-white/[0.03] border border-white/[0.06] rounded-full ${getCategoryInfo(tx.category, tx.type, userId).color}`}>
+                            <span className="material-symbols-outlined text-sm leading-none shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>
+                              {getCategoryIcon(tx.category, tx.type)}
+                            </span>
+                            <span>{tx.category}</span>
                           </span>
-                          <span>{tx.category}</span>
-                        </span>
+                        </div>
                       </td>
                       <td className="p-4 text-on-surface-variant/80 font-medium">
                         <div>{tx.paymentMethod}</div>

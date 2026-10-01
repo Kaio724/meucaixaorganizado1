@@ -5,6 +5,7 @@ let supabaseClient: any = null;
 let hasPlanoColumn = typeof window !== 'undefined' && localStorage.getItem('mco_db_has_plano') !== 'false';
 let hasContaColumn = typeof window !== 'undefined' && localStorage.getItem('mco_db_has_conta') !== 'false';
 let hasTipoContaColumn = typeof window !== 'undefined' && localStorage.getItem('mco_db_has_tipo_conta') !== 'false';
+let hasTipoDespesaColumn = typeof window !== 'undefined' && localStorage.getItem('mco_db_has_tipo_despesa') !== 'false';
 
 export function getSupabaseUrl() {
   return (import.meta as any).env.VITE_SUPABASE_URL || 'https://yfbgauajvijwngvhrkms.supabase.co';
@@ -79,6 +80,7 @@ export function mapDbToTransaction(row: any): Transaction {
     description: row.descricao || '',
     account: row.conta || undefined,
     accountType: (row.tipo_conta as 'empresarial' | 'pessoal') || 'empresarial',
+    expenseType: (row.tipo_despesa as any) || (row.expense_type as any) || undefined,
   };
 }
 
@@ -100,6 +102,9 @@ export function mapTransactionToDb(tx: any, userId: string) {
   }
   if (hasTipoContaColumn) {
     row.tipo_conta = tx.accountType || 'empresarial';
+  }
+  if (hasTipoDespesaColumn && tx.expenseType) {
+    row.tipo_despesa = tx.expenseType;
   }
   return row;
 }
@@ -360,7 +365,7 @@ export async function insertTransaction(userId: string, tx: Omit<Transaction, 'i
       .single();
 
     if (error) {
-      if (error.message?.includes('tipo_conta') || error.message?.includes('conta') || error.message?.includes('column')) {
+      if (error.message?.includes('tipo_conta') || error.message?.includes('conta') || error.message?.includes('tipo_despesa') || error.message?.includes('column')) {
         if (error.message?.includes('tipo_conta')) {
           hasTipoContaColumn = false;
           if (typeof window !== 'undefined') localStorage.setItem('mco_db_has_tipo_conta', 'false');
@@ -369,9 +374,14 @@ export async function insertTransaction(userId: string, tx: Omit<Transaction, 'i
           hasContaColumn = false;
           if (typeof window !== 'undefined') localStorage.setItem('mco_db_has_conta', 'false');
         }
+        if (error.message?.includes('tipo_despesa')) {
+          hasTipoDespesaColumn = false;
+          if (typeof window !== 'undefined') localStorage.setItem('mco_db_has_tipo_despesa', 'false');
+        }
         const retryDbTx = { ...dbTx };
         if (!hasContaColumn) delete retryDbTx.conta;
         if (!hasTipoContaColumn) delete retryDbTx.tipo_conta;
+        if (!hasTipoDespesaColumn) delete retryDbTx.tipo_despesa;
         const { data: retryData, error: retryError } = await supabase
           .from('lancamentos')
           .insert(retryDbTx)
@@ -440,7 +450,7 @@ export async function updateTransaction(userId: string, tx: Transaction): Promis
       .single();
 
     if (error) {
-      if (error.message?.includes('tipo_conta') || error.message?.includes('conta') || error.message?.includes('column')) {
+      if (error.message?.includes('tipo_conta') || error.message?.includes('conta') || error.message?.includes('tipo_despesa') || error.message?.includes('column')) {
         if (error.message?.includes('tipo_conta')) {
           hasTipoContaColumn = false;
           if (typeof window !== 'undefined') localStorage.setItem('mco_db_has_tipo_conta', 'false');
@@ -449,9 +459,14 @@ export async function updateTransaction(userId: string, tx: Transaction): Promis
           hasContaColumn = false;
           if (typeof window !== 'undefined') localStorage.setItem('mco_db_has_conta', 'false');
         }
+        if (error.message?.includes('tipo_despesa')) {
+          hasTipoDespesaColumn = false;
+          if (typeof window !== 'undefined') localStorage.setItem('mco_db_has_tipo_despesa', 'false');
+        }
         const retryDbTx = { ...dbTx };
         if (!hasContaColumn) delete retryDbTx.conta;
         if (!hasTipoContaColumn) delete retryDbTx.tipo_conta;
+        if (!hasTipoDespesaColumn) delete retryDbTx.tipo_despesa;
         const { data: retryData, error: retryError } = await supabase
           .from('lancamentos')
           .update(retryDbTx)

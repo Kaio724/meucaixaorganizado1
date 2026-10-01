@@ -23,6 +23,7 @@ import PersonalSummary from './components/personal/PersonalSummary';
 import PersonalMoreMenuModal from './components/personal/PersonalMoreMenuModal';
 import UpgradeSuccessModal from './components/UpgradeSuccessModal';
 import ThemeToggle from './components/ThemeToggle';
+import ContasFixasVariaveis from './components/ContasFixasVariaveis';
 
 // Supabase Helpers
 import { 
@@ -817,6 +818,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
   const NAV_ITEMS_EMPRESARIAL = [
     { id: 'dashboard' as ActiveTab, label: 'Dashboard', icon: 'home' },
     { id: 'historico' as ActiveTab, label: 'Histórico', icon: 'history' },
+    { id: 'contas' as ActiveTab, label: 'Contas', icon: 'receipt_long' },
     { id: 'retirar' as ActiveTab, label: 'Retirar', icon: 'payments' },
     { id: 'resumo' as ActiveTab, label: 'Resumo', icon: 'pie_chart' },
     { id: 'categorias' as ActiveTab, label: 'Categorias', icon: 'category' },
@@ -826,6 +828,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
   const NAV_ITEMS_PESSOAL = [
     { id: 'dashboard' as ActiveTab, label: 'Início', icon: 'home' },
     { id: 'historico' as ActiveTab, label: 'Histórico', icon: 'history' },
+    { id: 'contas' as ActiveTab, label: 'Contas', icon: 'receipt_long' },
     { id: 'metas' as ActiveTab, label: 'Metas', icon: 'track_changes' },
     { id: 'orcamentos' as ActiveTab, label: 'Orçamentos', icon: 'savings' },
     { id: 'recorrencias' as ActiveTab, label: 'Recorrências', icon: 'autorenew' },
@@ -1044,7 +1047,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
             <div className="flex-1 flex flex-col justify-between pb-[calc(88px+env(safe-area-inset-bottom,0px))] lg:pb-8 min-w-0 px-0 lg:px-0">
               
               {/* Desktop Header */}
-              <header className="hidden lg:flex items-center justify-between h-16 py-0 border-b border-white/5 mb-6 shrink-0 select-none min-w-0">
+              <header className="desktop-top-header hidden lg:flex items-center justify-between h-16 py-0 border-b border-white/5 mb-6 shrink-0 select-none min-w-0">
                 <div className="flex flex-col text-left min-w-0 mr-4">
                   <span className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-widest leading-none mb-1">
                     {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
@@ -1055,6 +1058,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                         <>
                           {activeTab === 'dashboard' && 'Dashboard Pessoal'}
                           {activeTab === 'historico' && 'Histórico Pessoal'}
+                          {activeTab === 'contas' && 'Contas Fixas & Variáveis'}
                           {activeTab === 'metas' && 'Metas de Economia'}
                           {activeTab === 'orcamentos' && 'Orçamentos Mensais'}
                           {activeTab === 'recorrencias' && 'Recorrências & Fixos'}
@@ -1065,6 +1069,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                         <>
                           {activeTab === 'dashboard' && 'Dashboard Financeiro'}
                           {activeTab === 'historico' && 'Histórico de Lançamentos'}
+                          {activeTab === 'contas' && 'Contas Fixas & Variáveis'}
                           {activeTab === 'retirar' && 'Retirar e Retornos'}
                           {activeTab === 'resumo' && 'Resumo Financeiro'}
                           {activeTab === 'planos' && 'Upgrade de Plano'}
@@ -1127,7 +1132,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
               </header>
 
               {/* Mobile Top Navigation Bar (Clean floating bar without black background strip) */}
-              <header className="pt-[calc(8px+env(safe-area-inset-top,0px))] pb-1 px-3 sm:px-4 sticky top-0 bg-transparent z-30 mb-2 lg:hidden flex items-center justify-between min-h-[46px] select-none gap-2">
+              <header className="mobile-top-header pt-[calc(8px+env(safe-area-inset-top,0px))] pb-1 px-3 sm:px-4 sticky top-0 bg-transparent z-30 mb-2 lg:hidden flex items-center justify-between min-h-[46px] select-none gap-2">
                 
                 {/* Backdrop dismiss for active mobile popovers */}
                 {(showProfileMenu || showNotification) && (
@@ -1336,6 +1341,17 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                           />
                         )}
 
+                        {activeTab === 'contas' && (
+                          <ContasFixasVariaveis
+                            profile={profile}
+                            userId={session?.user?.id || 'default_user'}
+                            accountType="pessoal"
+                            transactions={pessoalTransactions}
+                            onAddTransaction={handleAddTransaction}
+                            onNavigateToTab={setActiveTab}
+                          />
+                        )}
+
                         {activeTab === 'metas' && (
                           <PersonalGoals
                             profile={profile}
@@ -1398,6 +1414,17 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                             onAddTransaction={handleAddTransaction}
                             onEditTransaction={handleEditTransaction}
                             onDeleteTransaction={handleDeleteTransaction}
+                          />
+                        )}
+
+                        {activeTab === 'contas' && (
+                          <ContasFixasVariaveis
+                            profile={profile}
+                            userId={session?.user?.id || 'default_user'}
+                            accountType="empresarial"
+                            transactions={empresarialTransactions}
+                            onAddTransaction={handleAddTransaction}
+                            onNavigateToTab={setActiveTab}
                           />
                         )}
 
@@ -1567,14 +1594,14 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                         className="flex-1 h-full flex flex-col items-center justify-center gap-1 cursor-pointer transition-all relative group tap-target"
                       >
                         <div className={`px-3 py-1 rounded-full flex items-center justify-center transition-all ${
-                          ['orcamentos', 'recorrencias', 'resumo', 'categorias'].includes(activeTab)
+                          ['orcamentos', 'recorrencias', 'resumo', 'categorias', 'contas'].includes(activeTab)
                             ? 'bg-[#7C3AED]/30 text-[#c4b5fd] border border-[#7C3AED]/40 shadow-[0_0_14px_rgba(124,58,237,0.4)]'
                             : 'text-zinc-400 hover:text-zinc-200'
                         }`}>
                           <span className="material-symbols-outlined text-[20px]">more_horiz</span>
                         </div>
                         <span className={`text-[9px] font-bold tracking-tight uppercase transition-colors whitespace-nowrap ${
-                          ['orcamentos', 'recorrencias', 'resumo', 'categorias'].includes(activeTab) ? 'text-[#c4b5fd]' : 'text-zinc-400'
+                          ['orcamentos', 'recorrencias', 'resumo', 'categorias', 'contas'].includes(activeTab) ? 'text-[#c4b5fd]' : 'text-zinc-400'
                         }`}>
                           Mais
                         </span>

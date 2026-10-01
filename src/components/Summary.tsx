@@ -22,6 +22,18 @@ export default function Summary({ transactions, profile, onNavigateToPlanos }: S
 
   const netBalance = totalEntradas - totalSaidas;
 
+  // Despesas Fixas vs Variáveis (Requirement 14)
+  const despesasFixas = transactions
+    .filter(t => t.type === 'saida' && t.expenseType === 'fixa')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const despesasVariaveis = transactions
+    .filter(t => t.type === 'saida' && t.expenseType !== 'fixa')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const pctFixas = totalSaidas > 0 ? Math.round((despesasFixas / totalSaidas) * 100) : 0;
+  const pctVariaveis = totalSaidas > 0 ? Math.round((despesasVariaveis / totalSaidas) * 100) : 0;
+
   // Group by category helper
   const getCategoryBreakdown = (type: 'entrada' | 'saida') => {
     const list = transactions.filter(t => t.type === type);
@@ -174,6 +186,66 @@ export default function Summary({ transactions, profile, onNavigateToPlanos }: S
 
       {/* Right Column (Categories Distribution & Projections) */}
       <div className="col-span-12 lg:col-span-7 flex flex-col gap-6">
+        
+        {/* Contas Fixas vs Variáveis - Requirement 14 */}
+        <div className="flex flex-col gap-3 p-5 rounded-[28px] bg-gradient-to-r from-[#171328] via-[#141022] to-[#100d1c] border border-primary/25 shadow-xl">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-primary/20 flex items-center justify-center text-primary border border-primary/30">
+                <span className="material-symbols-outlined text-lg">receipt_long</span>
+              </div>
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-white">Classificação de Despesas</h3>
+                <p className="text-[11px] text-zinc-400">Previsibilidade e flexibilidade de custos no período</p>
+              </div>
+            </div>
+            <span className="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-zinc-300">
+              Total: {formatBRL(totalSaidas)}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 pt-2">
+            <div className="p-3.5 rounded-2xl bg-black/40 border border-purple-500/20 flex flex-col">
+              <div className="flex items-center justify-between text-zinc-400 mb-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-purple-300">Contas Fixas</span>
+                <span className="text-[10px] font-extrabold text-purple-400">{pctFixas}%</span>
+              </div>
+              <span className="text-base sm:text-lg font-black text-white truncate">{formatBRL(despesasFixas)}</span>
+              <span className="text-[10px] text-zinc-500 mt-0.5">Recorrentes e previsíveis</span>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-black/40 border border-amber-500/20 flex flex-col">
+              <div className="flex items-center justify-between text-zinc-400 mb-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-300">Contas Variáveis</span>
+                <span className="text-[10px] font-extrabold text-amber-400">{pctVariaveis}%</span>
+              </div>
+              <span className="text-base sm:text-lg font-black text-white truncate">{formatBRL(despesasVariaveis)}</span>
+              <span className="text-[10px] text-zinc-500 mt-0.5">Consumo e operacionais</span>
+            </div>
+          </div>
+
+          {totalSaidas > 0 && (
+            <div className="flex flex-col gap-1.5 pt-1">
+              <div className="w-full bg-black/50 h-2.5 rounded-full flex overflow-hidden border border-white/5">
+                <div 
+                  className="bg-purple-500 h-full transition-all duration-500"
+                  style={{ width: `${pctFixas}%` }}
+                  title={`Fixas: ${pctFixas}%`}
+                />
+                <div 
+                  className="bg-amber-400 h-full transition-all duration-500"
+                  style={{ width: `${pctVariaveis}%` }}
+                  title={`Variáveis: ${pctVariaveis}%`}
+                />
+              </div>
+              <div className="flex items-center justify-between text-[10px] text-zinc-400 font-semibold px-0.5">
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-purple-500" /> Fixas: {pctFixas}%</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400" /> Variáveis: {pctVariaveis}%</span>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Category distribution groups */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           
