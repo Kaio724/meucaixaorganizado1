@@ -21,8 +21,8 @@ export default function AccountToggle({
 
   return (
     <div
-      className={`inline-flex items-center rounded-full bg-[#140f24]/90 backdrop-blur-xl border border-white/10 shadow-md relative select-none shrink-0 ${
-        isSm ? 'p-0.5 w-[218px]' : 'p-1 w-[240px]'
+      className={`inline-flex items-center rounded-full bg-[#140f24]/90 backdrop-blur-xl border border-white/10 shadow-md relative select-none ${
+        isSm ? 'p-0.5 w-full max-w-[218px]' : 'p-1 w-full max-w-[240px]'
       } ${className}`}
       role="tablist"
       aria-label="Alternar entre Conta Empresarial e Conta Pessoal"
@@ -39,7 +39,7 @@ export default function AccountToggle({
             : 'py-1.5 text-xs min-h-[34px]'
         } ${
           activeAccount === 'empresarial'
-            ? 'text-white font-extrabold'
+            ? 'text-white keep-white font-extrabold'
             : 'text-zinc-400 hover:text-zinc-200'
         }`}
       >
@@ -64,7 +64,7 @@ export default function AccountToggle({
             : 'py-1.5 text-xs min-h-[34px]'
         } ${
           activeAccount === 'pessoal'
-            ? 'text-white font-extrabold'
+            ? 'text-white keep-white font-extrabold'
             : 'text-zinc-400 hover:text-zinc-200'
         }`}
       >

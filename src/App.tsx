@@ -22,6 +22,7 @@ import PersonalRecurring from './components/personal/PersonalRecurring';
 import PersonalSummary from './components/personal/PersonalSummary';
 import PersonalMoreMenuModal from './components/personal/PersonalMoreMenuModal';
 import UpgradeSuccessModal from './components/UpgradeSuccessModal';
+import ThemeToggle from './components/ThemeToggle';
 
 // Supabase Helpers
 import { 
@@ -167,7 +168,8 @@ export default function App() {
         emailLower === 'kaioparick42@gmail.com';
       const isPromoUser = 
         emailLower === 'joaorodriguesamancio@gmail.com' ||
-        emailLower === 'aguiavideodigital@hotmail.com';
+        emailLower === 'aguiavideodigital@hotmail.com' ||
+        emailLower === 'contatogmtec@gmail.com';
 
       // Check auth user metadata for pro plan or recent upgrade
       const supabase = getSupabase();
@@ -295,6 +297,7 @@ export default function App() {
       const isPromoUser = 
         emailLower === 'joaorodriguesamancio@gmail.com' ||
         emailLower === 'aguiavideodigital@hotmail.com' ||
+        emailLower === 'contatogmtec@gmail.com' ||
         emailLower === 'kaiopatrick42@gmail.com' ||
         emailLower === 'kaioparick42@gmail.com';
       const isProByMetadata = session?.user?.user_metadata?.plano === 'pro';
@@ -1038,16 +1041,16 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
             </aside>
 
             {/* Core page layout on the right of the sidebar */}
-            <div className="flex-1 flex flex-col justify-between pb-[calc(88px+env(safe-area-inset-bottom,0px))] lg:pb-8 min-w-0 px-5 sm:px-6">
+            <div className="flex-1 flex flex-col justify-between pb-[calc(88px+env(safe-area-inset-bottom,0px))] lg:pb-8 min-w-0 px-0 lg:px-0">
               
               {/* Desktop Header */}
-              <header className="hidden lg:flex items-center justify-between py-6 border-b border-white/5 mb-8 shrink-0 select-none">
-                <div className="flex flex-col text-left">
+              <header className="hidden lg:flex items-center justify-between h-16 py-0 border-b border-white/5 mb-6 shrink-0 select-none min-w-0">
+                <div className="flex flex-col text-left min-w-0 mr-4">
                   <span className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-widest leading-none mb-1">
                     {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                   </span>
-                  <div className="flex items-center gap-2.5">
-                    <h2 className="text-xl font-bold text-on-surface tracking-tight leading-none uppercase">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <h2 className="text-lg xl:text-xl font-bold text-on-surface tracking-tight leading-none uppercase truncate">
                       {activeAccount === 'pessoal' ? (
                         <>
                           {activeTab === 'dashboard' && 'Dashboard Pessoal'}
@@ -1069,7 +1072,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                         </>
                       )}
                     </h2>
-                    <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border ${
+                    <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border shrink-0 ${
                       activeAccount === 'pessoal'
                         ? 'bg-[#7C3AED]/20 text-[#c4b5fd] border-[#7C3AED]/35'
                         : 'bg-primary/20 text-primary border-primary/30'
@@ -1079,18 +1082,13 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                  {/* Account Switcher Header Toggle */}
-                  <AccountToggle
-                    activeAccount={activeAccount}
-                    onAccountChange={handleAccountChange}
-                    size="sm"
-                    isPro={isPro}
-                  />
+                <div className="flex items-center gap-2.5 xl:gap-3 shrink-0">
+                  {/* Theme Switcher Toggle */}
+                  <ThemeToggle variant="compact" />
 
-                  {/* Plano atual pill (Empresarial only) */}
+                  {/* Plano atual pill (Empresarial only, responsive) */}
                   {activeAccount === 'empresarial' && (
-                    <div className="flex items-center gap-2">
+                    <div className="hidden xl:flex items-center gap-2">
                       <span className="text-[10px] text-on-surface-variant font-medium tracking-wider uppercase">
                         Plano
                       </span>
@@ -1115,12 +1113,12 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                     }}
                     className="flex items-center gap-2.5 pl-3 border-l border-white/5 cursor-pointer group"
                   >
-                    <div className="w-8 h-8 rounded-full bg-surface-container-high border border-outline-variant/30 flex items-center justify-center text-on-surface group-hover:bg-surface-container-highest transition-colors">
+                    <div className="w-8 h-8 rounded-full bg-surface-container-high border border-outline-variant/30 flex items-center justify-center text-on-surface group-hover:bg-surface-container-highest transition-colors shrink-0">
                       <span className="material-symbols-outlined text-base">person</span>
                     </div>
-                    <div className="flex flex-col text-left">
-                      <span className="text-xs font-bold text-on-surface group-hover:text-primary transition-colors">{profile.name}</span>
-                      <span className="text-[9px] text-on-surface-variant">
+                    <div className="flex flex-col text-left max-w-[130px]">
+                      <span className="text-xs font-bold text-on-surface group-hover:text-primary transition-colors truncate">{profile.name}</span>
+                      <span className="text-[9px] text-on-surface-variant truncate">
                         {activeAccount === 'empresarial' ? profile.businessName : 'Finanças Pessoais'}
                       </span>
                     </div>
@@ -1186,6 +1184,11 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                           <p className="text-[10px] text-on-surface-variant truncate">{profile.businessName}</p>
                         </div>
 
+                        {/* Theme Toggle in Profile Menu */}
+                        <div className="px-1 py-0.5 border-b border-white/5">
+                          <ThemeToggle variant="dropdown-item" />
+                        </div>
+
                         {/* Alterar Perfil Option */}
                         <button
                           onClick={() => {
@@ -1238,20 +1241,24 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                   />
                 </div>
 
-                {/* Notification icon */}
-                <div className="relative shrink-0 z-50">
-                  <button 
-                    onClick={() => {
-                      setShowNotification(!showNotification);
-                      setShowProfileMenu(false);
-                    }}
-                    className="w-9 h-9 rounded-full bg-[#181428]/90 backdrop-blur-md hover:bg-[#201b34] border border-white/10 flex items-center justify-center transition-all cursor-pointer relative shadow-sm"
-                    title="Notificações"
-                    aria-label="Abrir notificações"
-                  >
-                    <span className="material-symbols-outlined text-on-surface text-lg">notifications</span>
-                    <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary ring-2 ring-[#131315]"></span>
-                  </button>
+                {/* Actions: Theme Toggle & Notification */}
+                <div className="flex items-center gap-1.5 shrink-0 z-50">
+                  <ThemeToggle variant="compact" />
+
+                  {/* Notification icon */}
+                  <div className="relative">
+                    <button 
+                      onClick={() => {
+                        setShowNotification(!showNotification);
+                        setShowProfileMenu(false);
+                      }}
+                      className="w-9 h-9 rounded-full bg-[#181428]/90 backdrop-blur-md hover:bg-[#201b34] border border-white/10 flex items-center justify-center transition-all cursor-pointer relative shadow-sm"
+                      title="Notificações"
+                      aria-label="Abrir notificações"
+                    >
+                      <span className="material-symbols-outlined text-on-surface text-lg">notifications</span>
+                      <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary ring-2 ring-[#131315]"></span>
+                    </button>
 
                   <AnimatePresence>
                     {showNotification && (
@@ -1279,6 +1286,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                       </motion.div>
                     )}
                   </AnimatePresence>
+                  </div>
                 </div>
               </header>
 
@@ -1433,7 +1441,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
 
               {/* Bottom Navigation */}
               <nav className="fixed bottom-0 left-0 right-0 bg-[#0e0c18]/95 backdrop-blur-2xl border-t border-primary/20 z-40 shadow-[0_-8px_32px_rgba(0,0,0,0.6)] lg:hidden h-[calc(64px+env(safe-area-inset-bottom,0px))] pb-[env(safe-area-inset-bottom,0px)]">
-                <div className="max-w-lg mx-auto h-full px-2 sm:px-4 flex items-center justify-between">
+                <div className="max-w-lg mx-auto h-full px-1 sm:px-4 flex items-center justify-between">
                   {activeAccount === 'empresarial' ? (
                     NAV_ITEMS_EMPRESARIAL.map((item) => {
                       const isActive = activeTab === item.id;
@@ -1446,18 +1454,18 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                             setShowProfileMenu(false);
                             setShowNotification(false);
                           }}
-                          className="flex-1 h-full flex flex-col items-center justify-center gap-1 cursor-pointer transition-all relative group tap-target"
+                          className="flex-1 h-full flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all relative group tap-target px-0.5"
                         >
-                          <div className={`px-3 py-1 rounded-full flex items-center justify-center transition-all ${
+                          <div className={`px-2 py-0.5 rounded-full flex items-center justify-center transition-all ${
                             isActive 
                               ? 'bg-primary/25 text-primary border border-primary/35 shadow-[0_0_14px_rgba(160,120,255,0.4)]' 
                               : 'text-on-surface-variant hover:text-on-surface'
                           }`}>
-                            <span className="material-symbols-outlined text-[22px]">
+                            <span className="material-symbols-outlined text-[19px]">
                               {item.icon}
                             </span>
                           </div>
-                          <span className={`text-[10px] font-bold tracking-tight uppercase transition-colors whitespace-nowrap ${
+                          <span className={`text-[8.5px] font-bold tracking-tight uppercase transition-colors whitespace-nowrap ${
                             isActive ? 'text-primary drop-shadow-[0_0_6px_rgba(208,188,255,0.4)]' : 'text-on-surface-variant'
                           }`}>
                             {item.label}
@@ -1682,6 +1690,9 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                       className="w-full bg-surface-container-low border border-outline-variant/40 rounded-2xl px-4 py-3 text-base sm:text-sm focus:outline-none focus:border-primary text-on-surface placeholder:text-on-surface-variant/30 font-semibold min-h-[48px]"
                     />
                   </div>
+
+                  {/* Seletor de Tema do Sistema */}
+                  <ThemeToggle variant="segmented" />
 
                   {/* Submit action */}
                   <button

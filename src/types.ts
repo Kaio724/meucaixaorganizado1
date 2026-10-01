@@ -1,5 +1,6 @@
 export type PlanType = 'essential' | 'pro';
 export type AccountType = 'empresarial' | 'pessoal';
+export type ThemeMode = 'light' | 'dark';
 
 export interface UserProfile {
   name: string;
@@ -7,6 +8,7 @@ export interface UserProfile {
   businessType: 'cnpj' | 'autonomo';
   isOnboarded: boolean;
   plan?: PlanType; // 'essential' | 'pro'
+  theme?: ThemeMode;
 }
 
 export type TransactionType = 'entrada' | 'saida';

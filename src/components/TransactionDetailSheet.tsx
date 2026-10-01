@@ -200,7 +200,7 @@ export default function TransactionDetailSheet({
                 onClose();
                 onEdit(transaction);
               }}
-              className="flex-1 h-12 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer border border-white/10 active:scale-95"
+              className="flex-1 h-12 rounded-xl bg-primary hover:bg-[#8b4bf0] text-white font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md active:scale-95"
             >
               <Edit3 className="w-4 h-4" />
               <span>Editar Lançamento</span>

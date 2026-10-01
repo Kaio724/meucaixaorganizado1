@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Transaction } from '../types';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface ProGrowthPanelProps {
   transactions: Transaction[];
@@ -41,6 +42,7 @@ function AnimatedCount({ value, duration = 1000 }: { value: number; duration?: n
 }
 
 export default function ProGrowthPanel({ transactions, isPro, onUnlockPro }: ProGrowthPanelProps) {
+  const { isLight } = useTheme();
   const [activeTab, setActiveTab] = useState<'goal' | 'health'>('goal');
   
   // Goal Settings State
@@ -293,7 +295,7 @@ export default function ProGrowthPanel({ transactions, isPro, onUnlockPro }: Pro
               cx="50"
               cy="50"
               r="42"
-              stroke="rgba(255, 255, 255, 0.05)"
+              stroke={isLight ? "rgba(0, 0, 0, 0.08)" : "rgba(255, 255, 255, 0.05)"}
               strokeWidth="9"
               fill="transparent"
             />

@@ -12,6 +12,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { ActiveTab } from '../../types';
+import ThemeToggle from '../ThemeToggle';
 
 interface PersonalMoreMenuModalProps {
   isOpen: boolean;
@@ -124,6 +125,11 @@ export default function PersonalMoreMenuModal({
                 </button>
               );
             })}
+
+            {/* Theme Selector */}
+            <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/5 my-1">
+              <ThemeToggle variant="segmented" />
+            </div>
 
             {/* Profile Settings */}
             <button

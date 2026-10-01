@@ -6,6 +6,7 @@ import ProGrowthPanel from './ProGrowthPanel';
 import ProInsights from './ProInsights';
 import MonthComparison from './MonthComparison';
 import { getCategoryInfo } from '../lib/categories';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface DesktopDashboardProps {
   profile: UserProfile;
@@ -44,6 +45,8 @@ export default function DesktopDashboard({
   isPro,
   onOpenImport,
 }: DesktopDashboardProps) {
+  const { isLight } = useTheme();
+
   const formatBRL = (val: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -258,16 +261,16 @@ export default function DesktopDashboard({
                           <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.00" />
                         </linearGradient>
                       </defs>
-                      <line x1="0" y1={height / 2} x2={width} y2={height / 2} stroke="rgba(255,255,255,0.03)" strokeDasharray="4 4" />
+                      <line x1="0" y1={height / 2} x2={width} y2={height / 2} stroke={isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.03)"} strokeDasharray="4 4" />
                       
                       <path d={areaPath} fill="url(#heroSparklineGrad)" className="transition-all duration-500" />
                       
-                      <path d={linePath} fill="none" stroke="#a78bfa" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="transition-all duration-500" />
+                      <path d={linePath} fill="none" stroke={isLight ? "#7c3aed" : "#a78bfa"} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="transition-all duration-500" />
                       
                       {coords.length > 0 && (
                         <g>
                           <circle cx={coords[coords.length - 1].x} cy={coords[coords.length - 1].y} r="5" fill="#8b5cf6" className="origin-center" />
-                          <circle cx={coords[coords.length - 1].x} cy={coords[coords.length - 1].y} r="2.5" fill="#ffffff" stroke="#131315" strokeWidth="1" />
+                          <circle cx={coords[coords.length - 1].x} cy={coords[coords.length - 1].y} r="2.5" fill="#ffffff" stroke={isLight ? "#7c3aed" : "#131315"} strokeWidth="1" />
                         </g>
                       )}
                     </svg>

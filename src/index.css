@@ -1,23 +1,60 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #d0bcff;
-  --color-primary-container: #a078ff;
-  --color-on-primary: #3c0091;
-  --color-background: #131315;
-  --color-surface-container: #201f22;
-  --color-surface-container-low: #1c1b1d;
-  --color-surface-container-high: #2a2a2c;
-  --color-surface-container-highest: #353437;
-  --color-on-surface: #e5e1e4;
-  --color-on-surface-variant: #cbc3d7;
-  --color-tertiary: #4edea3;
-  --color-error: #ffb4ab;
-  --color-outline: #958ea0;
-  --color-outline-variant: #494454;
+  --color-primary: var(--theme-primary);
+  --color-primary-container: var(--theme-primary-container);
+  --color-on-primary: var(--theme-on-primary);
+  --color-background: var(--theme-background);
+  --color-surface-container: var(--theme-surface-container);
+  --color-surface-container-low: var(--theme-surface-container-low);
+  --color-surface-container-high: var(--theme-surface-container-high);
+  --color-surface-container-highest: var(--theme-surface-container-highest);
+  --color-on-surface: var(--theme-on-surface);
+  --color-on-surface-variant: var(--theme-on-surface-variant);
+  --color-tertiary: var(--theme-tertiary);
+  --color-error: var(--theme-error);
+  --color-outline: var(--theme-outline);
+  --color-outline-variant: var(--theme-outline-variant);
   
   --font-sans: "Bricolage Grotesque", system-ui, -apple-system, sans-serif;
   --font-display: "Bricolage Grotesque", system-ui, -apple-system, sans-serif;
+}
+
+/* ==================================================
+   DESIGN TOKENS: MODO NOITE & MODO DIA
+   ================================================== */
+:root, [data-theme="dark"], .dark {
+  --theme-primary: #d0bcff;
+  --theme-primary-container: #a078ff;
+  --theme-on-primary: #3c0091;
+  --theme-background: #131315;
+  --theme-surface-container: #201f22;
+  --theme-surface-container-low: #1c1b1d;
+  --theme-surface-container-high: #2a2a2c;
+  --theme-surface-container-highest: #353437;
+  --theme-on-surface: #e5e1e4;
+  --theme-on-surface-variant: #cbc3d7;
+  --theme-tertiary: #4edea3;
+  --theme-error: #ffb4ab;
+  --theme-outline: #958ea0;
+  --theme-outline-variant: #494454;
+}
+
+[data-theme="light"], .light {
+  --theme-primary: #7c3aed;
+  --theme-primary-container: #6d28d9;
+  --theme-on-primary: #ffffff;
+  --theme-background: #F7F7FA;
+  --theme-surface-container: #ffffff;
+  --theme-surface-container-low: #f8fafc;
+  --theme-surface-container-high: #f1f5f9;
+  --theme-surface-container-highest: #e2e8f0;
+  --theme-on-surface: #171717;
+  --theme-on-surface-variant: #6B7280;
+  --theme-tertiary: #059669;
+  --theme-error: #dc2626;
+  --theme-outline: #cbd5e1;
+  --theme-outline-variant: #E5E7EB;
 }
 
 /* Mobile & Global Base Setup */
@@ -144,7 +181,7 @@ input, select, textarea {
   background: rgba(160, 120, 255, 0.7);
 }
 
-/* Custom glassmorphism and multi-layer futuristic depth */
+/* Custom glassmorphism and multi-layer depth (Modo Noite default) */
 .glass-card {
   background-color: rgba(22, 19, 32, 0.75);
   backdrop-filter: blur(16px) saturate(180%);
@@ -155,7 +192,7 @@ input, select, textarea {
     0 0 0 1px rgba(160, 120, 255, 0.06),
     0 8px 32px rgba(0, 0, 0, 0.42),
     0 1px 0 rgba(255, 255, 255, 0.04) inset;
-  transition: transform 200ms ease-out, box-shadow 200ms ease-out, border-color 200ms ease-out;
+  transition: transform 150ms ease-out, box-shadow 150ms ease-out, border-color 150ms ease-out;
 }
 
 .glass-card:hover {
@@ -163,7 +200,7 @@ input, select, textarea {
 }
 
 .glass-card-interactive {
-  transition: transform 200ms ease-out, box-shadow 200ms ease-out, border-color 200ms ease-out;
+  transition: transform 150ms ease-out, box-shadow 150ms ease-out, border-color 150ms ease-out;
 }
 
 .glass-card-interactive:hover {
@@ -208,7 +245,7 @@ input, select, textarea {
     0 0 20px rgba(124, 58, 237, 0.45),
     0 0 50px rgba(124, 58, 237, 0.18),
     0 1px 0 rgba(255, 255, 255, 0.25) inset;
-  transition: all 200ms ease-out;
+  transition: all 150ms ease-out;
 }
 
 .btn-primary-pulse:hover {
@@ -283,4 +320,371 @@ input, select, textarea {
   word-wrap: normal;
   direction: ltr;
   -webkit-font-smoothing: antialiased;
+}
+
+/* ==================================================
+   MODO DIA (LIGHT THEME) SYSTEM OVERRIDES
+   Clean, light, modern, premium SaaS aesthetic
+   ================================================== */
+html.light {
+  color-scheme: light;
+}
+
+html.light body,
+html.light #root,
+html.light .bg-\[\#131315\] {
+  background-color: #F7F7FA !important;
+  color: #171717 !important;
+}
+
+/* Glass cards and solid cards in Light Mode */
+html.light .glass-card {
+  background: #FFFFFF !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid #E5E7EB !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.04) !important;
+}
+
+html.light .glass-card:hover,
+html.light .glass-card-interactive:hover {
+  border-color: rgba(124, 58, 237, 0.35) !important;
+  box-shadow: 0 6px 20px -2px rgba(124, 58, 237, 0.1), 0 2px 6px -1px rgba(0, 0, 0, 0.04) !important;
+  transform: translateY(-2px);
+}
+
+/* Protagonist Hero Master Card */
+html.light .hero-master-card {
+  background: linear-gradient(135deg, #ffffff 0%, #faf8ff 60%, #f3edff 100%) !important;
+  background-image: linear-gradient(135deg, #ffffff 0%, #faf8ff 60%, #f3edff 100%) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid rgba(124, 58, 237, 0.22) !important;
+  box-shadow: 0 10px 30px -10px rgba(124, 58, 237, 0.12), 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* All dark cards and dark gradients converted to clean white cards (with wildcard matching for Tailwind /opacity variants) */
+html.light [class*="bg-[#161224]"],
+html.light [class*="bg-[#181428]"],
+html.light [class*="bg-[#140f24]"],
+html.light [class*="bg-[#130f21]"],
+html.light [class*="bg-[#1a191d]"],
+html.light [class*="bg-[#18171c]"],
+html.light [class*="bg-[#1c1b1d]"],
+html.light [class*="bg-[#16151a]"],
+html.light [class*="bg-[#141318]"],
+html.light [class*="bg-[#1c1533]"],
+html.light [class*="bg-[#100c1e]"],
+html.light [class*="bg-[#100c1c]"],
+html.light [class*="bg-[#141022]"],
+html.light [class*="bg-[#120e20]"],
+html.light [class*="bg-[#120f1e]"],
+html.light [class*="bg-[#121217]"],
+html.light [class*="bg-[#131020]"],
+html.light [class*="bg-[#161226]"],
+html.light [class*="bg-[#171721]"],
+html.light [class*="bg-[#181228]"],
+html.light [class*="bg-[#181329]"],
+html.light [class*="bg-[#181426]"],
+html.light [class*="bg-[#18171b]"],
+html.light [class*="bg-[#1b1b26]"],
+html.light [class*="bg-[#1e1932]"],
+html.light [class*="bg-[#0c0c0f]"]:not(.absolute),
+html.light [class*="bg-[#0d0d12]"],
+html.light [class*="bg-[#111115]"],
+html.light [class*="bg-[#18181c]"],
+html.light [class*="from-[#1b1531]"]:not(.hero-master-card),
+html.light [class*="from-[#1c1533]"]:not(.hero-master-card),
+html.light [class*="from-[#171228]"]:not(.hero-master-card),
+html.light [class*="from-[#181822]"]:not(.hero-master-card),
+html.light [class*="from-[#1a1315]"]:not(.hero-master-card),
+html.light [class*="from-[#131317]"]:not(.hero-master-card),
+html.light [class*="from-[#1f1638]"]:not(.hero-master-card),
+html.light [class*="from-[#1a1a22]"]:not(.hero-master-card),
+html.light .bg-surface-container,
+html.light .bg-surface-container-low,
+html.light .bg-surface-container-high {
+  background: #FFFFFF !important;
+  background-image: none !important;
+  border-color: #E5E7EB !important;
+}
+
+/* Modals and Dialog Sheets in Light Mode */
+html.light .fixed.inset-0 .bg-\[\#161224\],
+html.light .fixed.inset-0 .bg-\[\#181428\],
+html.light .fixed.inset-0 .bg-\[\#140f24\],
+html.light .fixed.inset-0 .bg-\[\#131315\],
+html.light .fixed.inset-0 .bg-\[\#18171b\],
+html.light .fixed.inset-0 [class*="bg-[#141022]"],
+html.light .fixed.inset-0 [class*="bg-[#120f1e]"],
+html.light .fixed.inset-0 [class*="bg-[#131020]"],
+html.light .fixed.inset-0 [class*="bg-[#18181c]"],
+html.light .fixed.inset-0 .bg-surface-container {
+  background: #FFFFFF !important;
+  background-image: none !important;
+  border-color: #E5E7EB !important;
+  color: #171717 !important;
+  box-shadow: 0 20px 35px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Headers and Navbars */
+html.light header,
+html.light [class*="bg-[#0e0c18]"] {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-color: #E5E7EB !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+}
+
+html.light nav.fixed.bottom-0 {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+  border-color: #E5E7EB !important;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05) !important;
+}
+
+html.light aside {
+  background-color: #FFFFFF !important;
+  border-color: #E5E7EB !important;
+}
+
+/* Inner containers with bg-black/... (except fixed modal backdrop) */
+html.light div:not(.fixed)[class*="bg-black/"],
+html.light section:not(.fixed)[class*="bg-black/"],
+html.light span:not(.fixed)[class*="bg-black/"],
+html.light ul:not(.fixed)[class*="bg-black/"] {
+  background-color: #F8FAFC !important;
+  border-color: #E5E7EB !important;
+}
+
+/* Progress bar tracks with bg-black/40 */
+html.light [class*="h-1.5"][class*="bg-black/"],
+html.light [class*="h-2.5"][class*="bg-black/"],
+html.light [class*="h-3"][class*="bg-black/"] {
+  background-color: #E5E7EB !important;
+}
+
+/* Modal Drag handles in mobile */
+html.light [class*="h-1"][class*="bg-white/"] {
+  background-color: #CBD5E1 !important;
+}
+
+/* Locked feature overlays (DesktopDashboard lock screens) */
+html.light div.absolute.inset-0[class*="bg-[#0c0c0f]"] {
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  border-color: #E5E7EB !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+/* Modal dark backdrops slightly softened in Light Mode */
+html.light .fixed.inset-0[class*="bg-black/"] {
+  background-color: rgba(15, 23, 42, 0.45) !important;
+}
+
+/* Account Toggle container in Light Mode */
+html.light [role="tablist"][class*="bg-[#140f24]"] {
+  background-color: #F1F5F9 !important;
+  border-color: #E5E7EB !important;
+}
+
+/* Borders */
+html.light .border-white\/5,
+html.light .border-white\/10,
+html.light .border-white\/\[0\.08\],
+html.light .border-white\/\[0\.06\],
+html.light .border-white\/\[0\.05\],
+html.light .border-white\/\[0\.02\],
+html.light .border-white\/20,
+html.light .border-outline-variant\/40,
+html.light .border-outline-variant\/30,
+html.light .border-outline-variant\/20,
+html.light .border-outline-variant\/10 {
+  border-color: #E5E7EB !important;
+}
+
+/* Dividers */
+html.light .divide-white\/5 > * + *,
+html.light .divide-white\/10 > * + * {
+  border-color: #E5E7EB !important;
+}
+
+/* Typography in Light Mode */
+html.light h1,
+html.light h2,
+html.light h3,
+html.light h4,
+html.light h5,
+html.light h6 {
+  color: #171717;
+}
+
+/* General text conversion to dark text */
+html.light .text-white,
+html.light .text-white\/90,
+html.light .text-white\/80,
+html.light .text-white\/70,
+html.light .text-zinc-100 {
+  color: #171717;
+}
+
+/* CRITICAL: GUARANTEE PURE WHITE TEXT ON ALL SOLID & GRADIENT PURPLE / PRIMARY / STATUS BUTTONS AND BADGES */
+html.light button[class*="from-[#7C3AED]"],
+html.light button[class*="from-[#7C3AED]"] *,
+html.light button[class*="from-[#6d3bd7]"],
+html.light button[class*="from-[#6d3bd7]"] *,
+html.light button[class*="from-primary"],
+html.light button[class*="from-primary"] *,
+html.light button[class*="bg-gradient"],
+html.light button[class*="bg-gradient"] *,
+html.light button.bg-primary,
+html.light button.bg-primary *,
+html.light button[class*="bg-[#7C3AED]"],
+html.light button[class*="bg-[#7C3AED]"] *,
+html.light button[class*="bg-[#6d3bd7]"],
+html.light button[class*="bg-[#6d3bd7]"] *,
+html.light a[class*="from-[#7C3AED]"],
+html.light a[class*="from-[#7C3AED]"] *,
+html.light a[class*="from-[#6d3bd7]"],
+html.light a[class*="from-[#6d3bd7]"] *,
+html.light a[class*="from-primary"],
+html.light a[class*="from-primary"] *,
+html.light a.bg-primary,
+html.light a.bg-primary *,
+html.light a[class*="bg-gradient"],
+html.light a[class*="bg-gradient"] *,
+html.light [role="tab"][aria-selected="true"] .text-white,
+html.light [role="tab"][aria-selected="true"].text-white,
+html.light [role="tab"][aria-selected="true"],
+html.light .btn-primary-pulse,
+html.light .btn-primary-pulse *,
+html.light [class*="bg-[#7C3AED]"] > .text-white,
+html.light [class*="bg-gradient-to"] > .text-white,
+html.light [class*="bg-emerald-600"],
+html.light [class*="bg-emerald-600"] *,
+html.light [class*="bg-red-600"],
+html.light [class*="bg-red-600"] *,
+html.light [class*="bg-rose-600"],
+html.light [class*="bg-rose-600"] *,
+html.light .keep-white,
+html.light .keep-white * {
+  color: #FFFFFF !important;
+}
+
+/* Light purple text converted into deep vibrant accessible violet */
+html.light .text-\[\#c4b5fd\],
+html.light [class*="text-[#c4b5fd]"],
+html.light [class*="text-[#d0bcff]"],
+html.light [class*="text-[#a078ff]"] {
+  color: #6d28d9 !important;
+}
+
+/* Secondary & Muted Texts */
+html.light .text-zinc-400,
+html.light .text-zinc-500,
+html.light .text-on-surface-variant {
+  color: #6B7280 !important;
+}
+
+html.light .text-zinc-300,
+html.light .text-zinc-200 {
+  color: #374151 !important;
+}
+
+/* Soft white background chips/buttons in Light Mode */
+html.light div:not(.fixed)[class*="bg-white/"]:not([class*="keep-bg"]),
+html.light button[class*="bg-white/"]:not([class*="keep-bg"]),
+html.light span[class*="bg-white/"]:not([class*="keep-bg"]) {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+  border-color: #E5E7EB !important;
+}
+
+/* Hover states on list rows and cards */
+html.light [class*="hover:bg-white/"]:hover {
+  background-color: rgba(0, 0, 0, 0.03) !important;
+}
+
+html.light [class*="active:bg-white/"]:active {
+  background-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Inputs, Selects, Textareas */
+html.light input:not([type="checkbox"]):not([type="radio"]),
+html.light select,
+html.light textarea {
+  background-color: #FFFFFF !important;
+  color: #171717 !important;
+  border-color: #E5E7EB !important;
+  color-scheme: light !important;
+}
+
+html.light input:focus,
+html.light select:focus,
+html.light textarea:focus {
+  border-color: #7C3AED !important;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12) !important;
+}
+
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #9CA3AF !important;
+}
+
+/* Dropdown options inside select elements */
+html.light option {
+  background-color: #FFFFFF !important;
+  color: #171717 !important;
+}
+
+/* Ambient glow & dot grid in Light Mode */
+html.light .ambient-glow {
+  background: 
+    radial-gradient(ellipse at 50% 0%, rgba(124, 58, 237, 0.05) 0%, transparent 65%),
+    radial-gradient(ellipse at 85% 20%, rgba(5, 150, 105, 0.02) 0%, transparent 45%),
+    radial-gradient(ellipse at 15% 65%, rgba(124, 58, 237, 0.03) 0%, transparent 55%) !important;
+}
+
+html.light .dot-grid-bg {
+  background-image: radial-gradient(rgba(124, 58, 237, 0.06) 1px, transparent 1px) !important;
+}
+
+html.light .bg-noise {
+  opacity: 0.015 !important;
+}
+
+/* Glowing text replaced with clean contrast in Light Mode */
+html.light .glow-text-green {
+  text-shadow: none !important;
+  color: #059669 !important;
+}
+
+html.light .glow-text-red {
+  text-shadow: none !important;
+  color: #dc2626 !important;
+}
+
+html.light .glow-text-purple {
+  text-shadow: none !important;
+  color: #7c3aed !important;
+}
+
+/* Bar chart color adjustments in Light Mode */
+html.light .bg-\[\#d0bcff\] {
+  background-color: #7c3aed !important;
+}
+
+/* Separator */
+html.light .separator-glow {
+  background: linear-gradient(90deg, transparent 0%, rgba(124, 58, 237, 0.25) 50%, transparent 100%) !important;
+}
+
+/* Scrollbar in Light Mode */
+html.light ::-webkit-scrollbar-thumb {
+  background: rgba(124, 58, 237, 0.25);
+}
+html.light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 58, 237, 0.5);
+}
+
+/* Quick, clean transition for theme toggling */
+body, #root, .glass-card, .hero-master-card, header, aside, nav, input, select, textarea {
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
 }
