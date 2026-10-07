@@ -170,7 +170,8 @@ export default function App() {
       const isPromoUser = 
         emailLower === 'joaorodriguesamancio@gmail.com' ||
         emailLower === 'aguiavideodigital@hotmail.com' ||
-        emailLower === 'contatogmtec@gmail.com';
+        emailLower === 'contatogmtec@gmail.com' ||
+        emailLower === 'adrianojose57@hotmail.com';
 
       // Check auth user metadata for pro plan or recent upgrade
       const supabase = getSupabase();
@@ -299,6 +300,7 @@ export default function App() {
         emailLower === 'joaorodriguesamancio@gmail.com' ||
         emailLower === 'aguiavideodigital@hotmail.com' ||
         emailLower === 'contatogmtec@gmail.com' ||
+        emailLower === 'adrianojose57@hotmail.com' ||
         emailLower === 'kaiopatrick42@gmail.com' ||
         emailLower === 'kaioparick42@gmail.com';
       const isProByMetadata = session?.user?.user_metadata?.plano === 'pro';

@@ -390,6 +390,14 @@ html.light [class*="bg-[#181426]"],
 html.light [class*="bg-[#18171b]"],
 html.light [class*="bg-[#1b1b26]"],
 html.light [class*="bg-[#1e1932]"],
+html.light [class*="bg-[#0f0c18]"],
+html.light [class*="bg-[#100d1c]"],
+html.light [class*="bg-[#110b20]"],
+html.light [class*="bg-[#140e24]"],
+html.light [class*="bg-[#171026]"],
+html.light [class*="bg-[#171328]"],
+html.light [class*="bg-[#0e0a1b]"],
+html.light [class*="bg-[#2a2638]"],
 html.light [class*="bg-[#0c0c0f]"]:not(.absolute),
 html.light [class*="bg-[#0d0d12]"],
 html.light [class*="bg-[#111115]"],
@@ -402,6 +410,14 @@ html.light [class*="from-[#1a1315]"]:not(.hero-master-card),
 html.light [class*="from-[#131317]"]:not(.hero-master-card),
 html.light [class*="from-[#1f1638]"]:not(.hero-master-card),
 html.light [class*="from-[#1a1a22]"]:not(.hero-master-card),
+html.light [class*="from-[#171026]"]:not(.hero-master-card),
+html.light [class*="from-[#171328]"]:not(.hero-master-card),
+html.light [class*="from-[#0e0a1b]"]:not(.hero-master-card),
+html.light [class*="via-[#141022]"]:not(.hero-master-card),
+html.light [class*="via-[#140e24]"]:not(.hero-master-card),
+html.light [class*="to-[#100d1c]"]:not(.hero-master-card),
+html.light [class*="to-[#110b20]"]:not(.hero-master-card),
+html.light [class*="to-[#0e0a1b]"]:not(.hero-master-card),
 html.light .bg-surface-container,
 html.light .bg-surface-container-low,
 html.light .bg-surface-container-high {
@@ -420,6 +436,10 @@ html.light .fixed.inset-0 [class*="bg-[#141022]"],
 html.light .fixed.inset-0 [class*="bg-[#120f1e]"],
 html.light .fixed.inset-0 [class*="bg-[#131020]"],
 html.light .fixed.inset-0 [class*="bg-[#18181c]"],
+html.light .fixed.inset-0 [class*="bg-[#0f0c18]"],
+html.light .fixed.inset-0 [class*="bg-[#100c1c]"],
+html.light .fixed.inset-0 [class*="bg-[#171026]"],
+html.light .fixed.inset-0 [class*="bg-[#181228]"],
 html.light .fixed.inset-0 .bg-surface-container {
   background: #FFFFFF !important;
   background-image: none !important;
@@ -463,7 +483,8 @@ html.light aside {
 html.light div:not(.fixed)[class*="bg-black/"],
 html.light section:not(.fixed)[class*="bg-black/"],
 html.light span:not(.fixed)[class*="bg-black/"],
-html.light ul:not(.fixed)[class*="bg-black/"] {
+html.light ul:not(.fixed)[class*="bg-black/"],
+html.light p:not(.fixed)[class*="bg-black/"] {
   background-color: #F8FAFC !important;
   border-color: #E5E7EB !important;
 }
@@ -570,6 +591,24 @@ html.light .btn-primary-pulse,
 html.light .btn-primary-pulse *,
 html.light [class*="bg-[#7C3AED]"] > .text-white,
 html.light [class*="bg-gradient-to"] > .text-white,
+html.light button.bg-emerald-500,
+html.light button.bg-emerald-500 *,
+html.light button[class~="bg-emerald-500"],
+html.light button[class~="bg-emerald-500"] *,
+html.light button.bg-rose-500,
+html.light button.bg-rose-500 *,
+html.light button[class~="bg-rose-500"],
+html.light button[class~="bg-rose-500"] *,
+html.light button.bg-purple-500,
+html.light button.bg-purple-500 *,
+html.light button[class~="bg-purple-500"],
+html.light button[class~="bg-purple-500"] *,
+html.light button.bg-primary,
+html.light button.bg-primary *,
+html.light button[class~="bg-primary"],
+html.light button[class~="bg-primary"] *,
+html.light button[class~="bg-[#7C3AED]"],
+html.light button[class~="bg-[#7C3AED]"] *,
 html.light [class*="bg-emerald-600"],
 html.light [class*="bg-emerald-600"] *,
 html.light [class*="bg-red-600"],
@@ -587,6 +626,25 @@ html.light [class*="text-[#c4b5fd]"],
 html.light [class*="text-[#d0bcff]"],
 html.light [class*="text-[#a078ff]"] {
   color: #6d28d9 !important;
+}
+
+/* Accessible High-Contrast Status Colors in Light Mode */
+html.light .text-emerald-400 {
+  color: #059669 !important;
+}
+html.light .text-rose-400 {
+  color: #dc2626 !important;
+}
+html.light .text-amber-400,
+html.light .text-amber-300 {
+  color: #d97706 !important;
+}
+html.light .text-purple-400,
+html.light .text-purple-300 {
+  color: #7c3aed !important;
+}
+html.light .text-sky-400 {
+  color: #0284c7 !important;
 }
 
 /* Secondary & Muted Texts */
