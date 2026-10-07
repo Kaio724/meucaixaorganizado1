@@ -46,13 +46,13 @@ export function mapDbProfileToUserProfile(row: any): UserProfile {
   if (userId && typeof window !== 'undefined') {
     localPlan = localStorage.getItem(`mco_profile_plan_${userId}`);
   }
-  const resolvedPlan = row?.plano || localPlan || 'essential';
+  const resolvedPlan = row?.plano || localPlan || 'pro';
   return {
     name: row.nome || '',
     businessName: row.nome_negocio || '',
     businessType: row.tipo_negocio === 'mei' ? 'cnpj' : 'autonomo',
     isOnboarded: true,
-    plan: resolvedPlan === 'pro' ? 'pro' : 'essential',
+    plan: resolvedPlan === 'essential' ? 'essential' : 'pro',
   };
 }
 
@@ -63,7 +63,7 @@ export function mapUserProfileToDbProfile(profile: UserProfile, userId: string) 
     nome: profile.name,
     nome_negocio: profile.businessName,
     tipo_negocio: profile.businessType === 'cnpj' ? 'mei' : 'autonomo',
-    plano: profile.plan || 'essential',
+    plano: profile.plan || 'pro',
   };
 }
 
@@ -224,7 +224,7 @@ export async function upsertProfile(userId: string, profile: UserProfile): Promi
   }
 
   // Update plan in local storage cache
-  localStorage.setItem(`mco_profile_plan_${userId}`, profile.plan || 'essential');
+  localStorage.setItem(`mco_profile_plan_${userId}`, profile.plan || 'pro');
   localStorage.setItem(`mco_cached_profile_${userId}`, JSON.stringify(profile));
 
   const supabase = getSupabase();

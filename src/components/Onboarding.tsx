@@ -19,7 +19,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
       businessName: businessName.trim(),
       businessType,
       isOnboarded: true,
-      plan: 'essential',
+      plan: 'pro',
     });
   };
 

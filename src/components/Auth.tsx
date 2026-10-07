@@ -43,6 +43,11 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
         const { data, error: authErr } = await supabase.auth.signUp({
           email: email.trim(),
           password,
+          options: {
+            data: {
+              plano: 'pro',
+            },
+          },
         });
         if (authErr) throw authErr;
         if (data?.session) {

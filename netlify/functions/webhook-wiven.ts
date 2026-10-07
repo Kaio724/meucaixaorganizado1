@@ -97,23 +97,9 @@ export const handler = async (event: any) => {
     const offerCode = String(offer.code || offer.id || body.offer_code || body.offerCode || body.offer || '').trim().toLowerCase();
     const productName = String(product.name || product.title || body.product_name || body.product || '').trim().toLowerCase();
 
-    // Plan determination:
-    // R$ 47,00 -> pro (MCO Completo)
-    // R$ 12,90 -> pro (Upgrade)
-    // R$ 27,90 -> essential (MCO Essencial)
-    let plan: 'pro' | 'essential' = 'essential';
-    if (
-      offerCode.includes('lejvtnc') ||
-      productName.includes('upgrade') ||
-      productName.includes('completo') ||
-      productName.includes('pro') ||
-      amount >= 40 ||
-      (amount >= 11 && amount <= 16)
-    ) {
-      plan = 'pro';
-    }
-
-    const planName = plan === 'pro' ? 'MCO Completo' : 'MCO Essencial';
+    // Regra atualizada: TODOS que adquirirem o sistema a partir de agora já entram com acesso ao MCO COMPLETO ('pro')
+    const plan: 'pro' | 'essential' = 'pro';
+    const planName = 'MCO Completo';
 
     // Supabase Admin connection
     const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || 'https://yfbgauajvijwngvhrkms.supabase.co';

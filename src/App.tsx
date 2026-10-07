@@ -304,11 +304,8 @@ export default function App() {
         emailLower === 'kaiopatrick42@gmail.com' ||
         emailLower === 'kaioparick42@gmail.com';
       const isProByMetadata = session?.user?.user_metadata?.plano === 'pro';
-      if (isPromoUser || isProByMetadata) {
-        newProfile.plan = 'pro';
-      } else {
-        newProfile.plan = newProfile.plan || 'essential';
-      }
+      // Todos que adquirirem ou configurarem o sistema a partir de agora entram com MCO Completo
+      newProfile.plan = 'pro';
       await upsertProfile(session.user.id, newProfile);
       setProfile(newProfile);
 
@@ -618,7 +615,7 @@ export default function App() {
   if (dbSchemaError) {
     const upgradeScript = `-- ATUALIZAÇÃO SÓ DE COLUNAS (Se você já tem as tabelas criadas)
 -- Adiciona suporte a planos, contas e contas duplas (Empresarial e Pessoal)
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS plano TEXT DEFAULT 'essential' CHECK (plano IN ('essential', 'pro'));
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS plano TEXT DEFAULT 'pro' CHECK (plano IN ('essential', 'pro'));
 ALTER TABLE public.lancamentos ADD COLUMN IF NOT EXISTS conta TEXT;
 ALTER TABLE public.lancamentos ADD COLUMN IF NOT EXISTS tipo_conta TEXT NOT NULL DEFAULT 'empresarial';`;
 
@@ -628,7 +625,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     nome TEXT NOT NULL,
     nome_negocio TEXT NOT NULL,
     tipo_negocio TEXT NOT NULL CHECK (tipo_negocio IN ('mei', 'autonomo')),
-    plano TEXT DEFAULT 'essential' CHECK (plano IN ('essential', 'pro')),
+    plano TEXT DEFAULT 'pro' CHECK (plano IN ('essential', 'pro')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 

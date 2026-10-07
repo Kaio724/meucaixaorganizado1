@@ -24,8 +24,8 @@ export function extractCustomerAndSale(body: any): WivenSaleData {
       offerCode: '',
       productName: '',
       status: 'unknown',
-      plan: 'essential',
-      planName: 'MCO Essencial'
+      plan: 'pro',
+      planName: 'MCO Completo'
     };
   }
 
@@ -62,29 +62,9 @@ export function extractCustomerAndSale(body: any): WivenSaleData {
   const offerCode = String(offer.code || offer.id || body.offer_code || body.offerCode || body.offer || '').trim();
   const productName = String(product.name || product.title || body.product_name || body.product || '').trim();
 
-  // Plan determination:
-  // - R$ 47,00 -> pro (MCO Completo)
-  // - R$ 12,90 -> pro (Upgrade para MCO Completo)
-  // - R$ 27,90 -> essential (MCO Essencial)
-  const normProduct = productName.toLowerCase();
-  const normOffer = offerCode.toLowerCase();
-
-  let plan: 'pro' | 'essential' = 'essential';
-
-  if (
-    normOffer.includes('lejvtnc') ||
-    normProduct.includes('upgrade') ||
-    normProduct.includes('completo') ||
-    normProduct.includes('pro') ||
-    amount >= 40 ||
-    (amount >= 11 && amount <= 16)
-  ) {
-    plan = 'pro';
-  } else {
-    plan = 'essential';
-  }
-
-  const planName = plan === 'pro' ? 'MCO Completo' : 'MCO Essencial';
+  // Regra atualizada: TODOS que adquirirem o sistema a partir de agora já entram com acesso ao MCO COMPLETO ('pro')
+  const plan: 'pro' | 'essential' = 'pro';
+  const planName = 'MCO Completo';
 
   return {
     email,
