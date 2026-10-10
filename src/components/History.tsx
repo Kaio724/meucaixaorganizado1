@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Transaction, UserProfile, TransactionType, ExpenseType } from '../types';
+import { Transaction, UserProfile, TransactionType, ExpenseType, RevenueType, RecurrenceFrequency } from '../types';
 import { AVAILABLE_CATEGORIES, PAYMENT_METHODS, ACCOUNT_OPTIONS } from '../initialData';
 import { getCategoryNamesByType, getCategoryInfo } from '../lib/categories';
+import { buildRecurringRevenueTransactions } from '../lib/revenueRecurrence';
 import TransactionDetailSheet from './TransactionDetailSheet';
 
 const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://checkout.wiven.com.br/checkout/cmr9mqf4p000j01q0qlrqcl4w?offer=LEJVTNC';
@@ -14,6 +15,8 @@ interface HistoryProps {
   onAddTransaction: (tx: Omit<Transaction, 'id'>) => void;
   onEditTransaction: (tx: Transaction) => void;
   onDeleteTransaction: (id: string) => void;
+  onBatchEditTransactions?: (txs: Transaction[]) => void;
+  onBatchDeleteTransactions?: (ids: string[]) => void;
 }
 
 const MONTHS_PT = [
@@ -21,12 +24,22 @@ const MONTHS_PT = [
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
 ];
 
-export default function History({ profile, userId = 'default_user', transactions, onAddTransaction, onEditTransaction, onDeleteTransaction }: HistoryProps) {
+export default function History({ 
+  profile, 
+  userId = 'default_user', 
+  transactions, 
+  onAddTransaction, 
+  onEditTransaction, 
+  onDeleteTransaction,
+  onBatchEditTransactions,
+  onBatchDeleteTransactions
+}: HistoryProps) {
   const isPro = (profile.plan || 'essential') === 'pro';
   const [showProModal, setShowProModal] = useState(false);
   const [selectedTxForDetail, setSelectedTxForDetail] = useState<Transaction | null>(null);
   const [filterType, setFilterType] = useState<'tudo' | 'entrada' | 'saida'>('tudo');
   const [filterExpenseType, setFilterExpenseType] = useState<'todas' | 'fixas' | 'variaveis'>('todas');
+  const [filterRevenueType, setFilterRevenueType] = useState<'todas' | 'fixas' | 'variaveis'>('todas');
   const [selectedMonthIndex, setSelectedMonthIndex] = useState(new Date().getMonth()); // default to current month
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [searchQuery, setSearchQuery] = useState('');
@@ -40,6 +53,7 @@ export default function History({ profile, userId = 'default_user', transactions
   const [advPaymentMethod, setAdvPaymentMethod] = useState('todas');
   const [advMinAmount, setAdvMinAmount] = useState('');
   const [advMaxAmount, setAdvMaxAmount] = useState('');
+  const [advRevenueType, setAdvRevenueType] = useState<'todas' | 'fixas' | 'variaveis'>('todas');
   const [showFilterPanel, setShowFilterPanel] = useState(false);
 
   // Get all unique categories dynamically
@@ -57,17 +71,28 @@ export default function History({ profile, userId = 'default_user', transactions
            advCategory !== 'todas' || 
            advPaymentMethod !== 'todas' || 
            advMinAmount !== '' || 
-           advMaxAmount !== '';
+           advMaxAmount !== '' ||
+           advRevenueType !== 'todas';
   };
 
   // Editing state
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [deletingTxId, setDeletingTxId] = useState<string | null>(null);
+  const [pendingRecurringEdit, setPendingRecurringEdit] = useState<{
+    tx: Transaction;
+    updatedTxData: any;
+  } | null>(null);
 
   // Add/Edit Form states
   const [formType, setFormType] = useState<TransactionType>('entrada');
   const [formExpenseType, setFormExpenseType] = useState<ExpenseType>('variavel');
+  const [formRevenueType, setFormRevenueType] = useState<RevenueType>('variavel');
+  const [formRecurrenceFrequency, setFormRecurrenceFrequency] = useState<RecurrenceFrequency>('mensal');
+  const [formRecurrenceDay, setFormRecurrenceDay] = useState<number>(10);
+  const [formHasEndDate, setFormHasEndDate] = useState<boolean>(false);
+  const [formRecurrenceEndDate, setFormRecurrenceEndDate] = useState<string>('');
+  const [formDescription, setFormDescription] = useState<string>('');
   const [formTitle, setFormTitle] = useState('');
   const [formAmount, setFormAmount] = useState('');
   const [formCategory, setFormCategory] = useState('');
@@ -142,6 +167,16 @@ export default function History({ profile, userId = 'default_user', transactions
         if (tx.type !== 'saida' || tx.expenseType !== 'fixa') return false;
       } else if (filterExpenseType === 'variaveis') {
         if (tx.type !== 'saida' || tx.expenseType === 'fixa') return false;
+      }
+    }
+
+    // 2.2 Revenue Type Filter (Requirement 13: Todas | Fixas | Variáveis)
+    const activeRevenueFilter = advRevenueType !== 'todas' ? advRevenueType : filterRevenueType;
+    if (activeRevenueFilter !== 'todas') {
+      if (activeRevenueFilter === 'fixas') {
+        if (tx.type !== 'entrada' || tx.revenueType !== 'fixa') return false;
+      } else if (activeRevenueFilter === 'variaveis') {
+        if (tx.type !== 'entrada' || tx.revenueType === 'fixa') return false;
       }
     }
 
@@ -256,12 +291,19 @@ export default function History({ profile, userId = 'default_user', transactions
     setEditingTx(tx);
     setFormType(tx.type);
     setFormExpenseType(tx.expenseType || 'variavel');
+    setFormRevenueType(tx.revenueType || 'variavel');
+    setFormRecurrenceFrequency(tx.recurrenceFrequency || 'mensal');
+    setFormRecurrenceDay(tx.recurrenceDay || 10);
+    setFormHasEndDate(Boolean(tx.recurrenceEndDate));
+    setFormRecurrenceEndDate(tx.recurrenceEndDate || '');
+    setFormDescription(tx.description || '');
     setFormTitle(tx.title);
     setFormAmount(String(tx.amount));
     setFormCategory(tx.category);
     setFormPaymentMethod(tx.paymentMethod);
     setFormDate(tx.date);
     setFormAccount(tx.account);
+    setShowAddModal(true);
   };
 
   // Open Add Form
@@ -269,6 +311,12 @@ export default function History({ profile, userId = 'default_user', transactions
     setEditingTx(null);
     setFormType('entrada');
     setFormExpenseType('variavel');
+    setFormRevenueType('variavel');
+    setFormRecurrenceFrequency('mensal');
+    setFormRecurrenceDay(10);
+    setFormHasEndDate(false);
+    setFormRecurrenceEndDate('');
+    setFormDescription('');
     setFormTitle('');
     setFormAmount('');
     setFormCategory(getCategoryNamesByType(userId, 'entrada')[0] || 'Outros');
@@ -283,26 +331,65 @@ export default function History({ profile, userId = 'default_user', transactions
     e.preventDefault();
     if (!formTitle.trim() || !formAmount) return;
 
+    const parsedAmount = Math.abs(parseFloat(formAmount.replace(',', '.')));
+    if (isNaN(parsedAmount) || parsedAmount <= 0) return;
+
     const txData = {
       title: formTitle.trim(),
-      amount: Math.abs(parseFloat(formAmount)),
+      amount: parsedAmount,
       type: formType,
       date: formDate,
       category: formCategory,
       paymentMethod: formPaymentMethod,
       account: formAccount,
       accountType: 'empresarial' as const,
-      expenseType: formType === 'saida' ? formExpenseType : undefined
+      description: formDescription.trim() || undefined,
+      expenseType: formType === 'saida' ? formExpenseType : undefined,
+      revenueType: formType === 'entrada' ? formRevenueType : undefined,
+      recurrenceFrequency: formType === 'entrada' && formRevenueType === 'fixa' ? formRecurrenceFrequency : undefined,
+      recurrenceDay: formType === 'entrada' && formRevenueType === 'fixa' ? formRecurrenceDay : undefined,
+      recurrenceStartDate: formType === 'entrada' && formRevenueType === 'fixa' ? formDate : undefined,
+      recurrenceEndDate: formType === 'entrada' && formRevenueType === 'fixa' && formHasEndDate && formRecurrenceEndDate ? formRecurrenceEndDate : undefined,
     };
 
     if (editingTx) {
+      if (editingTx.recurrenceId) {
+        // Intercept with confirmation dialog for recurring series (Requirement 14)
+        setPendingRecurringEdit({
+          tx: editingTx,
+          updatedTxData: txData
+        });
+        return;
+      }
+
       onEditTransaction({
         ...editingTx,
         ...txData
       });
       setEditingTx(null);
+      setShowAddModal(false);
     } else {
-      onAddTransaction(txData);
+      if (formType === 'entrada' && formRevenueType === 'fixa') {
+        const recurringTxs = buildRecurringRevenueTransactions({
+          title: formTitle.trim(),
+          amount: parsedAmount,
+          category: formCategory,
+          paymentMethod: formPaymentMethod,
+          description: formDescription.trim() || undefined,
+          account: formAccount,
+          accountType: 'empresarial',
+          frequency: formRecurrenceFrequency,
+          day: formRecurrenceDay,
+          startDate: formDate,
+          endDate: formHasEndDate && formRecurrenceEndDate ? formRecurrenceEndDate : undefined,
+        });
+
+        for (const rTx of recurringTxs) {
+          onAddTransaction(rTx);
+        }
+      } else {
+        onAddTransaction(txData);
+      }
       setShowAddModal(false);
     }
 
@@ -310,6 +397,65 @@ export default function History({ profile, userId = 'default_user', transactions
     setFormTitle('');
     setFormAmount('');
     setFormExpenseType('variavel');
+    setFormRevenueType('variavel');
+    setFormDescription('');
+  };
+
+  // Apply Recurring Edit across scopes (Requirement 14)
+  const handleApplyRecurringEdit = (scope: 'single' | 'future' | 'all') => {
+    if (!pendingRecurringEdit) return;
+    const { tx, updatedTxData } = pendingRecurringEdit;
+
+    if (scope === 'single') {
+      onEditTransaction({
+        ...tx,
+        ...updatedTxData
+      });
+    } else if (scope === 'future') {
+      const futureTxs = transactions
+        .filter(t => t.recurrenceId === tx.recurrenceId && t.date >= tx.date)
+        .map(t => ({
+          ...t,
+          title: updatedTxData.title,
+          amount: updatedTxData.amount,
+          category: updatedTxData.category,
+          paymentMethod: updatedTxData.paymentMethod,
+          account: updatedTxData.account,
+          description: updatedTxData.description,
+          revenueType: updatedTxData.revenueType,
+          recurrenceFrequency: updatedTxData.recurrenceFrequency,
+          recurrenceDay: updatedTxData.recurrenceDay,
+        }));
+      if (onBatchEditTransactions) {
+        onBatchEditTransactions(futureTxs);
+      } else {
+        futureTxs.forEach(t => onEditTransaction(t));
+      }
+    } else if (scope === 'all') {
+      const allTxs = transactions
+        .filter(t => t.recurrenceId === tx.recurrenceId)
+        .map(t => ({
+          ...t,
+          title: updatedTxData.title,
+          amount: updatedTxData.amount,
+          category: updatedTxData.category,
+          paymentMethod: updatedTxData.paymentMethod,
+          account: updatedTxData.account,
+          description: updatedTxData.description,
+          revenueType: updatedTxData.revenueType,
+          recurrenceFrequency: updatedTxData.recurrenceFrequency,
+          recurrenceDay: updatedTxData.recurrenceDay,
+        }));
+      if (onBatchEditTransactions) {
+        onBatchEditTransactions(allTxs);
+      } else {
+        allTxs.forEach(t => onEditTransaction(t));
+      }
+    }
+
+    setPendingRecurringEdit(null);
+    setEditingTx(null);
+    setShowAddModal(false);
   };
 
   // Set category dropdown when type shifts
@@ -636,44 +782,91 @@ export default function History({ profile, userId = 'default_user', transactions
                 </button>
               </div>
 
-              {/* Expense Type Sub-Pills (Requirement 12: Todas | Fixas | Variáveis) */}
-              <div className="flex items-center gap-1 p-1 bg-black/40 rounded-xl border border-white/5">
-                <span className="text-[10px] font-bold text-zinc-500 uppercase px-1 hidden sm:inline">Despesas:</span>
-                <button
-                  type="button"
-                  onClick={() => setFilterExpenseType('todas')}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                    filterExpenseType === 'todas'
-                      ? 'bg-white/15 text-white border border-white/20'
-                      : 'text-zinc-400 hover:text-white'
-                  }`}
-                >
-                  Todas
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFilterExpenseType('fixas')}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                    filterExpenseType === 'fixas'
-                      ? 'bg-primary text-white shadow-sm border border-primary/40'
-                      : 'text-zinc-400 hover:text-white'
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-[12px]">lock</span>
-                  <span>Fixas</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFilterExpenseType('variaveis')}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                    filterExpenseType === 'variaveis'
-                      ? 'bg-amber-500 text-white shadow-sm border border-amber-400/40'
-                      : 'text-zinc-400 hover:text-white'
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-[12px]">tune</span>
-                  <span>Variáveis</span>
-                </button>
+              {/* Sub-Pills Container for Receitas and Despesas */}
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Revenue Type Sub-Pills (Requirement 13: Todas | Fixas | Variáveis) */}
+                {(filterType === 'entrada' || advType === 'entrada' || filterType === 'tudo') && (
+                  <div className="flex items-center gap-1 p-1 bg-black/40 rounded-xl border border-white/5">
+                    <span className="text-[10px] font-bold text-emerald-400 uppercase px-1 hidden sm:inline">Receitas:</span>
+                    <button
+                      type="button"
+                      onClick={() => setFilterRevenueType('todas')}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                        filterRevenueType === 'todas'
+                          ? 'bg-white/15 text-white border border-white/20'
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      Todas
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFilterRevenueType('fixas')}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                        filterRevenueType === 'fixas'
+                          ? 'bg-emerald-500 text-white shadow-sm border border-emerald-400/40'
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[12px]">schedule</span>
+                      <span>Fixas</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFilterRevenueType('variaveis')}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                        filterRevenueType === 'variaveis'
+                          ? 'bg-sky-500 text-white shadow-sm border border-sky-400/40'
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[12px]">trending_up</span>
+                      <span>Variáveis</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Expense Type Sub-Pills (Requirement 12: Todas | Fixas | Variáveis) */}
+                {(filterType === 'saida' || advType === 'saida' || filterType === 'tudo') && (
+                  <div className="flex items-center gap-1 p-1 bg-black/40 rounded-xl border border-white/5">
+                    <span className="text-[10px] font-bold text-rose-400 uppercase px-1 hidden sm:inline">Despesas:</span>
+                    <button
+                      type="button"
+                      onClick={() => setFilterExpenseType('todas')}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                        filterExpenseType === 'todas'
+                          ? 'bg-white/15 text-white border border-white/20'
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      Todas
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFilterExpenseType('fixas')}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                        filterExpenseType === 'fixas'
+                          ? 'bg-primary text-white shadow-sm border border-primary/40'
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[12px]">lock</span>
+                      <span>Fixas</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFilterExpenseType('variaveis')}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                        filterExpenseType === 'variaveis'
+                          ? 'bg-amber-500 text-white shadow-sm border border-amber-400/40'
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[12px]">tune</span>
+                      <span>Variáveis</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -722,8 +915,16 @@ export default function History({ profile, userId = 'default_user', transactions
                         <div className="min-w-0">
                           <h4 className="text-xs sm:text-sm font-semibold text-white leading-tight truncate">{tx.title}</h4>
                           <p className="text-[11px] text-zinc-500 mt-0.5 truncate flex items-center gap-1.5">
-                            {tx.type === 'saida' && (
-                              <span className={`text-[9.5px] font-extrabold px-1.5 py-0.2 rounded-md ${
+                            {tx.type === 'entrada' ? (
+                              <span className={`text-[9.5px] font-extrabold px-1.5 py-0.2 rounded-md uppercase tracking-wider ${
+                                tx.revenueType === 'fixa'
+                                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/35'
+                                  : 'bg-sky-500/20 text-sky-300 border border-sky-500/35'
+                              }`}>
+                                {tx.revenueType === 'fixa' ? 'Fixa' : 'Variável'}
+                              </span>
+                            ) : (
+                              <span className={`text-[9.5px] font-extrabold px-1.5 py-0.2 rounded-md uppercase tracking-wider ${
                                 tx.expenseType === 'fixa'
                                   ? 'bg-primary/20 text-primary border border-primary/30'
                                   : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
@@ -731,7 +932,7 @@ export default function History({ profile, userId = 'default_user', transactions
                                 {tx.expenseType === 'fixa' ? 'Fixa' : 'Variável'}
                               </span>
                             )}
-                            {tx.type === 'saida' && <span>•</span>}
+                            <span>•</span>
                             <span>{tx.category}</span>
                             <span>•</span>
                             <span>{tx.paymentMethod}</span>
@@ -924,8 +1125,16 @@ export default function History({ profile, userId = 'default_user', transactions
                       <td className="p-4 font-bold text-on-surface">{tx.title}</td>
                       <td className="p-4">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          {tx.type === 'saida' && (
-                            <span className={`inline-flex items-center text-[10px] font-black px-2 py-0.5 rounded-full border ${
+                          {tx.type === 'entrada' ? (
+                            <span className={`inline-flex items-center text-[10px] font-black px-2 py-0.5 rounded-full border uppercase tracking-wider ${
+                              tx.revenueType === 'fixa'
+                                ? 'bg-emerald-500/20 border-emerald-500/35 text-emerald-300'
+                                : 'bg-sky-500/20 border-sky-500/35 text-sky-300'
+                            }`}>
+                              {tx.revenueType === 'fixa' ? 'Fixa' : 'Variável'}
+                            </span>
+                          ) : (
+                            <span className={`inline-flex items-center text-[10px] font-black px-2 py-0.5 rounded-full border uppercase tracking-wider ${
                               tx.expenseType === 'fixa'
                                 ? 'bg-primary/20 border-primary/35 text-primary'
                                 : 'bg-amber-500/20 border-amber-500/35 text-amber-300'
@@ -1015,56 +1224,145 @@ export default function History({ profile, userId = 'default_user', transactions
                 </button>
               </div>
 
-              <form onSubmit={handleFormSubmit} className="flex flex-col gap-5 text-left">
+              <form onSubmit={handleFormSubmit} className="flex flex-col gap-4 text-left">
                 {/* Type Selection */}
                 <div className="grid grid-cols-2 p-1 bg-[#0d0d12] rounded-2xl border border-white/[0.06]">
                   <button
                     type="button"
-                    onClick={() => setFormType('entrada')}
+                    onClick={() => {
+                      setFormType('entrada');
+                      const cats = getCategoryNamesByType(userId, 'entrada');
+                      setFormCategory(cats[0] || 'Outros');
+                    }}
                     className={`py-3 text-xs font-extrabold rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer select-none ${
                       formType === 'entrada' 
-                        ? 'bg-tertiary text-on-primary shadow-[0_2px_8px_rgba(16,185,129,0.2)] border border-white/10' 
+                        ? 'bg-emerald-500 text-white shadow-[0_2px_8px_rgba(16,185,129,0.2)] border border-white/10' 
                         : 'text-on-surface-variant/80 hover:text-white hover:bg-white/[0.02]'
                     }`}
                   >
-                    <span className="material-symbols-outlined text-sm font-bold" style={{ fontVariationSettings: "'FILL' 1" }}>trending_up</span>
+                    <span className="material-symbols-outlined text-sm font-bold">trending_up</span>
                     Receita (Entrada)
                   </button>
                   <button
                     type="button"
-                    onClick={() => setFormType('saida')}
+                    onClick={() => {
+                      setFormType('saida');
+                      const cats = getCategoryNamesByType(userId, 'saida');
+                      setFormCategory(cats[0] || 'Outros');
+                    }}
                     className={`py-3 text-xs font-extrabold rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer select-none ${
                       formType === 'saida' 
-                        ? 'bg-error text-on-primary shadow-[0_2px_8px_rgba(239,68,68,0.2)] border border-white/10' 
+                        ? 'bg-rose-500 text-white shadow-[0_2px_8px_rgba(239,68,68,0.2)] border border-white/10' 
                         : 'text-on-surface-variant/80 hover:text-white hover:bg-white/[0.02]'
                     }`}
                   >
-                    <span className="material-symbols-outlined text-sm font-bold" style={{ fontVariationSettings: "'FILL' 1" }}>trending_down</span>
+                    <span className="material-symbols-outlined text-sm font-bold">trending_down</span>
                     Despesa (Saiu)
                   </button>
                 </div>
 
-                {/* Title */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Especificação do Item ou Serviço</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ex: Venda de Bolo, Compra de Insumos..."
-                    value={formTitle}
-                    onChange={(e) => setFormTitle(e.target.value)}
-                    className="w-full bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus:border-primary focus:bg-[#1b1b26] rounded-xl px-4 py-3 text-xs sm:text-sm focus:outline-none text-white placeholder:text-white/[0.15] transition-all"
-                  />
-                </div>
+                {/* Tipo de Receita Switcher: Fixa vs Variável (Seção 4) */}
+                {formType === 'entrada' && (
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider">
+                      Tipo de Receita *
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 select-none">
+                      {/* Card Receita Fixa */}
+                      <button
+                        type="button"
+                        onClick={() => setFormRevenueType('fixa')}
+                        className={`p-3 rounded-2xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
+                          formRevenueType === 'fixa'
+                            ? 'bg-emerald-500/15 border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.15)] ring-1 ring-emerald-500/30'
+                            : 'bg-black/30 border-white/5 hover:border-white/15 opacity-70'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-black text-white flex items-center gap-1.5">
+                            <span className="material-symbols-outlined text-emerald-400 text-base">schedule</span>
+                            Receita Fixa
+                          </span>
+                          {formRevenueType === 'fixa' && (
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+                          )}
+                        </div>
+                        <p className="text-[10px] text-zinc-400 leading-tight">
+                          Receitas que acontecem com frequência e podem ser previstas.
+                        </p>
+                      </button>
+
+                      {/* Card Receita Variável */}
+                      <button
+                        type="button"
+                        onClick={() => setFormRevenueType('variavel')}
+                        className={`p-3 rounded-2xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
+                          formRevenueType === 'variavel'
+                            ? 'bg-sky-500/15 border-sky-500/50 shadow-[0_0_15px_rgba(56,189,248,0.15)] ring-1 ring-sky-500/30'
+                            : 'bg-black/30 border-white/5 hover:border-white/15 opacity-70'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-black text-white flex items-center gap-1.5">
+                            <span className="material-symbols-outlined text-sky-400 text-base">trending_up</span>
+                            Receita Variável
+                          </span>
+                          {formRevenueType === 'variavel' && (
+                            <span className="w-2 h-2 rounded-full bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.8)]" />
+                          )}
+                        </div>
+                        <p className="text-[10px] text-zinc-400 leading-tight">
+                          Receitas que acontecem de forma pontual ou variam mês a mês.
+                        </p>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tipo de Despesa Switcher: Fixa vs Variável */}
+                {formType === 'saida' && (
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider">
+                      Classificação da Despesa
+                    </label>
+                    <div className="grid grid-cols-2 p-1 rounded-xl bg-black/40 border border-white/5 gap-1 select-none h-11">
+                      <button
+                        type="button"
+                        onClick={() => setFormExpenseType('fixa')}
+                        className={`h-full px-3 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          formExpenseType === 'fixa'
+                            ? 'bg-primary text-white shadow-sm border border-primary/30'
+                            : 'text-zinc-400 hover:text-white'
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-sm">lock</span>
+                        <span>Conta Fixa</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormExpenseType('variavel')}
+                        className={`h-full px-3 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          formExpenseType === 'variavel'
+                            ? 'bg-amber-500 text-white shadow-sm border border-amber-400/30'
+                            : 'text-zinc-400 hover:text-white'
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-sm">tune</span>
+                        <span>Conta Variável</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Amount */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Valor (R$)</label>
+                  <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Valor (R$) *</label>
                   <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary/60 rounded-xl px-4 py-3 focus-within:bg-[#1b1b26] focus-within:shadow-[0_0_20px_rgba(109,59,215,0.15)] transition-all">
                     <span className="text-sm font-extrabold text-on-surface-variant/50 mr-2 select-none">R$</span>
                     <input
                       type="number"
                       step="0.01"
+                      min="0.01"
                       required
                       placeholder="0,00"
                       value={formAmount}
@@ -1073,6 +1371,134 @@ export default function History({ profile, userId = 'default_user', transactions
                     />
                   </div>
                 </div>
+
+                {/* Title */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">
+                    {formType === 'entrada' && formRevenueType === 'fixa'
+                      ? 'Nome da Receita (Cliente / Contrato) *'
+                      : 'Especificação do Item ou Serviço *'}
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder={
+                      formType === 'entrada'
+                        ? formRevenueType === 'fixa'
+                          ? 'Ex: Cliente Empresa ABC, Assinatura Mensal...'
+                          : 'Ex: Projeto de Social Media, Venda Pontual...'
+                        : 'Ex: Aluguel do Escritório, Compra de Insumos...'
+                    }
+                    value={formTitle}
+                    onChange={(e) => setFormTitle(e.target.value)}
+                    className="w-full bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus:border-primary focus:bg-[#1b1b26] rounded-xl px-4 py-3 text-xs sm:text-sm focus:outline-none text-white placeholder:text-white/[0.15] transition-all"
+                  />
+                </div>
+
+                {/* Campos Específicos para RECEITA FIXA (Seção 6) */}
+                {formType === 'entrada' && formRevenueType === 'fixa' && (
+                  <div className="flex flex-col gap-3 p-3.5 rounded-2xl bg-black/40 border border-emerald-500/20">
+                    <div className="flex items-center gap-1.5 text-emerald-400 font-bold text-xs">
+                      <span className="material-symbols-outlined text-sm">schedule</span>
+                      <span>Configuração de Recorrência</span>
+                    </div>
+
+                    {/* Frequência */}
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase">Frequência</label>
+                      <div className="grid grid-cols-4 gap-1 p-1 bg-[#181426] rounded-xl border border-white/5">
+                        {(['mensal', 'semanal', 'quinzenal', 'anual'] as RecurrenceFrequency[]).map((freq) => (
+                          <button
+                            key={freq}
+                            type="button"
+                            onClick={() => setFormRecurrenceFrequency(freq)}
+                            className={`py-1.5 rounded-lg text-[11px] font-bold capitalize transition-all cursor-pointer ${
+                              formRecurrenceFrequency === freq
+                                ? 'bg-emerald-500 text-white shadow-sm'
+                                : 'text-zinc-400 hover:text-white'
+                            }`}
+                          >
+                            {freq}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Dia de Recebimento & Data de Início */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase">
+                          Dia de Recebimento
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="31"
+                          required
+                          value={formRecurrenceDay}
+                          onChange={(e) => setFormRecurrenceDay(Math.min(31, Math.max(1, parseInt(e.target.value) || 1)))}
+                          className="bg-[#181426] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-400"
+                          placeholder="Dia 10"
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase">
+                          Data de Início
+                        </label>
+                        <input
+                          type="date"
+                          required
+                          value={formDate}
+                          onChange={(e) => setFormDate(e.target.value)}
+                          className="bg-[#181426] border border-white/10 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-400"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Data de Término (Opcional) */}
+                    <div className="flex flex-col gap-2 pt-1 border-t border-white/5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-zinc-400 uppercase">
+                          Data de Término
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setFormHasEndDate(false)}
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                              !formHasEndDate
+                                ? 'bg-white/15 text-white'
+                                : 'text-zinc-500 hover:text-zinc-300'
+                            }`}
+                          >
+                            Sem término
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormHasEndDate(true)}
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                              formHasEndDate
+                                ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/30'
+                                : 'text-zinc-500 hover:text-zinc-300'
+                            }`}
+                          >
+                            Definir data
+                          </button>
+                        </div>
+                      </div>
+
+                      {formHasEndDate && (
+                        <input
+                          type="date"
+                          value={formRecurrenceEndDate}
+                          onChange={(e) => setFormRecurrenceEndDate(e.target.value)}
+                          className="bg-[#181426] border border-white/10 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-400"
+                        />
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Category & Payment Method row */}
                 <div className="grid grid-cols-2 gap-4">
@@ -1140,26 +1566,45 @@ export default function History({ profile, userId = 'default_user', transactions
                   </div>
                 </div>
 
-                {/* Date */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Data</label>
-                  <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary focus-within:bg-[#1b1b26] rounded-xl px-4 py-3 transition-all">
-                    <input
-                      type="date"
-                      required
-                      value={formDate}
-                      onChange={(e) => setFormDate(e.target.value)}
-                      className="w-full bg-transparent border-none text-xs sm:text-sm text-white focus:outline-none cursor-pointer scheme-dark"
-                    />
-                    <span className="material-symbols-outlined absolute right-4 text-on-surface-variant/70 pointer-events-none text-base">calendar_today</span>
+                {/* Data (se não for receita fixa, pois receita fixa já possui data de início) */}
+                {!(formType === 'entrada' && formRevenueType === 'fixa') && (
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Data</label>
+                    <div className="relative flex items-center bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus-within:border-primary focus-within:bg-[#1b1b26] rounded-xl px-4 py-3 transition-all">
+                      <input
+                        type="date"
+                        required
+                        value={formDate}
+                        onChange={(e) => setFormDate(e.target.value)}
+                        className="w-full bg-transparent border-none text-xs sm:text-sm text-white focus:outline-none cursor-pointer scheme-dark"
+                      />
+                      <span className="material-symbols-outlined absolute right-4 text-on-surface-variant/70 pointer-events-none text-base">calendar_today</span>
+                    </div>
                   </div>
+                )}
+
+                {/* Observação (Opcional) */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">
+                    Observação (Opcional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Detalhes ou anotações sobre o lançamento..."
+                    value={formDescription}
+                    onChange={(e) => setFormDescription(e.target.value)}
+                    className="w-full bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus:border-primary focus:bg-[#1b1b26] rounded-xl px-4 py-2.5 text-xs text-white placeholder:text-white/[0.15] transition-all"
+                  />
                 </div>
 
                 {/* CTA Buttons */}
                 <div className="flex gap-3 pt-4 border-t border-white/[0.06] mt-2">
                   <button
                     type="button"
-                    onClick={() => setShowAddModal(false)}
+                    onClick={() => {
+                      setShowAddModal(false);
+                      setEditingTx(null);
+                    }}
                     className="flex-1 py-3.5 bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] rounded-xl text-xs sm:text-sm font-extrabold text-white transition-all active:scale-[0.98] cursor-pointer"
                   >
                     Voltar
@@ -1168,12 +1613,12 @@ export default function History({ profile, userId = 'default_user', transactions
                     type="submit"
                     className={`flex-1 py-3.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all duration-300 flex items-center justify-center gap-1.5 cursor-pointer shadow-md ${
                       formType === 'entrada' 
-                        ? 'bg-tertiary hover:bg-[#3bc691] text-on-primary border border-tertiary/25 shadow-[0_4px_12px_rgba(16,185,129,0.2)]' 
-                        : 'bg-error hover:bg-[#ffa095] text-on-primary border border-error/25 shadow-[0_4px_12px_rgba(239,68,68,0.2)]'
+                        ? 'bg-emerald-500 hover:bg-[#3bc691] text-white border border-emerald-500/25 shadow-[0_4px_12px_rgba(16,185,129,0.2)]' 
+                        : 'bg-rose-500 hover:bg-[#ffa095] text-white border border-rose-500/25 shadow-[0_4px_12px_rgba(239,68,68,0.2)]'
                     }`}
                   >
                     <span className="material-symbols-outlined text-sm font-bold">done</span>
-                    Confirmar
+                    {editingTx ? 'Salvar Alterações' : 'Confirmar'}
                   </button>
                 </div>
               </form>
@@ -1182,23 +1627,183 @@ export default function History({ profile, userId = 'default_user', transactions
         )}
       </AnimatePresence>
 
-      {/* Custom Delete Confirmation Modal */}
+      {/* Modal de Confirmação de Aplicação de Alteração Recorrente (Requirement 14) */}
+      <AnimatePresence>
+        {pendingRecurringEdit && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="glass-card rounded-[28px] p-6 sm:p-7 shadow-2xl border border-primary/20 w-full max-w-sm flex flex-col gap-5 relative bg-gradient-to-b from-[#171328]/95 to-[#100d1c]/98 text-left"
+            >
+              <div className="flex flex-col items-center text-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center text-primary">
+                  <span className="material-symbols-outlined text-2xl font-bold">update</span>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <h3 className="text-base font-extrabold text-white">
+                    Como deseja aplicar esta alteração?
+                  </h3>
+                  <p className="text-xs text-zinc-400 leading-relaxed max-w-[280px]">
+                    Esta receita possui recorrência periódica. Escolha o alcance da edição:
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => handleApplyRecurringEdit('single')}
+                  className="w-full py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold text-xs transition-all cursor-pointer border border-white/10 text-left flex items-center justify-between"
+                >
+                  <span className="flex flex-col">
+                    <span className="text-white font-extrabold">Somente este lançamento</span>
+                    <span className="text-[10px] text-zinc-400 font-normal">Não altera lançamentos anteriores ou futuros</span>
+                  </span>
+                  <span className="material-symbols-outlined text-sm text-zinc-400">chevron_right</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleApplyRecurringEdit('future')}
+                  className="w-full py-3 px-4 rounded-xl bg-primary/20 hover:bg-primary/30 text-white font-bold text-xs transition-all cursor-pointer border border-primary/30 text-left flex items-center justify-between"
+                >
+                  <span className="flex flex-col">
+                    <span className="text-primary font-extrabold">Este e os próximos lançamentos</span>
+                    <span className="text-[10px] text-zinc-300 font-normal">Mantém o histórico já realizado intacto</span>
+                  </span>
+                  <span className="material-symbols-outlined text-sm text-primary">chevron_right</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleApplyRecurringEdit('all')}
+                  className="w-full py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold text-xs transition-all cursor-pointer border border-white/10 text-left flex items-center justify-between"
+                >
+                  <span className="flex flex-col">
+                    <span className="text-zinc-200 font-extrabold">Toda a recorrência</span>
+                    <span className="text-[10px] text-zinc-400 font-normal">Atualiza todos os registros da série</span>
+                  </span>
+                  <span className="material-symbols-outlined text-sm text-zinc-400">chevron_right</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPendingRecurringEdit(null)}
+                  className="w-full py-2.5 rounded-xl bg-transparent text-zinc-500 hover:text-white font-semibold text-xs transition-all cursor-pointer mt-1 text-center"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Custom Delete Confirmation Modal (Requirement 15) */}
       <AnimatePresence>
         {deletingTxId && (() => {
           const tx = transactions.find(t => t.id === deletingTxId);
           if (!tx) return null;
+
+          const isRecurring = Boolean(tx.recurrenceId);
+
+          if (isRecurring) {
+            return (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="glass-card rounded-[28px] p-6 shadow-2xl border border-error/20 w-full max-w-sm flex flex-col gap-5 relative bg-gradient-to-b from-[#1a1315]/95 to-[#120d0e]/98 text-left"
+                >
+                  <div className="flex flex-col items-center text-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-error/15 border border-error/30 flex items-center justify-center text-error">
+                      <span className="material-symbols-outlined text-2xl font-bold">event_repeat</span>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <h3 className="text-base font-extrabold text-white">
+                        Excluir receita recorrente?
+                      </h3>
+                      <p className="text-xs text-zinc-400 leading-relaxed max-w-[260px]">
+                        Você pode excluir apenas este lançamento ou encerrar a recorrência.
+                      </p>
+                    </div>
+
+                    {/* Resumo do Lançamento */}
+                    <div className="w-full bg-black/30 rounded-xl p-3 border border-white/5 flex flex-col gap-1 items-center">
+                      <span className="text-xs font-bold text-white truncate max-w-[200px]">
+                        {tx.title}
+                      </span>
+                      <span className="text-sm font-extrabold text-emerald-400">
+                        +{formatBRL(tx.amount)}
+                      </span>
+                      <span className="text-[10px] text-zinc-500">
+                        {tx.date.split('-').reverse().join('/')} • Recorrente ({tx.recurrenceFrequency || 'Mensal'})
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onDeleteTransaction(deletingTxId);
+                        setDeletingTxId(null);
+                      }}
+                      className="w-full py-3 rounded-xl bg-error/20 hover:bg-error/30 text-rose-300 border border-error/30 font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <span className="material-symbols-outlined text-sm">delete</span>
+                      <span>Excluir este lançamento</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const futureIds = transactions
+                          .filter(t => t.recurrenceId === tx.recurrenceId && t.date >= tx.date)
+                          .map(t => t.id);
+
+                        if (onBatchDeleteTransactions && futureIds.length > 0) {
+                          onBatchDeleteTransactions(futureIds);
+                        } else {
+                          futureIds.forEach(id => onDeleteTransaction(id));
+                        }
+                        setDeletingTxId(null);
+                      }}
+                      className="w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs transition-all cursor-pointer shadow-md flex items-center justify-center gap-1.5"
+                    >
+                      <span className="material-symbols-outlined text-sm">cancel</span>
+                      <span>Encerrar recorrência</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setDeletingTxId(null)}
+                      className="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white font-semibold text-xs transition-all cursor-pointer mt-1 text-center"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
+            );
+          }
+
           return (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="glass-card rounded-[28px] p-6 shadow-2xl border border-error/20 w-full max-w-sm flex flex-col gap-6 relative bg-gradient-to-b from-[#1a1315]/90 to-[#120d0e]/95"
+                className="glass-card rounded-[28px] p-6 shadow-2xl border border-error/20 w-full max-w-sm flex flex-col gap-6 relative bg-gradient-to-b from-[#1a1315]/90 to-[#120d0e]/95 text-left"
               >
                 <div className="absolute top-0 right-0 w-24 h-24 bg-error/5 rounded-full filter blur-xl pointer-events-none"></div>
 
                 <div className="flex flex-col items-center text-center gap-4">
-                  {/* Warning Icon */}
                   <div className="w-14 h-14 rounded-full bg-error/10 border border-error/20 flex items-center justify-center text-error shadow-[0_0_15px_rgba(239,68,68,0.15)] animate-pulse">
                     <span className="material-symbols-outlined text-2xl font-bold">
                       warning
@@ -1219,7 +1824,7 @@ export default function History({ profile, userId = 'default_user', transactions
                     <span className="text-xs font-bold text-on-surface-variant">
                       {tx.title}
                     </span>
-                    <span className={`text-lg font-extrabold ${tx.type === 'entrada' ? 'text-tertiary' : 'text-error'}`}>
+                    <span className={`text-lg font-extrabold ${tx.type === 'entrada' ? 'text-emerald-400' : 'text-error'}`}>
                       {tx.type === 'entrada' ? '+' : '-'} {formatBRL(tx.amount)}
                     </span>
                     <span className="text-[10px] text-on-surface-variant/50">

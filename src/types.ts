@@ -13,6 +13,8 @@ export interface UserProfile {
 
 export type TransactionType = 'entrada' | 'saida';
 export type ExpenseType = 'fixa' | 'variavel';
+export type RevenueType = 'fixa' | 'variavel';
+export type RecurrenceFrequency = 'mensal' | 'semanal' | 'quinzenal' | 'anual';
 
 export interface Transaction {
   id: string;
@@ -26,6 +28,12 @@ export interface Transaction {
   account?: string; // Account origin/destination (Dinheiro, Conta Corrente, Poupança, Cartão de Crédito, Outro)
   accountType?: AccountType; // 'empresarial' | 'pessoal' (default: 'empresarial')
   expenseType?: ExpenseType; // 'fixa' | 'variavel'
+  revenueType?: RevenueType; // 'fixa' | 'variavel' (Receita Fixa vs Receita Variável)
+  recurrenceFrequency?: RecurrenceFrequency; // Frequência da recorrência
+  recurrenceDay?: number; // Dia de recebimento (1-31)
+  recurrenceStartDate?: string; // Data inicial (YYYY-MM-DD)
+  recurrenceEndDate?: string; // Data final opcional (YYYY-MM-DD)
+  recurrenceId?: string; // ID da série recorrente para gerenciar lançamentos vinculados
   contaId?: string; // Reference to ContaFinanceira if generated or launched from a registered account
 }
 

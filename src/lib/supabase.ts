@@ -6,6 +6,7 @@ let hasPlanoColumn = typeof window !== 'undefined' && localStorage.getItem('mco_
 let hasContaColumn = typeof window !== 'undefined' && localStorage.getItem('mco_db_has_conta') !== 'false';
 let hasTipoContaColumn = typeof window !== 'undefined' && localStorage.getItem('mco_db_has_tipo_conta') !== 'false';
 let hasTipoDespesaColumn = typeof window !== 'undefined' && localStorage.getItem('mco_db_has_tipo_despesa') !== 'false';
+let hasTipoReceitaColumn = typeof window !== 'undefined' && localStorage.getItem('mco_db_has_tipo_receita') !== 'false';
 
 export function getSupabaseUrl() {
   return (import.meta as any).env.VITE_SUPABASE_URL || 'https://yfbgauajvijwngvhrkms.supabase.co';
@@ -69,6 +70,9 @@ export function mapUserProfileToDbProfile(profile: UserProfile, userId: string) 
 
 // Map db row to Transaction
 export function mapDbToTransaction(row: any): Transaction {
+  const isEntrada = row.tipo === 'entrada';
+  const resolvedRevenueType = row.tipo_receita || row.revenue_type || (isEntrada ? 'variavel' : undefined);
+
   return {
     id: row.id,
     title: row.titulo || row.descricao || 'Lançamento',
@@ -81,6 +85,12 @@ export function mapDbToTransaction(row: any): Transaction {
     account: row.conta || undefined,
     accountType: (row.tipo_conta as 'empresarial' | 'pessoal') || 'empresarial',
     expenseType: (row.tipo_despesa as any) || (row.expense_type as any) || undefined,
+    revenueType: isEntrada ? resolvedRevenueType : undefined,
+    recurrenceFrequency: row.recorrencia_frequencia || row.recurrence_frequency || undefined,
+    recurrenceDay: row.recorrencia_dia !== undefined ? Number(row.recorrencia_dia) : undefined,
+    recurrenceStartDate: row.recorrencia_data_inicio || row.recurrence_start_date || undefined,
+    recurrenceEndDate: row.recorrencia_data_fim || row.recurrence_end_date || undefined,
+    recurrenceId: row.recorrencia_id || row.recurrence_id || undefined,
   };
 }
 
@@ -105,6 +115,24 @@ export function mapTransactionToDb(tx: any, userId: string) {
   }
   if (hasTipoDespesaColumn && tx.expenseType) {
     row.tipo_despesa = tx.expenseType;
+  }
+  if (hasTipoReceitaColumn && tx.revenueType) {
+    row.tipo_receita = tx.revenueType;
+  }
+  if (tx.recurrenceId) {
+    row.recorrencia_id = tx.recurrenceId;
+  }
+  if (tx.recurrenceFrequency) {
+    row.recorrencia_frequencia = tx.recurrenceFrequency;
+  }
+  if (tx.recurrenceDay !== undefined) {
+    row.recorrencia_dia = tx.recurrenceDay;
+  }
+  if (tx.recurrenceStartDate) {
+    row.recorrencia_data_inicio = tx.recurrenceStartDate;
+  }
+  if (tx.recurrenceEndDate) {
+    row.recorrencia_data_fim = tx.recurrenceEndDate;
   }
   return row;
 }
@@ -365,7 +393,7 @@ export async function insertTransaction(userId: string, tx: Omit<Transaction, 'i
       .single();
 
     if (error) {
-      if (error.message?.includes('tipo_conta') || error.message?.includes('conta') || error.message?.includes('tipo_despesa') || error.message?.includes('column')) {
+      if (error.message?.includes('tipo_conta') || error.message?.includes('conta') || error.message?.includes('tipo_despesa') || error.message?.includes('tipo_receita') || error.message?.includes('recorrencia') || error.message?.includes('column')) {
         if (error.message?.includes('tipo_conta')) {
           hasTipoContaColumn = false;
           if (typeof window !== 'undefined') localStorage.setItem('mco_db_has_tipo_conta', 'false');
@@ -378,10 +406,22 @@ export async function insertTransaction(userId: string, tx: Omit<Transaction, 'i
           hasTipoDespesaColumn = false;
           if (typeof window !== 'undefined') localStorage.setItem('mco_db_has_tipo_despesa', 'false');
         }
+        if (error.message?.includes('tipo_receita') || error.message?.includes('recorrencia')) {
+          hasTipoReceitaColumn = false;
+          if (typeof window !== 'undefined') localStorage.setItem('mco_db_has_tipo_receita', 'false');
+        }
         const retryDbTx = { ...dbTx };
         if (!hasContaColumn) delete retryDbTx.conta;
         if (!hasTipoContaColumn) delete retryDbTx.tipo_conta;
         if (!hasTipoDespesaColumn) delete retryDbTx.tipo_despesa;
+        if (!hasTipoReceitaColumn) {
+          delete retryDbTx.tipo_receita;
+          delete retryDbTx.recorrencia_id;
+          delete retryDbTx.recorrencia_frequencia;
+          delete retryDbTx.recorrencia_dia;
+          delete retryDbTx.recorrencia_data_inicio;
+          delete retryDbTx.recorrencia_data_fim;
+        }
         const { data: retryData, error: retryError } = await supabase
           .from('lancamentos')
           .insert(retryDbTx)
@@ -450,7 +490,7 @@ export async function updateTransaction(userId: string, tx: Transaction): Promis
       .single();
 
     if (error) {
-      if (error.message?.includes('tipo_conta') || error.message?.includes('conta') || error.message?.includes('tipo_despesa') || error.message?.includes('column')) {
+      if (error.message?.includes('tipo_conta') || error.message?.includes('conta') || error.message?.includes('tipo_despesa') || error.message?.includes('tipo_receita') || error.message?.includes('recorrencia') || error.message?.includes('column')) {
         if (error.message?.includes('tipo_conta')) {
           hasTipoContaColumn = false;
           if (typeof window !== 'undefined') localStorage.setItem('mco_db_has_tipo_conta', 'false');
@@ -463,10 +503,22 @@ export async function updateTransaction(userId: string, tx: Transaction): Promis
           hasTipoDespesaColumn = false;
           if (typeof window !== 'undefined') localStorage.setItem('mco_db_has_tipo_despesa', 'false');
         }
+        if (error.message?.includes('tipo_receita') || error.message?.includes('recorrencia')) {
+          hasTipoReceitaColumn = false;
+          if (typeof window !== 'undefined') localStorage.setItem('mco_db_has_tipo_receita', 'false');
+        }
         const retryDbTx = { ...dbTx };
         if (!hasContaColumn) delete retryDbTx.conta;
         if (!hasTipoContaColumn) delete retryDbTx.tipo_conta;
         if (!hasTipoDespesaColumn) delete retryDbTx.tipo_despesa;
+        if (!hasTipoReceitaColumn) {
+          delete retryDbTx.tipo_receita;
+          delete retryDbTx.recorrencia_id;
+          delete retryDbTx.recorrencia_frequencia;
+          delete retryDbTx.recorrencia_dia;
+          delete retryDbTx.recorrencia_data_inicio;
+          delete retryDbTx.recorrencia_data_fim;
+        }
         const { data: retryData, error: retryError } = await supabase
           .from('lancamentos')
           .update(retryDbTx)

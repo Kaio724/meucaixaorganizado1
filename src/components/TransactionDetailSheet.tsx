@@ -164,6 +164,65 @@ export default function TransactionDetailSheet({
                 </span>
               </div>
 
+              {/* Classificação da Receita (Fixa ou Variável) */}
+              {transaction.type === 'entrada' && (
+                <div className="py-3 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 text-zinc-400">
+                    <Receipt className="w-4 h-4 text-zinc-500" />
+                    <span className="font-medium">Classificação</span>
+                  </div>
+                  <span className={`font-extrabold px-2.5 py-1 rounded-lg border uppercase text-[10px] tracking-wider ${
+                    transaction.revenueType === 'fixa'
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/35'
+                      : 'bg-sky-500/15 text-sky-300 border-sky-500/30'
+                  }`}>
+                    {transaction.revenueType === 'fixa' ? 'Receita Fixa' : 'Receita Variável'}
+                  </span>
+                </div>
+              )}
+
+              {/* Informações de Recorrência para Receita Fixa */}
+              {transaction.type === 'entrada' && transaction.revenueType === 'fixa' && (
+                <>
+                  {transaction.recurrenceFrequency && (
+                    <div className="py-3 flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2 text-zinc-400">
+                        <Calendar className="w-4 h-4 text-zinc-500" />
+                        <span className="font-medium">Frequência</span>
+                      </div>
+                      <span className="font-bold text-white capitalize bg-white/5 px-2.5 py-1 rounded-lg border border-white/5">
+                        {transaction.recurrenceFrequency}
+                      </span>
+                    </div>
+                  )}
+
+                  {transaction.recurrenceDay !== undefined && (
+                    <div className="py-3 flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2 text-zinc-400">
+                        <Calendar className="w-4 h-4 text-zinc-500" />
+                        <span className="font-medium">Dia de Recebimento</span>
+                      </div>
+                      <span className="font-bold text-white bg-white/5 px-2.5 py-1 rounded-lg border border-white/5">
+                        Todo dia {transaction.recurrenceDay}
+                      </span>
+                    </div>
+                  )}
+
+                  {transaction.recurrenceStartDate && (
+                    <div className="py-3 flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2 text-zinc-400">
+                        <Calendar className="w-4 h-4 text-zinc-500" />
+                        <span className="font-medium">Vigência</span>
+                      </div>
+                      <span className="font-medium text-zinc-300">
+                        {transaction.recurrenceStartDate.split('-').reverse().join('/')}
+                        {transaction.recurrenceEndDate ? ` até ${transaction.recurrenceEndDate.split('-').reverse().join('/')}` : ' (Sem término)'}
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
+
               {/* Classificação da Despesa (Fixa ou Variável) */}
               {transaction.type === 'saida' && (
                 <div className="py-3 flex items-center justify-between text-xs">

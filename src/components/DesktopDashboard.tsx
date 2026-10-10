@@ -28,6 +28,9 @@ interface DesktopDashboardProps {
   despesasFixas?: number;
   despesasVariaveis?: number;
   estimatedFixedTotal?: number;
+  receitasFixas?: number;
+  receitasVariaveis?: number;
+  previsibilidadeReceita?: number;
 }
 
 export default function DesktopDashboard({
@@ -50,6 +53,9 @@ export default function DesktopDashboard({
   despesasFixas = 0,
   despesasVariaveis = 0,
   estimatedFixedTotal = 0,
+  receitasFixas = 0,
+  receitasVariaveis = 0,
+  previsibilidadeReceita = 0,
 }: DesktopDashboardProps) {
   const { isLight } = useTheme();
 
@@ -300,12 +306,19 @@ export default function DesktopDashboard({
             </div>
           </div>
           <div className="flex flex-col text-left mt-2">
-            <span className="text-lg font-black text-tertiary glow-text-green tracking-tight leading-none">
-              {formatBRL(totalEntradas)}
-            </span>
-            <span className="text-[9px] text-on-surface-variant/70 font-semibold mt-1 flex items-center gap-1">
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-lg font-black text-tertiary glow-text-green tracking-tight leading-none">
+                {formatBRL(totalEntradas)}
+              </span>
+              {totalEntradas > 0 && (
+                <span className="text-[9px] font-black text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 rounded leading-none">
+                  {previsibilidadeReceita.toFixed(1).replace('.', ',')}% prev.
+                </span>
+              )}
+            </div>
+            <span className="text-[9px] text-on-surface-variant/70 font-semibold mt-1 flex items-center gap-1 truncate" title={`Fixas: ${formatBRL(receitasFixas)} • Variáveis: ${formatBRL(receitasVariaveis)}`}>
               <span className="w-1 h-1 rounded-full bg-tertiary shadow-[0_0_4px_rgba(78,222,163,0.8)]"></span>
-              Receitas brutas operacionais
+              Fixas: {formatBRL(receitasFixas)} • Var: {formatBRL(receitasVariaveis)}
             </span>
           </div>
         </div>

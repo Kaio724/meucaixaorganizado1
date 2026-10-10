@@ -388,6 +388,26 @@ export default function App() {
     }
   };
 
+  // Batch Update Transactions (For recurrence propagation)
+  const handleBatchEditTransactions = async (txs: Transaction[]) => {
+    if (!session?.user || txs.length === 0) return;
+    setDbError(null);
+    try {
+      const savedMap = new Map<string, Transaction>();
+      for (const t of txs) {
+        const txWithAccount = {
+          ...t,
+          accountType: t.accountType || activeAccount,
+        };
+        const saved = await updateTransaction(session.user.id, txWithAccount);
+        savedMap.set(saved.id, saved);
+      }
+      setTransactions((prev) => prev.map((t) => savedMap.get(t.id) || t));
+    } catch (err) {
+      setDbError('Sem conexão, tente novamente');
+    }
+  };
+
   // Delete Transaction (Delete)
   const handleDeleteTransaction = async (id: string) => {
     if (!session?.user) return;
@@ -395,6 +415,21 @@ export default function App() {
     try {
       await deleteTransaction(session.user.id, id);
       setTransactions((prev) => prev.filter((t) => t.id !== id));
+    } catch (err) {
+      setDbError('Sem conexão, tente novamente');
+    }
+  };
+
+  // Batch Delete Transactions (For recurrence termination)
+  const handleBatchDeleteTransactions = async (ids: string[]) => {
+    if (!session?.user || ids.length === 0) return;
+    setDbError(null);
+    try {
+      for (const id of ids) {
+        await deleteTransaction(session.user.id, id);
+      }
+      const idSet = new Set(ids);
+      setTransactions((prev) => prev.filter((t) => !idSet.has(t.id)));
     } catch (err) {
       setDbError('Sem conexão, tente novamente');
     }
@@ -614,10 +649,17 @@ export default function App() {
   // If Supabase tables are not configured yet, show helper instructions screen
   if (dbSchemaError) {
     const upgradeScript = `-- ATUALIZAÇÃO SÓ DE COLUNAS (Se você já tem as tabelas criadas)
--- Adiciona suporte a planos, contas e contas duplas (Empresarial e Pessoal)
+-- Adiciona suporte a planos, contas, contas duplas, despesas fixas/variáveis e receitas fixas/variáveis
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS plano TEXT DEFAULT 'pro' CHECK (plano IN ('essential', 'pro'));
 ALTER TABLE public.lancamentos ADD COLUMN IF NOT EXISTS conta TEXT;
-ALTER TABLE public.lancamentos ADD COLUMN IF NOT EXISTS tipo_conta TEXT NOT NULL DEFAULT 'empresarial';`;
+ALTER TABLE public.lancamentos ADD COLUMN IF NOT EXISTS tipo_conta TEXT NOT NULL DEFAULT 'empresarial';
+ALTER TABLE public.lancamentos ADD COLUMN IF NOT EXISTS tipo_despesa TEXT;
+ALTER TABLE public.lancamentos ADD COLUMN IF NOT EXISTS tipo_receita TEXT DEFAULT 'variavel';
+ALTER TABLE public.lancamentos ADD COLUMN IF NOT EXISTS recorrencia_id TEXT;
+ALTER TABLE public.lancamentos ADD COLUMN IF NOT EXISTS recorrencia_frequencia TEXT;
+ALTER TABLE public.lancamentos ADD COLUMN IF NOT EXISTS recorrencia_dia INTEGER;
+ALTER TABLE public.lancamentos ADD COLUMN IF NOT EXISTS recorrencia_data_inicio TEXT;
+ALTER TABLE public.lancamentos ADD COLUMN IF NOT EXISTS recorrencia_data_fim TEXT;`;
 
     const sqlScript = `-- 1. Criar a tabela de perfis (profiles) vinculada ao auth.users
 CREATE TABLE IF NOT EXISTS public.profiles (
@@ -629,7 +671,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 2. Criar a tabela de lançamentos (lancamentos) com suporte a Conta Dupla (tipo_conta)
+-- 2. Criar a tabela de lançamentos (lancamentos) com suporte a Conta Dupla, Receitas e Despesas Fixas/Variáveis
 CREATE TABLE IF NOT EXISTS public.lancamentos (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -642,6 +684,13 @@ CREATE TABLE IF NOT EXISTS public.lancamentos (
     data DATE NOT NULL,
     conta TEXT,
     tipo_conta TEXT NOT NULL DEFAULT 'empresarial',
+    tipo_despesa TEXT,
+    tipo_receita TEXT DEFAULT 'variavel',
+    recorrencia_id TEXT,
+    recorrencia_frequencia TEXT,
+    recorrencia_dia INTEGER,
+    recorrencia_data_inicio TEXT,
+    recorrencia_data_fim TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -1401,6 +1450,9 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                             profile={profile}
                             transactions={empresarialTransactions}
                             onAddTransaction={handleAddTransaction}
+                            onEditTransaction={handleEditTransaction}
+                            onDeleteTransaction={handleDeleteTransaction}
+                            onBatchDeleteTransactions={handleBatchDeleteTransactions}
                             onNavigateToTab={setActiveTab}
                           />
                         )}
@@ -1413,6 +1465,8 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                             onAddTransaction={handleAddTransaction}
                             onEditTransaction={handleEditTransaction}
                             onDeleteTransaction={handleDeleteTransaction}
+                            onBatchEditTransactions={handleBatchEditTransactions}
+                            onBatchDeleteTransactions={handleBatchDeleteTransactions}
                           />
                         )}
 

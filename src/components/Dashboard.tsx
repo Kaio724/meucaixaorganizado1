@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Transaction, UserProfile, TransactionType, ExpenseType } from '../types';
+import { Transaction, UserProfile, TransactionType, ExpenseType, RevenueType, RecurrenceFrequency } from '../types';
 import { AVAILABLE_CATEGORIES, PAYMENT_METHODS, ACCOUNT_OPTIONS } from '../initialData';
 import { getCategoryNamesByType, getCategoryInfo } from '../lib/categories';
 import { fetchContas } from '../lib/contasData';
+import { buildRecurringRevenueTransactions } from '../lib/revenueRecurrence';
 import EvolutionCard from './EvolutionCard';
 import ProGrowthPanel from './ProGrowthPanel';
 import ProInsights from './ProInsights';
@@ -21,6 +22,7 @@ interface DashboardProps {
   onAddTransaction: (tx: Omit<Transaction, 'id'>) => void;
   onEditTransaction?: (tx: Transaction) => void;
   onDeleteTransaction?: (id: string) => void;
+  onBatchDeleteTransactions?: (ids: string[]) => void;
   onNavigateToTab: (tab: any) => void;
 }
 
@@ -28,9 +30,10 @@ export default function Dashboard({
   profile, 
   userId = 'default_user', 
   transactions, 
-  onAddTransaction, 
+  onAddTransaction,
   onEditTransaction,
   onDeleteTransaction,
+  onBatchDeleteTransactions,
   onNavigateToTab 
 }: DashboardProps) {
   const [showImportModal, setShowImportModal] = useState(false);
@@ -38,8 +41,15 @@ export default function Dashboard({
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [showProModal, setShowProModal] = useState(false);
   const [selectedTxForDetail, setSelectedTxForDetail] = useState<Transaction | null>(null);
+  const [recurringTxToDelete, setRecurringTxToDelete] = useState<Transaction | null>(null);
   const [txType, setTxType] = useState<TransactionType>('entrada');
   const [expenseType, setExpenseType] = useState<ExpenseType>('variavel');
+  const [revenueType, setRevenueType] = useState<RevenueType>('variavel');
+  const [recurrenceFrequency, setRecurrenceFrequency] = useState<RecurrenceFrequency>('mensal');
+  const [recurrenceDay, setRecurrenceDay] = useState<number>(10);
+  const [hasEndDate, setHasEndDate] = useState<boolean>(false);
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState<string>('');
+  const [observacao, setObservacao] = useState<string>('');
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
@@ -97,6 +107,20 @@ export default function Dashboard({
     .filter(t => t.type === 'saida' && t.expenseType !== 'fixa')
     .reduce((sum, t) => sum + t.amount, 0);
 
+  // Receitas Fixas vs Receitas Variáveis (Requirement 10 & 11)
+  const receitasFixas = visibleTransactions
+    .filter(t => t.type === 'entrada' && t.revenueType === 'fixa')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const receitasVariaveis = visibleTransactions
+    .filter(t => t.type === 'entrada' && t.revenueType !== 'fixa')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  // Indicador de Previsibilidade: Receita Fixa ÷ Receita Total × 100
+  const previsibilidadeReceita = totalEntradas > 0
+    ? Math.round((receitasFixas / totalEntradas) * 1000) / 10
+    : 0;
+
   // Percentage leftover
   const sobrouPercentage = totalEntradas > 0 
     ? Math.max(0, Math.min(100, Math.round((totalSobrou / totalEntradas) * 100))) 
@@ -108,24 +132,48 @@ export default function Dashboard({
     setCategory(cats[0] || 'Outros');
   }, [txType, userId]);
 
-  const handleQuickAddSubmit = (e: React.FormEvent) => {
+  const handleQuickAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount) return;
 
     const parsedAmount = Math.abs(parseFloat(amount.replace(',', '.')));
     if (isNaN(parsedAmount) || parsedAmount <= 0) return;
 
-    onAddTransaction({
-      title: title.trim() || category || (txType === 'entrada' ? 'Entrada Caixa' : 'Despesa Caixa'),
-      amount: parsedAmount,
-      type: txType,
-      date,
-      category,
-      paymentMethod,
-      account,
-      accountType: 'empresarial',
-      expenseType: txType === 'saida' ? expenseType : undefined
-    });
+    if (txType === 'entrada' && revenueType === 'fixa') {
+      // Receita Fixa: Gera lançamentos recorrentes agendados
+      const recurringTxs = buildRecurringRevenueTransactions({
+        title: title.trim() || category || 'Receita Fixa Recorrente',
+        amount: parsedAmount,
+        category,
+        paymentMethod,
+        description: observacao.trim() || undefined,
+        account,
+        accountType: 'empresarial',
+        frequency: recurrenceFrequency,
+        day: recurrenceDay,
+        startDate: date,
+        endDate: hasEndDate && recurrenceEndDate ? recurrenceEndDate : undefined,
+      });
+
+      for (const rTx of recurringTxs) {
+        await onAddTransaction(rTx);
+      }
+    } else {
+      // Receita Variável ou Despesa
+      await onAddTransaction({
+        title: title.trim() || category || (txType === 'entrada' ? 'Receita Variável' : 'Despesa Caixa'),
+        amount: parsedAmount,
+        type: txType,
+        date,
+        category,
+        paymentMethod,
+        account,
+        accountType: 'empresarial',
+        expenseType: txType === 'saida' ? expenseType : undefined,
+        revenueType: txType === 'entrada' ? revenueType : undefined,
+        description: observacao.trim() || undefined
+      });
+    }
 
     // Reset Form
     setTitle('');
@@ -133,6 +181,12 @@ export default function Dashboard({
     setPaymentMethod('Pix');
     setAccount(undefined);
     setExpenseType('variavel');
+    setRevenueType('variavel');
+    setRecurrenceFrequency('mensal');
+    setRecurrenceDay(10);
+    setHasEndDate(false);
+    setRecurrenceEndDate('');
+    setObservacao('');
     setShowQuickAdd(false);
   };
 
@@ -276,6 +330,9 @@ export default function Dashboard({
               <div className="text-xl sm:text-2xl font-extrabold text-emerald-400 tracking-tight mt-1 truncate">
                 {formatBRL(totalEntradas)}
               </div>
+              <span className="text-[10px] text-zinc-400 font-semibold mt-1 truncate" title={`Fixa: ${formatBRL(receitasFixas)} • Var: ${formatBRL(receitasVariaveis)}`}>
+                Fixa: {formatBRL(receitasFixas)} • Var: {formatBRL(receitasVariaveis)}
+              </span>
             </div>
 
             {/* Saiu */}
@@ -290,6 +347,82 @@ export default function Dashboard({
               </div>
               <div className="text-xl sm:text-2xl font-extrabold text-rose-400 tracking-tight mt-1 truncate">
                 {formatBRL(totalSaidas)}
+              </div>
+              <span className="text-[10px] text-zinc-400 font-semibold mt-1 truncate" title={`Fixas: ${formatBRL(despesasFixas > 0 ? despesasFixas : estimatedFixedTotal)} • Var: ${formatBRL(despesasVariaveis)}`}>
+                Fixas: {formatBRL(despesasFixas > 0 ? despesasFixas : estimatedFixedTotal)} • Var: {formatBRL(despesasVariaveis)}
+              </span>
+            </div>
+
+            {/* Composição das Receitas & Previsibilidade (Requirement 10 & 11) */}
+            <div className="col-span-2 p-4 rounded-2xl bg-gradient-to-r from-[#101b22] via-[#0d161c] to-[#0a1117] border border-emerald-500/25 flex flex-col gap-3 shadow-md">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+                    <span className="material-symbols-outlined text-base">analytics</span>
+                  </div>
+                  <div>
+                    <span className="text-[11px] uppercase font-extrabold text-white tracking-wider block">
+                      Composição de Receitas
+                    </span>
+                    <span className="text-[10px] text-zinc-400">
+                      Previsibilidade do faturamento do negócio
+                    </span>
+                  </div>
+                </div>
+
+                {totalEntradas > 0 && (
+                  <div className="flex items-center gap-1.5 bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 rounded-full">
+                    <span className="text-[9px] font-black uppercase text-emerald-300">
+                      Previsibilidade:
+                    </span>
+                    <span className="text-xs font-black text-emerald-400">
+                      {previsibilidadeReceita.toFixed(1).replace('.', ',')}%
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Progress bar */}
+              <div className="w-full bg-black/40 h-2 rounded-full overflow-hidden flex border border-white/5">
+                <div
+                  className="bg-emerald-400 h-full transition-all duration-500"
+                  style={{ width: `${totalEntradas > 0 ? (receitasFixas / totalEntradas) * 100 : 0}%` }}
+                  title={`Receita Fixa: ${formatBRL(receitasFixas)}`}
+                />
+                <div
+                  className="bg-sky-400 h-full transition-all duration-500"
+                  style={{ width: `${totalEntradas > 0 ? (receitasVariaveis / totalEntradas) * 100 : 0}%` }}
+                  title={`Receita Variável: ${formatBRL(receitasVariaveis)}`}
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 pt-1 border-t border-white/5">
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-bold text-emerald-400 uppercase flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    Receita Fixa
+                  </span>
+                  <span className="text-xs sm:text-sm font-black text-white mt-0.5 truncate">
+                    {formatBRL(receitasFixas)}
+                  </span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-bold text-sky-400 uppercase flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+                    Receita Variável
+                  </span>
+                  <span className="text-xs sm:text-sm font-black text-white mt-0.5 truncate">
+                    {formatBRL(receitasVariaveis)}
+                  </span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-bold text-zinc-400 uppercase">
+                    Total Receitas
+                  </span>
+                  <span className="text-xs sm:text-sm font-black text-emerald-300 mt-0.5 truncate">
+                    {formatBRL(totalEntradas)}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -415,8 +548,28 @@ export default function Dashboard({
                         <h4 className="text-xs sm:text-sm font-semibold text-white truncate tracking-tight">
                           {tx.title}
                         </h4>
-                        <span className="text-[11px] text-zinc-500 font-medium truncate mt-0.5">
-                          {tx.category} • {formattedDate}
+                        <span className="text-[11px] text-zinc-500 font-medium truncate mt-0.5 flex items-center gap-1.5">
+                          {tx.type === 'entrada' ? (
+                            <span className={`text-[9.5px] font-extrabold px-1.5 py-0.2 rounded-md uppercase tracking-wider ${
+                              tx.revenueType === 'fixa'
+                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/35'
+                                : 'bg-sky-500/20 text-sky-300 border border-sky-500/35'
+                            }`}>
+                              {tx.revenueType === 'fixa' ? 'Fixa' : 'Variável'}
+                            </span>
+                          ) : (
+                            <span className={`text-[9.5px] font-extrabold px-1.5 py-0.2 rounded-md uppercase tracking-wider ${
+                              tx.expenseType === 'fixa'
+                                ? 'bg-primary/20 text-primary border border-primary/30'
+                                : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                            }`}>
+                              {tx.expenseType === 'fixa' ? 'Fixa' : 'Variável'}
+                            </span>
+                          )}
+                          <span>•</span>
+                          <span>{tx.category}</span>
+                          <span>•</span>
+                          <span>{formattedDate}</span>
                         </span>
                       </div>
                     </div>
@@ -508,6 +661,9 @@ export default function Dashboard({
           despesasFixas={despesasFixas}
           despesasVariaveis={despesasVariaveis}
           estimatedFixedTotal={estimatedFixedTotal}
+          receitasFixas={receitasFixas}
+          receitasVariaveis={receitasVariaveis}
+          previsibilidadeReceita={previsibilidadeReceita}
         />
       </div>
 
@@ -574,6 +730,64 @@ export default function Dashboard({
                 </button>
               </div>
 
+              {/* Tipo de Receita Switcher: Fixa vs Variável (Sections 4, 5, 6) */}
+              {txType === 'entrada' && (
+                <div className="flex flex-col gap-2">
+                  <label className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider">
+                    Tipo de Receita
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* Card Receita Fixa */}
+                    <button
+                      type="button"
+                      onClick={() => setRevenueType('fixa')}
+                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col gap-1.5 ${
+                        revenueType === 'fixa'
+                          ? 'bg-emerald-500/20 border-emerald-500/50 shadow-md ring-1 ring-emerald-500/30'
+                          : 'bg-black/30 border-white/5 hover:border-white/10 opacity-75'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black text-white flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-emerald-400 text-base">repeat</span>
+                          Receita Fixa
+                        </span>
+                        {revenueType === 'fixa' && (
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+                        )}
+                      </div>
+                      <p className="text-[10px] text-zinc-400 leading-tight">
+                        Receitas que acontecem com frequência e podem ser previstas.
+                      </p>
+                    </button>
+
+                    {/* Card Receita Variável */}
+                    <button
+                      type="button"
+                      onClick={() => setRevenueType('variavel')}
+                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col gap-1.5 ${
+                        revenueType === 'variavel'
+                          ? 'bg-sky-500/20 border-sky-500/50 shadow-md ring-1 ring-sky-500/30'
+                          : 'bg-black/30 border-white/5 hover:border-white/10 opacity-75'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black text-white flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-sky-400 text-base">trending_up</span>
+                          Receita Variável
+                        </span>
+                        {revenueType === 'variavel' && (
+                          <span className="w-2 h-2 rounded-full bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.8)]" />
+                        )}
+                      </div>
+                      <p className="text-[10px] text-zinc-400 leading-tight">
+                        Receitas que acontecem de forma pontual ou variam mês a mês.
+                      </p>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Tipo de Despesa Switcher: Fixa vs Variável (Requirement 8) */}
               {txType === 'saida' && (
                 <div className="flex flex-col gap-1.5">
@@ -637,6 +851,135 @@ export default function Dashboard({
                   </div>
                 </div>
 
+                {/* Nome / Descrição */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider">
+                    {txType === 'entrada' && revenueType === 'fixa'
+                      ? 'Nome da Receita (Cliente / Contrato) *'
+                      : 'Descrição do Lançamento *'}
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder={
+                      txType === 'entrada'
+                        ? revenueType === 'fixa'
+                          ? 'Ex: Cliente Empresa ABC, Assinatura Mensal...'
+                          : 'Ex: Projeto de Social Media, Venda Pontual...'
+                        : 'Ex: Aluguel do Escritório, Fornecedor X...'
+                    }
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="w-full bg-[#181426] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary"
+                  />
+                </div>
+
+                {/* Campos Específicos para RECEITA FIXA (Seção 6) */}
+                {txType === 'entrada' && revenueType === 'fixa' && (
+                  <div className="flex flex-col gap-3 p-3.5 rounded-2xl bg-black/40 border border-emerald-500/20">
+                    <div className="flex items-center gap-1.5 text-emerald-400 font-bold text-xs">
+                      <span className="material-symbols-outlined text-sm">schedule</span>
+                      <span>Configuração de Recorrência</span>
+                    </div>
+
+                    {/* Frequência */}
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase">Frequência</label>
+                      <div className="grid grid-cols-4 gap-1 p-1 bg-[#181426] rounded-xl border border-white/5">
+                        {(['mensal', 'semanal', 'quinzenal', 'anual'] as RecurrenceFrequency[]).map((freq) => (
+                          <button
+                            key={freq}
+                            type="button"
+                            onClick={() => setRecurrenceFrequency(freq)}
+                            className={`py-1.5 rounded-lg text-[11px] font-bold capitalize transition-all cursor-pointer ${
+                              recurrenceFrequency === freq
+                                ? 'bg-emerald-500 text-white shadow-sm'
+                                : 'text-zinc-400 hover:text-white'
+                            }`}
+                          >
+                            {freq}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Dia de Recebimento & Data de Início */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase">
+                          Dia de Recebimento
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="31"
+                          required
+                          value={recurrenceDay}
+                          onChange={(e) => setRecurrenceDay(Math.min(31, Math.max(1, parseInt(e.target.value) || 1)))}
+                          className="bg-[#181426] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-400"
+                          placeholder="Dia 10"
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase">
+                          Data de Início
+                        </label>
+                        <input
+                          type="date"
+                          required
+                          value={date}
+                          onChange={(e) => setDate(e.target.value)}
+                          className="bg-[#181426] border border-white/10 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-400"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Data de Término (Opcional) */}
+                    <div className="flex flex-col gap-2 pt-1 border-t border-white/5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-zinc-400 uppercase">
+                          Data de Término
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setHasEndDate(false)}
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                              !hasEndDate
+                                ? 'bg-white/15 text-white'
+                                : 'text-zinc-500 hover:text-zinc-300'
+                            }`}
+                          >
+                            Sem término
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setHasEndDate(true)}
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                              hasEndDate
+                                ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/30'
+                                : 'text-zinc-500 hover:text-zinc-300'
+                            }`}
+                          >
+                            Definir data
+                          </button>
+                        </div>
+                      </div>
+
+                      {hasEndDate && (
+                        <input
+                          type="date"
+                          value={recurrenceEndDate}
+                          onChange={(e) => setRecurrenceEndDate(e.target.value)}
+                          min={date}
+                          className="bg-[#181426] border border-white/10 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-400"
+                        />
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Categorias Chips */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider">
@@ -663,25 +1006,11 @@ export default function Dashboard({
                   </div>
                 </div>
 
-                {/* Descrição Opcional */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider">
-                    Descrição (Opcional)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Ex: Venda de produto, Aluguel..."
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="w-full bg-[#181426] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary"
-                  />
-                </div>
-
-                {/* Forma de Pagamento */}
+                {/* Forma de Pagamento e Data (para Receita Variável e Despesa) */}
                 <div className="grid grid-cols-2 gap-2">
                   <div className="flex flex-col gap-1">
                     <label className="text-[10px] font-bold text-zinc-400 uppercase">
-                      Pagamento
+                      {txType === 'entrada' ? 'Recebimento' : 'Pagamento'}
                     </label>
                     <select
                       value={paymentMethod}
@@ -694,17 +1023,51 @@ export default function Dashboard({
                     </select>
                   </div>
 
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-zinc-400 uppercase">
-                      Data
-                    </label>
-                    <input
-                      type="date"
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                      className="bg-[#181426] border border-white/10 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-primary"
-                    />
-                  </div>
+                  {!(txType === 'entrada' && revenueType === 'fixa') && (
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase">
+                        Data
+                      </label>
+                      <input
+                        type="date"
+                        value={date}
+                        onChange={(e) => setDate(e.target.value)}
+                        className="bg-[#181426] border border-white/10 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-primary"
+                      />
+                    </div>
+                  )}
+
+                  {txType === 'entrada' && revenueType === 'fixa' && (
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase">
+                        Conta de Destino
+                      </label>
+                      <select
+                        value={account || ''}
+                        onChange={(e) => setAccount(e.target.value || undefined)}
+                        className="bg-[#181426] border border-white/10 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-primary cursor-pointer"
+                      >
+                        <option value="">Não especificada</option>
+                        {ACCOUNT_OPTIONS.map(acc => (
+                          <option key={acc} value={acc} className="bg-[#131020] text-white">{acc}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                {/* Observação Opcional */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider">
+                    Observação (Opcional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Adicione detalhes, notas ou termos deste lançamento..."
+                    value={observacao}
+                    onChange={(e) => setObservacao(e.target.value)}
+                    className="w-full bg-[#181426] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary"
+                  />
                 </div>
 
                 {/* Submit button */}
@@ -713,7 +1076,11 @@ export default function Dashboard({
                   className="mt-2 w-full h-12 rounded-xl bg-gradient-to-r from-primary to-[#9333ea] hover:from-[#8b6eff] hover:to-[#a855f7] text-white font-black text-xs transition-all shadow-lg cursor-pointer flex items-center justify-center gap-2 active:scale-95"
                 >
                   <span className="material-symbols-outlined text-lg">check</span>
-                  <span>Salvar Lançamento</span>
+                  <span>
+                    {txType === 'entrada' && revenueType === 'fixa'
+                      ? 'Salvar Receita Fixa Recorrente'
+                      : 'Salvar Lançamento'}
+                  </span>
                 </button>
               </form>
             </motion.div>
@@ -735,11 +1102,104 @@ export default function Dashboard({
           }
         }}
         onDelete={(id) => {
-          if (onDeleteTransaction) {
-            onDeleteTransaction(id);
+          const tx = transactions.find(t => t.id === id);
+          if (tx && tx.recurrenceId) {
+            setRecurringTxToDelete(tx);
+            setSelectedTxForDetail(null);
+          } else {
+            if (onDeleteTransaction) {
+              onDeleteTransaction(id);
+            }
+            setSelectedTxForDetail(null);
           }
         }}
       />
+
+      {/* Confirmação de Exclusão de Recorrência (Requirement 15) */}
+      <AnimatePresence>
+        {recurringTxToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="glass-card rounded-[28px] p-6 shadow-2xl border border-error/20 w-full max-w-sm flex flex-col gap-5 relative bg-gradient-to-b from-[#1a1315]/95 to-[#120d0e]/98 text-left"
+            >
+              <div className="flex flex-col items-center text-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-error/15 border border-error/30 flex items-center justify-center text-error">
+                  <span className="material-symbols-outlined text-2xl font-bold">event_repeat</span>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <h3 className="text-base font-extrabold text-white">
+                    Excluir receita recorrente?
+                  </h3>
+                  <p className="text-xs text-zinc-400 leading-relaxed max-w-[260px]">
+                    Você pode excluir apenas este lançamento ou encerrar a recorrência.
+                  </p>
+                </div>
+
+                {/* Resumo do Lançamento */}
+                <div className="w-full bg-black/30 rounded-xl p-3 border border-white/5 flex flex-col gap-1 items-center">
+                  <span className="text-xs font-bold text-white truncate max-w-[200px]">
+                    {recurringTxToDelete.title}
+                  </span>
+                  <span className="text-sm font-extrabold text-emerald-400">
+                    +{formatBRL(recurringTxToDelete.amount)}
+                  </span>
+                  <span className="text-[10px] text-zinc-500">
+                    {recurringTxToDelete.date.split('-').reverse().join('/')} • Recorrente ({recurringTxToDelete.recurrenceFrequency || 'Mensal'})
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onDeleteTransaction) {
+                      onDeleteTransaction(recurringTxToDelete.id);
+                    }
+                    setRecurringTxToDelete(null);
+                  }}
+                  className="w-full py-3 rounded-xl bg-error/20 hover:bg-error/30 text-rose-300 border border-error/30 font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <span className="material-symbols-outlined text-sm">delete</span>
+                  <span>Excluir este lançamento</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const futureIds = transactions
+                      .filter(t => t.recurrenceId === recurringTxToDelete.recurrenceId && t.date >= recurringTxToDelete.date)
+                      .map(t => t.id);
+
+                    if (onBatchDeleteTransactions && futureIds.length > 0) {
+                      onBatchDeleteTransactions(futureIds);
+                    } else {
+                      futureIds.forEach(id => onDeleteTransaction?.(id));
+                    }
+                    setRecurringTxToDelete(null);
+                  }}
+                  className="w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs transition-all cursor-pointer shadow-md flex items-center justify-center gap-1.5"
+                >
+                  <span className="material-symbols-outlined text-sm">cancel</span>
+                  <span>Encerrar recorrência</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setRecurringTxToDelete(null)}
+                  className="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white font-semibold text-xs transition-all cursor-pointer mt-1"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Import Modal */}
       <ImportModal
