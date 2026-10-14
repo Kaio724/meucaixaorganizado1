@@ -25,6 +25,7 @@ interface ContasFixasVariaveisProps {
   accountType: AccountType; // 'empresarial' | 'pessoal' - CRITICAL ISOLATION RULE
   transactions: Transaction[];
   onAddTransaction: (tx: Omit<Transaction, 'id'>) => Promise<void> | void;
+  onEditTransaction?: (tx: Transaction) => Promise<void> | void;
   onNavigateToTab?: (tab: any) => void;
 }
 
@@ -39,6 +40,7 @@ export default function ContasFixasVariaveis({
   accountType,
   transactions,
   onAddTransaction,
+  onEditTransaction,
   onNavigateToTab
 }: ContasFixasVariaveisProps) {
   const isBusiness = accountType === 'empresarial';
@@ -235,7 +237,8 @@ export default function ContasFixasVariaveis({
     setEditingConta(null);
     setFormNome('');
     setFormValor('');
-    setFormTipo(prefillTipo || activeTab === 'fixas' ? 'fixa' : 'variavel');
+    const targetTipo: ContaTipo = prefillTipo !== undefined ? prefillTipo : (activeTab === 'fixas' ? 'fixa' : 'variavel');
+    setFormTipo(targetTipo);
     setFormCategoria(availableCategories[0] || 'Outros');
     setFormFrequencia('mensal');
     setFormFrequenciaPersonalizada('');
@@ -305,6 +308,28 @@ export default function ContasFixasVariaveis({
         return [saved, ...prev];
       });
 
+      // Se editou uma conta existente, sincroniza transações associadas para refletir a alteração de tipo/valor/nome
+      if (editingConta && onEditTransaction) {
+        const relatedTxs = transactions.filter((t) => 
+          (t.contaId === editingConta.id || t.title.trim().toLowerCase() === editingConta.nome.trim().toLowerCase()) &&
+          (t.accountType || 'empresarial') === accountType
+        );
+        for (const relTx of relatedTxs) {
+          try {
+            await onEditTransaction({
+              ...relTx,
+              title: saved.nome,
+              amount: saved.valor,
+              expenseType: saved.tipo,
+              category: saved.categoria,
+              contaId: saved.id
+            });
+          } catch (syncErr) {
+            console.warn('Error syncing edited conta to transaction:', syncErr);
+          }
+        }
+      }
+
       setIsModalOpen(false);
       showToast(editingConta ? 'Conta atualizada com sucesso!' : 'Conta adicionada com sucesso!');
     } catch (err) {
@@ -350,6 +375,10 @@ export default function ContasFixasVariaveis({
       const formattedDay = String(validDay).padStart(2, '0');
       const dateStr = `${currentMonthKey}-${formattedDay}`;
 
+      const recFreq = conta.frequencia === 'personalizada' || conta.frequencia === 'avulsa'
+        ? undefined
+        : (conta.frequencia as any);
+
       await onAddTransaction({
         title: conta.nome,
         amount: conta.valor,
@@ -358,8 +387,11 @@ export default function ContasFixasVariaveis({
         category: conta.categoria,
         paymentMethod: 'Boleto',
         accountType,
-        expenseType: conta.tipo,
+        expenseType: conta.tipo, // 'fixa' ou 'variavel'
         contaId: conta.id,
+        recurrenceId: `conta_${conta.id}`,
+        recurrenceFrequency: recFreq,
+        recurrenceDay: conta.diaVencimento,
         description: conta.observacao || `Conta ${conta.tipo === 'fixa' ? 'Fixa' : 'Variável'} programada`
       });
 

@@ -117,3 +117,55 @@ export function buildRecurringRevenueTransactions(
     recurrenceEndDate: config.endDate || undefined
   }));
 }
+
+export interface RecurringExpenseConfig {
+  title: string;
+  amount: number;
+  category: string;
+  paymentMethod: string;
+  description?: string;
+  account?: string;
+  accountType?: 'empresarial' | 'pessoal';
+  frequency: RecurrenceFrequency;
+  day: number; // 1-31
+  startDate: string; // YYYY-MM-DD
+  endDate?: string; // YYYY-MM-DD
+  maxOccurrences?: number;
+  contaId?: string;
+}
+
+/**
+ * Creates full transaction objects for a recurring fixed expense (despesa fixa recorrente).
+ * Preserves expenseType: 'fixa' across all generated occurrences.
+ */
+export function buildRecurringExpenseTransactions(
+  config: RecurringExpenseConfig
+): Array<Omit<Transaction, 'id'>> {
+  const recurrenceId = 'rec_exp_' + Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
+  const dates = generateRevenueDates(
+    config.startDate,
+    config.frequency,
+    config.day,
+    config.endDate,
+    config.maxOccurrences || 12
+  );
+
+  return dates.map((dateStr) => ({
+    title: config.title.trim(),
+    amount: config.amount,
+    type: 'saida' as const,
+    expenseType: 'fixa' as const, // PRESERVES FIXA ACROSS ALL OCCURRENCES
+    category: config.category,
+    paymentMethod: config.paymentMethod || 'Boleto',
+    date: dateStr,
+    description: config.description || undefined,
+    account: config.account || undefined,
+    accountType: config.accountType || 'empresarial',
+    recurrenceId,
+    recurrenceFrequency: config.frequency,
+    recurrenceDay: config.day,
+    recurrenceStartDate: config.startDate,
+    recurrenceEndDate: config.endDate || undefined,
+    contaId: config.contaId || undefined
+  }));
+}

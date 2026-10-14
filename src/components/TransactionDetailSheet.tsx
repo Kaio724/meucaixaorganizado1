@@ -240,6 +240,48 @@ export default function TransactionDetailSheet({
                 </div>
               )}
 
+              {/* Informações de Recorrência para Despesa Fixa */}
+              {transaction.type === 'saida' && transaction.expenseType === 'fixa' && (
+                <>
+                  {transaction.recurrenceFrequency && (
+                    <div className="py-3 flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2 text-zinc-400">
+                        <Calendar className="w-4 h-4 text-zinc-500" />
+                        <span className="font-medium">Frequência</span>
+                      </div>
+                      <span className="font-bold text-white capitalize bg-white/5 px-2.5 py-1 rounded-lg border border-white/5">
+                        {transaction.recurrenceFrequency}
+                      </span>
+                    </div>
+                  )}
+
+                  {transaction.recurrenceDay !== undefined && (
+                    <div className="py-3 flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2 text-zinc-400">
+                        <Calendar className="w-4 h-4 text-zinc-500" />
+                        <span className="font-medium">Dia do Vencimento</span>
+                      </div>
+                      <span className="font-bold text-white bg-white/5 px-2.5 py-1 rounded-lg border border-white/5">
+                        Todo dia {transaction.recurrenceDay}
+                      </span>
+                    </div>
+                  )}
+
+                  {transaction.recurrenceStartDate && (
+                    <div className="py-3 flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2 text-zinc-400">
+                        <Calendar className="w-4 h-4 text-zinc-500" />
+                        <span className="font-medium">Vigência</span>
+                      </div>
+                      <span className="font-medium text-zinc-300">
+                        {transaction.recurrenceStartDate.split('-').reverse().join('/')}
+                        {transaction.recurrenceEndDate ? ` até ${transaction.recurrenceEndDate.split('-').reverse().join('/')}` : ' (Sem término)'}
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
+
               {/* Conta / Destino se houver */}
               {transaction.account && (
                 <div className="py-3 flex items-center justify-between text-xs">

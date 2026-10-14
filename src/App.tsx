@@ -1396,6 +1396,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                             accountType="pessoal"
                             transactions={pessoalTransactions}
                             onAddTransaction={handleAddTransaction}
+                            onEditTransaction={handleEditTransaction}
                             onNavigateToTab={setActiveTab}
                           />
                         )}
@@ -1477,6 +1478,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                             accountType="empresarial"
                             transactions={empresarialTransactions}
                             onAddTransaction={handleAddTransaction}
+                            onEditTransaction={handleEditTransaction}
                             onNavigateToTab={setActiveTab}
                           />
                         )}

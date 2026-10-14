@@ -71,7 +71,47 @@ export function mapUserProfileToDbProfile(profile: UserProfile, userId: string) 
 // Map db row to Transaction
 export function mapDbToTransaction(row: any): Transaction {
   const isEntrada = row.tipo === 'entrada';
+  const isSaida = row.tipo === 'saida';
   const resolvedRevenueType = row.tipo_receita || row.revenue_type || (isEntrada ? 'variavel' : undefined);
+
+  // Precise and consistent resolution of expenseType ('fixa' vs 'variavel')
+  let resolvedExpenseType: 'fixa' | 'variavel' | undefined = undefined;
+  if (isSaida) {
+    const rawExpense = (row.tipo_despesa || row.expense_type || '').toString().toLowerCase().trim();
+    if (rawExpense === 'fixa' || rawExpense === 'fixed') {
+      resolvedExpenseType = 'fixa';
+    } else if (rawExpense === 'variavel' || rawExpense === 'variable') {
+      resolvedExpenseType = 'variavel';
+    } else if (row.recorrencia_id || row.recurrence_id || row.recorrencia_frequencia || row.recurrence_frequency || row.conta_id || row.contaId) {
+      // Any recurring or linked expense is by definition FIXA
+      resolvedExpenseType = 'fixa';
+    } else {
+      // Check if title matches any registered fixed account in local accounts cache
+      let isFixedFromContas = false;
+      try {
+        if (typeof window !== 'undefined') {
+          const uId = row.user_id || 'local';
+          const accountsEmpresarial = localStorage.getItem(`mco_contas_${uId}_empresarial`);
+          const accountsPessoal = localStorage.getItem(`mco_contas_${uId}_pessoal`);
+          const allContas: any[] = [];
+          if (accountsEmpresarial) allContas.push(...JSON.parse(accountsEmpresarial));
+          if (accountsPessoal) allContas.push(...JSON.parse(accountsPessoal));
+
+          const rowTitle = (row.titulo || row.descricao || '').trim().toLowerCase();
+          if (rowTitle) {
+            isFixedFromContas = allContas.some((c: any) =>
+              c.tipo === 'fixa' &&
+              c.nome &&
+              c.nome.trim().toLowerCase() === rowTitle
+            );
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+      resolvedExpenseType = isFixedFromContas ? 'fixa' : 'variavel';
+    }
+  }
 
   return {
     id: row.id,
@@ -84,13 +124,14 @@ export function mapDbToTransaction(row: any): Transaction {
     description: row.descricao || '',
     account: row.conta || undefined,
     accountType: (row.tipo_conta as 'empresarial' | 'pessoal') || 'empresarial',
-    expenseType: (row.tipo_despesa as any) || (row.expense_type as any) || undefined,
+    expenseType: isSaida ? resolvedExpenseType : undefined,
     revenueType: isEntrada ? resolvedRevenueType : undefined,
     recurrenceFrequency: row.recorrencia_frequencia || row.recurrence_frequency || undefined,
     recurrenceDay: row.recorrencia_dia !== undefined ? Number(row.recorrencia_dia) : undefined,
     recurrenceStartDate: row.recorrencia_data_inicio || row.recurrence_start_date || undefined,
     recurrenceEndDate: row.recorrencia_data_fim || row.recurrence_end_date || undefined,
     recurrenceId: row.recorrencia_id || row.recurrence_id || undefined,
+    contaId: row.conta_id || row.contaId || undefined,
   };
 }
 
@@ -113,8 +154,12 @@ export function mapTransactionToDb(tx: any, userId: string) {
   if (hasTipoContaColumn) {
     row.tipo_conta = tx.accountType || 'empresarial';
   }
-  if (hasTipoDespesaColumn && tx.expenseType) {
-    row.tipo_despesa = tx.expenseType;
+  if (hasTipoDespesaColumn) {
+    if (tx.expenseType) {
+      row.tipo_despesa = tx.expenseType;
+    } else if (tx.type === 'saida') {
+      row.tipo_despesa = (tx.recurrenceId || tx.contaId) ? 'fixa' : 'variavel';
+    }
   }
   if (hasTipoReceitaColumn && tx.revenueType) {
     row.tipo_receita = tx.revenueType;
@@ -133,6 +178,9 @@ export function mapTransactionToDb(tx: any, userId: string) {
   }
   if (tx.recurrenceEndDate) {
     row.recorrencia_data_fim = tx.recurrenceEndDate;
+  }
+  if (tx.contaId) {
+    row.conta_id = tx.contaId;
   }
   return row;
 }
@@ -437,7 +485,14 @@ export async function insertTransaction(userId: string, tx: Omit<Transaction, 'i
       return fallbackTx;
     }
 
-    const insertedTx = mapDbToTransaction(data);
+    const mapped = mapDbToTransaction(data);
+    const insertedTx: Transaction = {
+      ...fallbackTx,
+      ...mapped,
+      expenseType: tx.expenseType || mapped.expenseType,
+      revenueType: tx.revenueType || mapped.revenueType,
+      contaId: tx.contaId || mapped.contaId,
+    };
     // Replace fallback with real database transaction in local cache
     try {
       const cachedStr = localStorage.getItem(`mco_cached_transactions_${userId}`);
@@ -530,13 +585,27 @@ export async function updateTransaction(userId: string, tx: Transaction): Promis
           console.warn('Supabase retry update failed, running with local fallback:', retryError.message);
           return tx;
         }
-        return mapDbToTransaction(retryData);
+        const mappedRetry = mapDbToTransaction(retryData);
+        return {
+          ...tx,
+          ...mappedRetry,
+          expenseType: tx.expenseType || mappedRetry.expenseType,
+          revenueType: tx.revenueType || mappedRetry.revenueType,
+          contaId: tx.contaId || mappedRetry.contaId,
+        };
       }
       console.warn('Supabase update failed, running with local fallback:', error.message);
       return tx;
     }
 
-    return mapDbToTransaction(data);
+    const mappedSuccess = mapDbToTransaction(data);
+    return {
+      ...tx,
+      ...mappedSuccess,
+      expenseType: tx.expenseType || mappedSuccess.expenseType,
+      revenueType: tx.revenueType || mappedSuccess.revenueType,
+      contaId: tx.contaId || mappedSuccess.contaId,
+    };
   } catch (err) {
     console.warn('Network error during update, running with local fallback:', err);
     return tx;

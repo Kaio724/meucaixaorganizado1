@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Transaction, UserProfile, TransactionType, ExpenseType, RevenueType, RecurrenceFrequency } from '../types';
 import { AVAILABLE_CATEGORIES, PAYMENT_METHODS, ACCOUNT_OPTIONS } from '../initialData';
 import { getCategoryNamesByType, getCategoryInfo } from '../lib/categories';
-import { buildRecurringRevenueTransactions } from '../lib/revenueRecurrence';
+import { buildRecurringRevenueTransactions, buildRecurringExpenseTransactions } from '../lib/revenueRecurrence';
+import { saveConta } from '../lib/contasData';
 import TransactionDetailSheet from './TransactionDetailSheet';
 
 const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://checkout.wiven.com.br/checkout/cmr9mqf4p000j01q0qlrqcl4w?offer=LEJVTNC';
@@ -290,8 +291,8 @@ export default function History({
   const startEdit = (tx: Transaction) => {
     setEditingTx(tx);
     setFormType(tx.type);
-    setFormExpenseType(tx.expenseType || 'variavel');
-    setFormRevenueType(tx.revenueType || 'variavel');
+    setFormExpenseType(tx.expenseType || (tx.recurrenceId ? 'fixa' : 'variavel'));
+    setFormRevenueType(tx.revenueType || (tx.recurrenceId ? 'fixa' : 'variavel'));
     setFormRecurrenceFrequency(tx.recurrenceFrequency || 'mensal');
     setFormRecurrenceDay(tx.recurrenceDay || 10);
     setFormHasEndDate(Boolean(tx.recurrenceEndDate));
@@ -334,6 +335,8 @@ export default function History({
     const parsedAmount = Math.abs(parseFloat(formAmount.replace(',', '.')));
     if (isNaN(parsedAmount) || parsedAmount <= 0) return;
 
+    const isRecurringFixed = (formType === 'entrada' && formRevenueType === 'fixa') || (formType === 'saida' && formExpenseType === 'fixa');
+
     const txData = {
       title: formTitle.trim(),
       amount: parsedAmount,
@@ -346,10 +349,10 @@ export default function History({
       description: formDescription.trim() || undefined,
       expenseType: formType === 'saida' ? formExpenseType : undefined,
       revenueType: formType === 'entrada' ? formRevenueType : undefined,
-      recurrenceFrequency: formType === 'entrada' && formRevenueType === 'fixa' ? formRecurrenceFrequency : undefined,
-      recurrenceDay: formType === 'entrada' && formRevenueType === 'fixa' ? formRecurrenceDay : undefined,
-      recurrenceStartDate: formType === 'entrada' && formRevenueType === 'fixa' ? formDate : undefined,
-      recurrenceEndDate: formType === 'entrada' && formRevenueType === 'fixa' && formHasEndDate && formRecurrenceEndDate ? formRecurrenceEndDate : undefined,
+      recurrenceFrequency: isRecurringFixed ? formRecurrenceFrequency : undefined,
+      recurrenceDay: isRecurringFixed ? formRecurrenceDay : undefined,
+      recurrenceStartDate: isRecurringFixed ? formDate : undefined,
+      recurrenceEndDate: isRecurringFixed && formHasEndDate && formRecurrenceEndDate ? formRecurrenceEndDate : undefined,
     };
 
     if (editingTx) {
@@ -387,6 +390,38 @@ export default function History({
         for (const rTx of recurringTxs) {
           onAddTransaction(rTx);
         }
+      } else if (formType === 'saida' && formExpenseType === 'fixa') {
+        const recurringTxs = buildRecurringExpenseTransactions({
+          title: formTitle.trim(),
+          amount: parsedAmount,
+          category: formCategory,
+          paymentMethod: formPaymentMethod,
+          description: formDescription.trim() || undefined,
+          account: formAccount,
+          accountType: 'empresarial',
+          frequency: formRecurrenceFrequency,
+          day: formRecurrenceDay,
+          startDate: formDate,
+          endDate: formHasEndDate && formRecurrenceEndDate ? formRecurrenceEndDate : undefined,
+        });
+
+        for (const rTx of recurringTxs) {
+          onAddTransaction(rTx);
+        }
+
+        if (userId) {
+          saveConta(userId, {
+            nome: formTitle.trim(),
+            valor: parsedAmount,
+            tipo: 'fixa',
+            categoria: formCategory,
+            frequencia: formRecurrenceFrequency,
+            diaVencimento: formRecurrenceDay,
+            observacao: formDescription.trim() || undefined,
+            ativa: true,
+            accountType: 'empresarial'
+          }).catch(console.warn);
+        }
       } else {
         onAddTransaction(txData);
       }
@@ -422,6 +457,7 @@ export default function History({
           paymentMethod: updatedTxData.paymentMethod,
           account: updatedTxData.account,
           description: updatedTxData.description,
+          expenseType: updatedTxData.expenseType,
           revenueType: updatedTxData.revenueType,
           recurrenceFrequency: updatedTxData.recurrenceFrequency,
           recurrenceDay: updatedTxData.recurrenceDay,
@@ -442,6 +478,7 @@ export default function History({
           paymentMethod: updatedTxData.paymentMethod,
           account: updatedTxData.account,
           description: updatedTxData.description,
+          expenseType: updatedTxData.expenseType,
           revenueType: updatedTxData.revenueType,
           recurrenceFrequency: updatedTxData.recurrenceFrequency,
           recurrenceDay: updatedTxData.recurrenceDay,
@@ -1494,6 +1531,111 @@ export default function History({
                           value={formRecurrenceEndDate}
                           onChange={(e) => setFormRecurrenceEndDate(e.target.value)}
                           className="bg-[#181426] border border-white/10 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-400"
+                        />
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Campos Específicos para DESPESA FIXA (Recorrência) */}
+                {formType === 'saida' && formExpenseType === 'fixa' && (
+                  <div className="flex flex-col gap-3 p-3.5 rounded-2xl bg-black/40 border border-primary/25">
+                    <div className="flex items-center gap-1.5 text-primary font-bold text-xs">
+                      <span className="material-symbols-outlined text-sm">schedule</span>
+                      <span>Configuração de Recorrência (Conta Fixa)</span>
+                    </div>
+
+                    {/* Frequência */}
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase">Frequência</label>
+                      <div className="grid grid-cols-4 gap-1 p-1 bg-[#181426] rounded-xl border border-white/5">
+                        {(['mensal', 'semanal', 'quinzenal', 'anual'] as RecurrenceFrequency[]).map((freq) => (
+                          <button
+                            key={freq}
+                            type="button"
+                            onClick={() => setFormRecurrenceFrequency(freq)}
+                            className={`py-1.5 rounded-lg text-[11px] font-bold capitalize transition-all cursor-pointer ${
+                              formRecurrenceFrequency === freq
+                                ? 'bg-primary text-white shadow-sm'
+                                : 'text-zinc-400 hover:text-white'
+                            }`}
+                          >
+                            {freq}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Dia de Vencimento & Data de Início */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase">
+                          Dia do Vencimento
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="31"
+                          required
+                          value={formRecurrenceDay}
+                          onChange={(e) => setFormRecurrenceDay(Math.min(31, Math.max(1, parseInt(e.target.value) || 1)))}
+                          className="bg-[#181426] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-primary"
+                          placeholder="Dia 10"
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase">
+                          Data de Início
+                        </label>
+                        <input
+                          type="date"
+                          required
+                          value={formDate}
+                          onChange={(e) => setFormDate(e.target.value)}
+                          className="bg-[#181426] border border-white/10 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-primary"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Data de Término (Opcional) */}
+                    <div className="flex flex-col gap-2 pt-1 border-t border-white/5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-zinc-400 uppercase">
+                          Data de Término
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setFormHasEndDate(false)}
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                              !formHasEndDate
+                                ? 'bg-white/15 text-white'
+                                : 'text-zinc-500 hover:text-zinc-300'
+                            }`}
+                          >
+                            Sem término
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormHasEndDate(true)}
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                              formHasEndDate
+                                ? 'bg-primary/25 text-primary border border-primary/30'
+                                : 'text-zinc-500 hover:text-zinc-300'
+                            }`}
+                          >
+                            Definir data
+                          </button>
+                        </div>
+                      </div>
+
+                      {formHasEndDate && (
+                        <input
+                          type="date"
+                          value={formRecurrenceEndDate}
+                          onChange={(e) => setFormRecurrenceEndDate(e.target.value)}
+                          className="bg-[#181426] border border-white/10 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-primary"
                         />
                       )}
                     </div>

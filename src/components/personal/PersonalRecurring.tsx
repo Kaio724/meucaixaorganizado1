@@ -171,6 +171,11 @@ export default function PersonalRecurring({
         paymentMethod: rec.forma_pagamento || 'Pix',
         account: rec.forma_pagamento === 'Cartão de Crédito' ? 'Cartão de Crédito' : 'Conta Corrente',
         accountType: 'pessoal',
+        expenseType: rec.tipo === 'saida' ? 'fixa' : undefined,
+        revenueType: rec.tipo === 'entrada' ? 'fixa' : undefined,
+        recurrenceId: `rec_pessoal_${rec.id}`,
+        recurrenceFrequency: rec.frequencia,
+        recurrenceDay: rec.dia_cobranca,
         description: `Lançado via Recorrência (${rec.frequencia})`
       });
 

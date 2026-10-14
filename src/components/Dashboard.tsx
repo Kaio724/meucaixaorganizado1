@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Transaction, UserProfile, TransactionType, ExpenseType, RevenueType, RecurrenceFrequency } from '../types';
 import { AVAILABLE_CATEGORIES, PAYMENT_METHODS, ACCOUNT_OPTIONS } from '../initialData';
 import { getCategoryNamesByType, getCategoryInfo } from '../lib/categories';
-import { fetchContas } from '../lib/contasData';
-import { buildRecurringRevenueTransactions } from '../lib/revenueRecurrence';
+import { fetchContas, saveConta } from '../lib/contasData';
+import { buildRecurringRevenueTransactions, buildRecurringExpenseTransactions } from '../lib/revenueRecurrence';
 import EvolutionCard from './EvolutionCard';
 import ProGrowthPanel from './ProGrowthPanel';
 import ProInsights from './ProInsights';
@@ -158,10 +158,46 @@ export default function Dashboard({
       for (const rTx of recurringTxs) {
         await onAddTransaction(rTx);
       }
+    } else if (txType === 'saida' && expenseType === 'fixa') {
+      // Despesa Fixa Recorrente: Gera lançamentos com expenseType: 'fixa' preservado
+      const recurringTxs = buildRecurringExpenseTransactions({
+        title: title.trim() || category || 'Conta Fixa Recorrente',
+        amount: parsedAmount,
+        category,
+        paymentMethod,
+        description: observacao.trim() || undefined,
+        account,
+        accountType: 'empresarial',
+        frequency: recurrenceFrequency,
+        day: recurrenceDay,
+        startDate: date,
+        endDate: hasEndDate && recurrenceEndDate ? recurrenceEndDate : undefined,
+      });
+
+      for (const rTx of recurringTxs) {
+        await onAddTransaction(rTx);
+      }
+
+      // Sincroniza também no catálogo de contas fixas de referência
+      try {
+        await saveConta(userId || 'default_user', {
+          nome: title.trim() || category || 'Conta Fixa',
+          valor: parsedAmount,
+          tipo: 'fixa',
+          categoria: category || 'Outros',
+          frequencia: recurrenceFrequency,
+          diaVencimento: recurrenceDay,
+          observacao: observacao.trim() || undefined,
+          ativa: true,
+          accountType: 'empresarial'
+        });
+      } catch (err) {
+        console.warn('Error saving conta from quick add:', err);
+      }
     } else {
-      // Receita Variável ou Despesa
+      // Receita Variável ou Despesa Variável
       await onAddTransaction({
-        title: title.trim() || category || (txType === 'entrada' ? 'Receita Variável' : 'Despesa Caixa'),
+        title: title.trim() || category || (txType === 'entrada' ? 'Receita Variável' : 'Despesa Variável'),
         amount: parsedAmount,
         type: txType,
         date,
@@ -169,8 +205,8 @@ export default function Dashboard({
         paymentMethod,
         account,
         accountType: 'empresarial',
-        expenseType: txType === 'saida' ? expenseType : undefined,
-        revenueType: txType === 'entrada' ? revenueType : undefined,
+        expenseType: txType === 'saida' ? 'variavel' : undefined,
+        revenueType: txType === 'entrada' ? 'variavel' : undefined,
         description: observacao.trim() || undefined
       });
     }
@@ -974,6 +1010,112 @@ export default function Dashboard({
                           onChange={(e) => setRecurrenceEndDate(e.target.value)}
                           min={date}
                           className="bg-[#181426] border border-white/10 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-400"
+                        />
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Campos Específicos para DESPESA FIXA (Recorrência Mensal) */}
+                {txType === 'saida' && expenseType === 'fixa' && (
+                  <div className="flex flex-col gap-3 p-3.5 rounded-2xl bg-black/40 border border-primary/25">
+                    <div className="flex items-center gap-1.5 text-primary font-bold text-xs">
+                      <span className="material-symbols-outlined text-sm">schedule</span>
+                      <span>Configuração de Recorrência (Conta Fixa)</span>
+                    </div>
+
+                    {/* Frequência */}
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase">Frequência</label>
+                      <div className="grid grid-cols-4 gap-1 p-1 bg-[#181426] rounded-xl border border-white/5">
+                        {(['mensal', 'semanal', 'quinzenal', 'anual'] as RecurrenceFrequency[]).map((freq) => (
+                          <button
+                            key={freq}
+                            type="button"
+                            onClick={() => setRecurrenceFrequency(freq)}
+                            className={`py-1.5 rounded-lg text-[11px] font-bold capitalize transition-all cursor-pointer ${
+                              recurrenceFrequency === freq
+                                ? 'bg-primary text-white shadow-sm'
+                                : 'text-zinc-400 hover:text-white'
+                            }`}
+                          >
+                            {freq}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Dia de Vencimento & Data de Início */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase">
+                          Dia do Vencimento
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="31"
+                          required
+                          value={recurrenceDay}
+                          onChange={(e) => setRecurrenceDay(Math.min(31, Math.max(1, parseInt(e.target.value) || 1)))}
+                          className="bg-[#181426] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-primary"
+                          placeholder="Dia 10"
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase">
+                          Data de Início
+                        </label>
+                        <input
+                          type="date"
+                          required
+                          value={date}
+                          onChange={(e) => setDate(e.target.value)}
+                          className="bg-[#181426] border border-white/10 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-primary"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Data de Término (Opcional) */}
+                    <div className="flex flex-col gap-2 pt-1 border-t border-white/5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-zinc-400 uppercase">
+                          Data de Término
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setHasEndDate(false)}
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                              !hasEndDate
+                                ? 'bg-white/15 text-white'
+                                : 'text-zinc-500 hover:text-zinc-300'
+                            }`}
+                          >
+                            Sem término
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setHasEndDate(true)}
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                              hasEndDate
+                                ? 'bg-primary/25 text-primary border border-primary/30'
+                                : 'text-zinc-500 hover:text-zinc-300'
+                            }`}
+                          >
+                            Definir data
+                          </button>
+                        </div>
+                      </div>
+
+                      {hasEndDate && (
+                        <input
+                          type="date"
+                          value={recurrenceEndDate}
+                          onChange={(e) => setRecurrenceEndDate(e.target.value)}
+                          min={date}
+                          className="bg-[#181426] border border-white/10 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-primary"
                         />
                       )}
                     </div>

@@ -47,7 +47,7 @@ export default function PersonalAddModal({
     if (isOpen) {
       if (editingTx) {
         setTxType(editingTx.type);
-        setExpenseType(editingTx.expenseType || 'variavel');
+        setExpenseType(editingTx.expenseType || (editingTx.recurrenceId ? 'fixa' : 'variavel'));
         setTitle(editingTx.title || '');
         setAmount(editingTx.amount ? editingTx.amount.toString() : '');
         setCategory(editingTx.category || '');
