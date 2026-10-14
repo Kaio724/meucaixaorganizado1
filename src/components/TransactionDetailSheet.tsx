@@ -215,8 +215,9 @@ export default function TransactionDetailSheet({
                         <span className="font-medium">Vigência</span>
                       </div>
                       <span className="font-medium text-zinc-300">
-                        {transaction.recurrenceStartDate.split('-').reverse().join('/')}
-                        {transaction.recurrenceEndDate ? ` até ${transaction.recurrenceEndDate.split('-').reverse().join('/')}` : ' (Sem término)'}
+                        {transaction.recurrenceEndDate
+                          ? `${transaction.recurrenceStartDate.split('-').reverse().join('/')} até ${transaction.recurrenceEndDate.split('-').reverse().join('/')}`
+                          : `A partir de ${transaction.recurrenceStartDate.split('-').reverse().join('/')}`}
                       </span>
                     </div>
                   )}
@@ -274,8 +275,9 @@ export default function TransactionDetailSheet({
                         <span className="font-medium">Vigência</span>
                       </div>
                       <span className="font-medium text-zinc-300">
-                        {transaction.recurrenceStartDate.split('-').reverse().join('/')}
-                        {transaction.recurrenceEndDate ? ` até ${transaction.recurrenceEndDate.split('-').reverse().join('/')}` : ' (Sem término)'}
+                        {transaction.recurrenceEndDate
+                          ? `${transaction.recurrenceStartDate.split('-').reverse().join('/')} até ${transaction.recurrenceEndDate.split('-').reverse().join('/')}`
+                          : `A partir de ${transaction.recurrenceStartDate.split('-').reverse().join('/')}`}
                       </span>
                     </div>
                   )}

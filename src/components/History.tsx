@@ -1492,48 +1492,6 @@ export default function History({
                         />
                       </div>
                     </div>
-
-                    {/* Data de Término (Opcional) */}
-                    <div className="flex flex-col gap-2 pt-1 border-t border-white/5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-zinc-400 uppercase">
-                          Data de Término
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setFormHasEndDate(false)}
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-all cursor-pointer ${
-                              !formHasEndDate
-                                ? 'bg-white/15 text-white'
-                                : 'text-zinc-500 hover:text-zinc-300'
-                            }`}
-                          >
-                            Sem término
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setFormHasEndDate(true)}
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-all cursor-pointer ${
-                              formHasEndDate
-                                ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/30'
-                                : 'text-zinc-500 hover:text-zinc-300'
-                            }`}
-                          >
-                            Definir data
-                          </button>
-                        </div>
-                      </div>
-
-                      {formHasEndDate && (
-                        <input
-                          type="date"
-                          value={formRecurrenceEndDate}
-                          onChange={(e) => setFormRecurrenceEndDate(e.target.value)}
-                          className="bg-[#181426] border border-white/10 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-400"
-                        />
-                      )}
-                    </div>
                   </div>
                 )}
 
@@ -1596,48 +1554,6 @@ export default function History({
                           className="bg-[#181426] border border-white/10 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-primary"
                         />
                       </div>
-                    </div>
-
-                    {/* Data de Término (Opcional) */}
-                    <div className="flex flex-col gap-2 pt-1 border-t border-white/5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-zinc-400 uppercase">
-                          Data de Término
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setFormHasEndDate(false)}
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-all cursor-pointer ${
-                              !formHasEndDate
-                                ? 'bg-white/15 text-white'
-                                : 'text-zinc-500 hover:text-zinc-300'
-                            }`}
-                          >
-                            Sem término
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setFormHasEndDate(true)}
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-all cursor-pointer ${
-                              formHasEndDate
-                                ? 'bg-primary/25 text-primary border border-primary/30'
-                                : 'text-zinc-500 hover:text-zinc-300'
-                            }`}
-                          >
-                            Definir data
-                          </button>
-                        </div>
-                      </div>
-
-                      {formHasEndDate && (
-                        <input
-                          type="date"
-                          value={formRecurrenceEndDate}
-                          onChange={(e) => setFormRecurrenceEndDate(e.target.value)}
-                          className="bg-[#181426] border border-white/10 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-primary"
-                        />
-                      )}
                     </div>
                   </div>
                 )}
