@@ -53,6 +53,8 @@ export interface ContaFinanceira {
   frequenciaPersonalizada?: string;
   dataVencimento?: string; // YYYY-MM-DD
   diaVencimento?: number; // 1-31
+  dataInicio?: string; // YYYY-MM-DD
+  dataTermino?: string; // YYYY-MM-DD
   observacao?: string;
   ativa: boolean;
   accountType: AccountType; // 'empresarial' | 'pessoal' - CRITICAL ISOLATION RULE

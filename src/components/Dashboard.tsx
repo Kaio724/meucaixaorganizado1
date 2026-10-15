@@ -15,6 +15,11 @@ import TransactionDetailSheet from './TransactionDetailSheet';
 
 const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://checkout.wiven.com.br/checkout/cmr9mqf4p000j01q0qlrqcl4w?offer=LEJVTNC';
 
+export const MONTHS_PT = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+];
+
 interface DashboardProps {
   profile: UserProfile;
   userId?: string;
@@ -47,8 +52,8 @@ export default function Dashboard({
   const [revenueType, setRevenueType] = useState<RevenueType>('variavel');
   const [recurrenceFrequency, setRecurrenceFrequency] = useState<RecurrenceFrequency>('mensal');
   const [recurrenceDay, setRecurrenceDay] = useState<number>(10);
-  const [hasEndDate, setHasEndDate] = useState<boolean>(false);
   const [recurrenceEndDate, setRecurrenceEndDate] = useState<string>('');
+  const [validationError, setValidationError] = useState<string>('');
   const [observacao, setObservacao] = useState<string>('');
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
@@ -59,8 +64,28 @@ export default function Dashboard({
   const [estimatedFixedTotal, setEstimatedFixedTotal] = useState(0);
 
   const now = new Date();
-  const currentMonth = now.getMonth();
-  const currentYear = now.getFullYear();
+  const [selectedMonthIndex, setSelectedMonthIndex] = useState(now.getMonth());
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+
+  const isCurrentMonth = selectedMonthIndex === now.getMonth() && selectedYear === now.getFullYear();
+
+  const handlePrevMonth = () => {
+    if (selectedMonthIndex === 0) {
+      setSelectedMonthIndex(11);
+      setSelectedYear((prev) => prev - 1);
+    } else {
+      setSelectedMonthIndex((prev) => prev - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (selectedMonthIndex === 11) {
+      setSelectedMonthIndex(0);
+      setSelectedYear((prev) => prev + 1);
+    } else {
+      setSelectedMonthIndex((prev) => prev + 1);
+    }
+  };
 
   // Load estimated fixed total from registered fixed accounts
   useEffect(() => {
@@ -79,13 +104,22 @@ export default function Dashboard({
       .catch((err) => console.warn(err));
   }, [userId, transactions]);
 
-  // For Essential plan users, main calculations only reflect the current month.
-  const visibleTransactions = isPro
-    ? transactions
-    : transactions.filter((t) => {
-        const tDate = new Date(t.date + 'T12:00:00');
-        return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
-      });
+  // STRICT MONTHLY ACCRUAL:
+  // Visible transactions are strictly scoped to the active selected month & year.
+  // Future occurrences (e.g. from monthly recurrences) are never added to the current month.
+  const visibleTransactions = React.useMemo(() => {
+    return transactions.filter((t) => {
+      if (!t.date) return false;
+      const parts = t.date.split('-');
+      if (parts.length >= 2) {
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10) - 1;
+        return y === selectedYear && m === selectedMonthIndex;
+      }
+      const tDate = new Date(t.date + 'T12:00:00');
+      return tDate.getMonth() === selectedMonthIndex && tDate.getFullYear() === selectedYear;
+    });
+  }, [transactions, selectedMonthIndex, selectedYear]);
 
   // Calculations
   const totalEntradas = visibleTransactions
@@ -139,8 +173,25 @@ export default function Dashboard({
     const parsedAmount = Math.abs(parseFloat(amount.replace(',', '.')));
     if (isNaN(parsedAmount) || parsedAmount <= 0) return;
 
-    if (txType === 'entrada' && revenueType === 'fixa') {
-      // Receita Fixa: Gera lançamentos recorrentes agendados
+    const isFixedRevenue = txType === 'entrada' && revenueType === 'fixa';
+    const isFixedExpense = txType === 'saida' && expenseType === 'fixa';
+
+    // Mandatory End Date validation for recurrences
+    if (isFixedRevenue || isFixedExpense) {
+      if (!recurrenceEndDate) {
+        setValidationError('A data de término da recorrência é obrigatória.');
+        return;
+      }
+      if (recurrenceEndDate < date) {
+        setValidationError('A data de término deve ser igual ou posterior à data de início.');
+        return;
+      }
+    }
+
+    setValidationError('');
+
+    if (isFixedRevenue) {
+      // Receita Fixa: Gera lançamentos recorrentes agendados estritamente até a data final
       const recurringTxs = buildRecurringRevenueTransactions({
         title: title.trim() || category || 'Receita Fixa Recorrente',
         amount: parsedAmount,
@@ -152,14 +203,14 @@ export default function Dashboard({
         frequency: recurrenceFrequency,
         day: recurrenceDay,
         startDate: date,
-        endDate: hasEndDate && recurrenceEndDate ? recurrenceEndDate : undefined,
+        endDate: recurrenceEndDate,
       });
 
       for (const rTx of recurringTxs) {
         await onAddTransaction(rTx);
       }
-    } else if (txType === 'saida' && expenseType === 'fixa') {
-      // Despesa Fixa Recorrente: Gera lançamentos com expenseType: 'fixa' preservado
+    } else if (isFixedExpense) {
+      // Despesa Fixa Recorrente: Gera lançamentos com expenseType: 'fixa' preservado até a data final
       const recurringTxs = buildRecurringExpenseTransactions({
         title: title.trim() || category || 'Conta Fixa Recorrente',
         amount: parsedAmount,
@@ -171,7 +222,7 @@ export default function Dashboard({
         frequency: recurrenceFrequency,
         day: recurrenceDay,
         startDate: date,
-        endDate: hasEndDate && recurrenceEndDate ? recurrenceEndDate : undefined,
+        endDate: recurrenceEndDate,
       });
 
       for (const rTx of recurringTxs) {
@@ -187,6 +238,8 @@ export default function Dashboard({
           categoria: category || 'Outros',
           frequencia: recurrenceFrequency,
           diaVencimento: recurrenceDay,
+          dataInicio: date,
+          dataTermino: recurrenceEndDate,
           observacao: observacao.trim() || undefined,
           ativa: true,
           accountType: 'empresarial'
@@ -220,8 +273,8 @@ export default function Dashboard({
     setRevenueType('variavel');
     setRecurrenceFrequency('mensal');
     setRecurrenceDay(10);
-    setHasEndDate(false);
     setRecurrenceEndDate('');
+    setValidationError('');
     setObservacao('');
     setShowQuickAdd(false);
   };
@@ -275,6 +328,35 @@ export default function Dashboard({
               storefront
             </span>
           </div>
+        </div>
+
+        {/* Seletor de Competência Mensal Mobile */}
+        <div className="flex items-center justify-between bg-white/[0.04] border border-white/10 rounded-2xl px-2 py-1.5 shadow-sm">
+          <button
+            type="button"
+            onClick={handlePrevMonth}
+            className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+            title="Mês anterior"
+          >
+            <span className="material-symbols-outlined text-base">chevron_left</span>
+          </button>
+          <div className="flex items-center gap-1.5 text-xs font-bold text-white uppercase tracking-wider">
+            <span className="material-symbols-outlined text-primary text-sm">calendar_month</span>
+            <span>{MONTHS_PT[selectedMonthIndex]} {selectedYear}</span>
+            {isCurrentMonth && (
+              <span className="text-[9px] bg-primary/20 text-primary border border-primary/30 px-1.5 py-0.5 rounded-full font-extrabold normal-case">
+                atual
+              </span>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={handleNextMonth}
+            className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+            title="Próximo mês"
+          >
+            <span className="material-symbols-outlined text-base">chevron_right</span>
+          </button>
         </div>
 
         {/* Card Mestre: "Sobrou em Caixa" (Protagonista Absoluto) */}
@@ -700,6 +782,10 @@ export default function Dashboard({
           receitasFixas={receitasFixas}
           receitasVariaveis={receitasVariaveis}
           previsibilidadeReceita={previsibilidadeReceita}
+          selectedMonthIndex={selectedMonthIndex}
+          selectedYear={selectedYear}
+          onPrevMonth={handlePrevMonth}
+          onNextMonth={handleNextMonth}
         />
       </div>
 
@@ -737,6 +823,14 @@ export default function Dashboard({
                   <span className="material-symbols-outlined text-base">close</span>
                 </button>
               </div>
+
+              {/* Validation Error Banner */}
+              {validationError && (
+                <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-semibold flex items-center gap-2">
+                  <span className="material-symbols-outlined text-base text-rose-400">error</span>
+                  <span>{validationError}</span>
+                </div>
+              )}
 
               {/* Type Switcher */}
               <div className="grid grid-cols-2 p-1 rounded-2xl bg-black/40 border border-white/5 gap-1 select-none h-12">
@@ -970,6 +1064,31 @@ export default function Dashboard({
                         />
                       </div>
                     </div>
+
+                    {/* Data de Término (Obrigatória) */}
+                    <div className="flex flex-col gap-1.5 pt-1 border-t border-white/5">
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase flex items-center justify-between">
+                        <span className="flex items-center gap-1">
+                          <span>Data de Término da Recorrência</span>
+                          <span className="text-rose-400 font-bold">*</span>
+                        </span>
+                        <span className="text-[9px] text-zinc-500 font-normal">Obrigatório</span>
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        value={recurrenceEndDate}
+                        onChange={(e) => {
+                          setRecurrenceEndDate(e.target.value);
+                          if (validationError) setValidationError('');
+                        }}
+                        min={date}
+                        className="bg-[#181426] border border-white/10 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-400"
+                      />
+                      <span className="text-[10px] text-zinc-500">
+                        A recorrência será gerada mensalmente apenas até esta data final.
+                      </span>
+                    </div>
                   </div>
                 )}
 
@@ -1032,6 +1151,31 @@ export default function Dashboard({
                           className="bg-[#181426] border border-white/10 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-primary"
                         />
                       </div>
+                    </div>
+
+                    {/* Data de Término (Obrigatória) */}
+                    <div className="flex flex-col gap-1.5 pt-1 border-t border-white/5">
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase flex items-center justify-between">
+                        <span className="flex items-center gap-1">
+                          <span>Data de Término da Recorrência</span>
+                          <span className="text-rose-400 font-bold">*</span>
+                        </span>
+                        <span className="text-[9px] text-zinc-500 font-normal">Obrigatório</span>
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        value={recurrenceEndDate}
+                        onChange={(e) => {
+                          setRecurrenceEndDate(e.target.value);
+                          if (validationError) setValidationError('');
+                        }}
+                        min={date}
+                        className="bg-[#181426] border border-white/10 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-primary"
+                      />
+                      <span className="text-[10px] text-zinc-500">
+                        A recorrência será gerada mensalmente apenas até esta data final.
+                      </span>
                     </div>
                   </div>
                 )}

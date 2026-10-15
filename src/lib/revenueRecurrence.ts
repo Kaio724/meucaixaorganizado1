@@ -11,67 +11,110 @@ export interface RecurringRevenueConfig {
   frequency: RecurrenceFrequency;
   day: number; // 1-31
   startDate: string; // YYYY-MM-DD
-  endDate?: string; // YYYY-MM-DD
+  endDate: string; // YYYY-MM-DD (Obrigatória para novas recorrências)
   maxOccurrences?: number;
 }
 
 /**
- * Computes scheduled dates for a recurring revenue
+ * Computes scheduled dates for a recurring revenue or expense.
+ * Each occurrence has its own distinct local reference date.
+ * Strictly respects endDateStr and does not generate occurrences after it.
  */
 export function generateRevenueDates(
   startDateStr: string,
   frequency: RecurrenceFrequency,
   day: number,
   endDateStr?: string,
-  maxOccurrences = 12
+  maxOccurrences = 120
 ): string[] {
   const dates: string[] = [];
-  const startObj = new Date(startDateStr + 'T12:00:00');
-  const endObj = endDateStr ? new Date(endDateStr + 'T23:59:59') : null;
+  if (!startDateStr) return dates;
+
+  const [startYear, startMonth, startDay] = startDateStr.split('-').map(Number);
 
   if (frequency === 'mensal') {
-    let currentYear = startObj.getFullYear();
-    let currentMonth = startObj.getMonth();
+    let yr = startYear;
+    let mo = startMonth; // 1-12
+    let count = 0;
+    const limit = maxOccurrences || 120;
 
-    for (let i = 0; i < maxOccurrences; i++) {
-      const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    while (count < limit) {
+      const daysInMonth = new Date(yr, mo, 0).getDate();
       const validDay = Math.min(Math.max(1, day), daysInMonth);
-      const dateObj = new Date(currentYear, currentMonth, validDay, 12, 0, 0);
+      let dateStr = `${yr}-${String(mo).padStart(2, '0')}-${String(validDay).padStart(2, '0')}`;
 
-      // Only include if >= startDate (or same month)
-      if (dateObj >= startObj || (dateObj.getMonth() === startObj.getMonth() && dateObj.getFullYear() === startObj.getFullYear())) {
-        if (endObj && dateObj > endObj) {
+      // In the first month, if the chosen day is before startDate,
+      // clamp to startDateStr so the first month is accounted for on its start date
+      if (yr === startYear && mo === startMonth && dateStr < startDateStr) {
+        dateStr = startDateStr;
+      }
+
+      // If the generated date surpasses the mandatory end date, stop immediately
+      if (endDateStr && dateStr > endDateStr) {
+        break;
+      }
+
+      dates.push(dateStr);
+      count++;
+
+      // Check if we reached the final month/year defined by endDateStr
+      if (endDateStr) {
+        const [endY, endM] = endDateStr.split('-').map(Number);
+        if (yr > endY || (yr === endY && mo >= endM)) {
           break;
         }
-        dates.push(dateObj.toISOString().split('T')[0]);
       }
 
       // Advance one month
-      currentMonth += 1;
-      if (currentMonth > 11) {
-        currentMonth = 0;
-        currentYear += 1;
+      mo += 1;
+      if (mo > 12) {
+        mo = 1;
+        yr += 1;
       }
     }
   } else if (frequency === 'semanal') {
-    let current = new Date(startObj);
-    for (let i = 0; i < maxOccurrences; i++) {
-      if (endObj && current > endObj) break;
-      dates.push(current.toISOString().split('T')[0]);
+    const current = new Date(startDateStr + 'T12:00:00');
+    let count = 0;
+    const limit = maxOccurrences || 120;
+    while (count < limit) {
+      const yr = current.getFullYear();
+      const mo = String(current.getMonth() + 1).padStart(2, '0');
+      const da = String(current.getDate()).padStart(2, '0');
+      const dateStr = `${yr}-${mo}-${da}`;
+
+      if (endDateStr && dateStr > endDateStr) break;
+      dates.push(dateStr);
+      count++;
       current.setDate(current.getDate() + 7);
     }
   } else if (frequency === 'quinzenal') {
-    let current = new Date(startObj);
-    for (let i = 0; i < maxOccurrences; i++) {
-      if (endObj && current > endObj) break;
-      dates.push(current.toISOString().split('T')[0]);
+    const current = new Date(startDateStr + 'T12:00:00');
+    let count = 0;
+    const limit = maxOccurrences || 120;
+    while (count < limit) {
+      const yr = current.getFullYear();
+      const mo = String(current.getMonth() + 1).padStart(2, '0');
+      const da = String(current.getDate()).padStart(2, '0');
+      const dateStr = `${yr}-${mo}-${da}`;
+
+      if (endDateStr && dateStr > endDateStr) break;
+      dates.push(dateStr);
+      count++;
       current.setDate(current.getDate() + 15);
     }
   } else if (frequency === 'anual') {
-    let current = new Date(startObj);
-    for (let i = 0; i < Math.min(5, maxOccurrences); i++) {
-      if (endObj && current > endObj) break;
-      dates.push(current.toISOString().split('T')[0]);
+    const current = new Date(startDateStr + 'T12:00:00');
+    let count = 0;
+    const limit = Math.min(20, maxOccurrences || 20);
+    while (count < limit) {
+      const yr = current.getFullYear();
+      const mo = String(current.getMonth() + 1).padStart(2, '0');
+      const da = String(current.getDate()).padStart(2, '0');
+      const dateStr = `${yr}-${mo}-${da}`;
+
+      if (endDateStr && dateStr > endDateStr) break;
+      dates.push(dateStr);
+      count++;
       current.setFullYear(current.getFullYear() + 1);
     }
   }
@@ -96,7 +139,7 @@ export function buildRecurringRevenueTransactions(
     config.frequency,
     config.day,
     config.endDate,
-    config.maxOccurrences || 12
+    config.maxOccurrences || 120
   );
 
   return dates.map((dateStr) => ({
@@ -129,7 +172,7 @@ export interface RecurringExpenseConfig {
   frequency: RecurrenceFrequency;
   day: number; // 1-31
   startDate: string; // YYYY-MM-DD
-  endDate?: string; // YYYY-MM-DD
+  endDate: string; // YYYY-MM-DD (Obrigatória para novas recorrências)
   maxOccurrences?: number;
   contaId?: string;
 }
@@ -147,7 +190,7 @@ export function buildRecurringExpenseTransactions(
     config.frequency,
     config.day,
     config.endDate,
-    config.maxOccurrences || 12
+    config.maxOccurrences || 120
   );
 
   return dates.map((dateStr) => ({

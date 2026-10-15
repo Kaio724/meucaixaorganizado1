@@ -31,7 +31,16 @@ interface DesktopDashboardProps {
   receitasFixas?: number;
   receitasVariaveis?: number;
   previsibilidadeReceita?: number;
+  selectedMonthIndex?: number;
+  selectedYear?: number;
+  onPrevMonth?: () => void;
+  onNextMonth?: () => void;
 }
+
+const MONTHS_PT = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+];
 
 export default function DesktopDashboard({
   profile,
@@ -56,6 +65,10 @@ export default function DesktopDashboard({
   receitasFixas = 0,
   receitasVariaveis = 0,
   previsibilidadeReceita = 0,
+  selectedMonthIndex,
+  selectedYear,
+  onPrevMonth,
+  onNextMonth,
 }: DesktopDashboardProps) {
   const { isLight } = useTheme();
 
@@ -67,6 +80,8 @@ export default function DesktopDashboard({
   };
 
   const now = new Date();
+  const activeMonthIndex = selectedMonthIndex !== undefined ? selectedMonthIndex : now.getMonth();
+  const activeYear = selectedYear !== undefined ? selectedYear : now.getFullYear();
 
   return (
     <div className="hidden lg:flex flex-col gap-5 w-full max-w-[1440px] mx-auto pb-8 text-left">
@@ -91,12 +106,39 @@ export default function DesktopDashboard({
               Olá, <span className="text-primary">{profile.name}</span>!
             </h2>
             <p className="text-[11px] text-on-surface-variant font-medium">
-              Bem-vindo ao <span className="text-on-surface font-semibold">{profile.businessName}</span>. Seu fluxo de caixa de {now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })} está atualizado.
+              Bem-vindo ao <span className="text-on-surface font-semibold">{profile.businessName}</span>. Competência de <span className="text-primary font-bold">{MONTHS_PT[activeMonthIndex]} de {activeYear}</span>.
             </p>
           </div>
 
-          {/* Small, Elegant Buttons */}
+          {/* Small, Elegant Buttons + Month Selector */}
           <div className="flex items-center gap-3">
+            {/* Desktop Month Selector */}
+            <div className="flex items-center gap-1 bg-white/[0.04] border border-white/10 rounded-xl px-1.5 py-1 shadow-sm">
+              {onPrevMonth && (
+                <button
+                  type="button"
+                  onClick={onPrevMonth}
+                  className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                  title="Mês anterior"
+                >
+                  <span className="material-symbols-outlined text-sm">chevron_left</span>
+                </button>
+              )}
+              <span className="text-xs font-bold text-on-surface px-2.5 uppercase tracking-wide select-none min-w-[110px] text-center">
+                {MONTHS_PT[activeMonthIndex]} {activeYear}
+              </span>
+              {onNextMonth && (
+                <button
+                  type="button"
+                  onClick={onNextMonth}
+                  className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                  title="Próximo mês"
+                >
+                  <span className="material-symbols-outlined text-sm">chevron_right</span>
+                </button>
+              )}
+            </div>
+
             <button
               onClick={onOpenImport}
               className="bg-white/[0.04] hover:bg-white/[0.08] text-white font-extrabold text-[10px] tracking-wider uppercase py-2.5 px-4 rounded-xl flex items-center gap-1.5 transition-all duration-300 border border-white/[0.08] hover:border-primary/30 cursor-pointer active:scale-[0.98] shadow-sm hover:shadow-[0_0_16px_rgba(160,120,255,0.15)]"

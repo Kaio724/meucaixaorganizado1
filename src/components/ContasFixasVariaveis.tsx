@@ -76,6 +76,8 @@ export default function ContasFixasVariaveis({
   const [formFrequenciaPersonalizada, setFormFrequenciaPersonalizada] = useState('');
   const [formDiaVencimento, setFormDiaVencimento] = useState<string>('10');
   const [formDataVencimento, setFormDataVencimento] = useState<string>('');
+  const [formDataTermino, setFormDataTermino] = useState<string>('');
+  const [formValidationError, setFormValidationError] = useState<string>('');
   const [formObservacao, setFormObservacao] = useState('');
   const [formAtiva, setFormAtiva] = useState(true);
 
@@ -244,6 +246,8 @@ export default function ContasFixasVariaveis({
     setFormFrequenciaPersonalizada('');
     setFormDiaVencimento('10');
     setFormDataVencimento('');
+    setFormDataTermino('');
+    setFormValidationError('');
     setFormObservacao('');
     setFormAtiva(true);
     setShowNewCatInput(false);
@@ -262,6 +266,8 @@ export default function ContasFixasVariaveis({
     setFormFrequenciaPersonalizada(conta.frequenciaPersonalizada || '');
     setFormDiaVencimento(conta.diaVencimento ? String(conta.diaVencimento) : '10');
     setFormDataVencimento(conta.dataVencimento || '');
+    setFormDataTermino(conta.dataTermino || '');
+    setFormValidationError('');
     setFormObservacao(conta.observacao || '');
     setFormAtiva(conta.ativa);
     setShowNewCatInput(false);
@@ -276,6 +282,16 @@ export default function ContasFixasVariaveis({
 
     const parsedVal = parseFloat(formValor.replace(',', '.'));
     if (isNaN(parsedVal) || parsedVal <= 0) return;
+
+    // Validate mandatory end date for fixed accounts
+    if (formTipo === 'fixa') {
+      if (!formDataTermino) {
+        setFormValidationError('A data de término da conta fixa é obrigatória.');
+        return;
+      }
+    }
+
+    setFormValidationError('');
 
     const chosenCategoria = showNewCatInput && newCatName.trim()
       ? newCatName.trim()
@@ -293,6 +309,7 @@ export default function ContasFixasVariaveis({
       frequenciaPersonalizada: formFrequencia === 'personalizada' ? formFrequenciaPersonalizada : undefined,
       diaVencimento: !isNaN(diaNum as number) ? diaNum : undefined,
       dataVencimento: formDataVencimento || undefined,
+      dataTermino: formTipo === 'fixa' ? (formDataTermino || undefined) : undefined,
       observacao: formObservacao.trim() || undefined,
       ativa: formAtiva,
       accountType
@@ -1056,6 +1073,14 @@ export default function ContasFixasVariaveis({
 
               {/* Form Content */}
               <form onSubmit={handleSaveContaSubmit} className="flex flex-col gap-4">
+                {/* Validation Error Banner */}
+                {formValidationError && (
+                  <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-semibold flex items-center gap-2">
+                    <span className="material-symbols-outlined text-base text-rose-400">error</span>
+                    <span>{formValidationError}</span>
+                  </div>
+                )}
+
                 {/* 1. Nome da Conta */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider">
@@ -1208,6 +1233,30 @@ export default function ContasFixasVariaveis({
                         onChange={(e) => setFormDiaVencimento(e.target.value)}
                         className="bg-[#181426] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-primary"
                       />
+                    </div>
+
+                    {/* Data de Término (Obrigatória) */}
+                    <div className="flex flex-col gap-1.5 col-span-1 sm:col-span-2">
+                      <label className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider flex items-center justify-between">
+                        <span className="flex items-center gap-1">
+                          <span>Data de Término da Recorrência</span>
+                          <span className="text-rose-400 font-bold">*</span>
+                        </span>
+                        <span className="text-[10px] text-zinc-500 font-normal">Obrigatório</span>
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        value={formDataTermino}
+                        onChange={(e) => {
+                          setFormDataTermino(e.target.value);
+                          if (formValidationError) setFormValidationError('');
+                        }}
+                        className="bg-[#181426] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-primary"
+                      />
+                      <span className="text-[10px] text-zinc-500">
+                        A recorrência da conta fixa é válida até esta data de término.
+                      </span>
                     </div>
 
                     {formFrequencia === 'personalizada' && (

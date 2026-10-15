@@ -90,9 +90,9 @@ export default function History({
   const [formExpenseType, setFormExpenseType] = useState<ExpenseType>('variavel');
   const [formRevenueType, setFormRevenueType] = useState<RevenueType>('variavel');
   const [formRecurrenceFrequency, setFormRecurrenceFrequency] = useState<RecurrenceFrequency>('mensal');
-  const [formRecurrenceDay, setFormRecurrenceDay] = useState<number>(10);
-  const [formHasEndDate, setFormHasEndDate] = useState<boolean>(false);
+  const [formHasEndDate, setFormHasEndDate] = useState<boolean>(true);
   const [formRecurrenceEndDate, setFormRecurrenceEndDate] = useState<string>('');
+  const [formValidationError, setFormValidationError] = useState<string>('');
   const [formDescription, setFormDescription] = useState<string>('');
   const [formTitle, setFormTitle] = useState('');
   const [formAmount, setFormAmount] = useState('');
@@ -295,8 +295,9 @@ export default function History({
     setFormRevenueType(tx.revenueType || (tx.recurrenceId ? 'fixa' : 'variavel'));
     setFormRecurrenceFrequency(tx.recurrenceFrequency || 'mensal');
     setFormRecurrenceDay(tx.recurrenceDay || 10);
-    setFormHasEndDate(Boolean(tx.recurrenceEndDate));
+    setFormHasEndDate(true);
     setFormRecurrenceEndDate(tx.recurrenceEndDate || '');
+    setFormValidationError('');
     setFormDescription(tx.description || '');
     setFormTitle(tx.title);
     setFormAmount(String(tx.amount));
@@ -315,8 +316,9 @@ export default function History({
     setFormRevenueType('variavel');
     setFormRecurrenceFrequency('mensal');
     setFormRecurrenceDay(10);
-    setFormHasEndDate(false);
+    setFormHasEndDate(true);
     setFormRecurrenceEndDate('');
+    setFormValidationError('');
     setFormDescription('');
     setFormTitle('');
     setFormAmount('');
@@ -337,6 +339,20 @@ export default function History({
 
     const isRecurringFixed = (formType === 'entrada' && formRevenueType === 'fixa') || (formType === 'saida' && formExpenseType === 'fixa');
 
+    // Mandatory End Date validation for recurrences
+    if (isRecurringFixed) {
+      if (!formRecurrenceEndDate) {
+        setFormValidationError('A data de término da recorrência é obrigatória.');
+        return;
+      }
+      if (formRecurrenceEndDate < formDate) {
+        setFormValidationError('A data de término deve ser igual ou posterior à data de início.');
+        return;
+      }
+    }
+
+    setFormValidationError('');
+
     const txData = {
       title: formTitle.trim(),
       amount: parsedAmount,
@@ -352,7 +368,7 @@ export default function History({
       recurrenceFrequency: isRecurringFixed ? formRecurrenceFrequency : undefined,
       recurrenceDay: isRecurringFixed ? formRecurrenceDay : undefined,
       recurrenceStartDate: isRecurringFixed ? formDate : undefined,
-      recurrenceEndDate: isRecurringFixed && formHasEndDate && formRecurrenceEndDate ? formRecurrenceEndDate : undefined,
+      recurrenceEndDate: isRecurringFixed ? formRecurrenceEndDate : undefined,
     };
 
     if (editingTx) {
@@ -384,7 +400,7 @@ export default function History({
           frequency: formRecurrenceFrequency,
           day: formRecurrenceDay,
           startDate: formDate,
-          endDate: formHasEndDate && formRecurrenceEndDate ? formRecurrenceEndDate : undefined,
+          endDate: formRecurrenceEndDate,
         });
 
         for (const rTx of recurringTxs) {
@@ -402,7 +418,7 @@ export default function History({
           frequency: formRecurrenceFrequency,
           day: formRecurrenceDay,
           startDate: formDate,
-          endDate: formHasEndDate && formRecurrenceEndDate ? formRecurrenceEndDate : undefined,
+          endDate: formRecurrenceEndDate,
         });
 
         for (const rTx of recurringTxs) {
@@ -417,6 +433,8 @@ export default function History({
             categoria: formCategory,
             frequencia: formRecurrenceFrequency,
             diaVencimento: formRecurrenceDay,
+            dataInicio: formDate,
+            dataTermino: formRecurrenceEndDate,
             observacao: formDescription.trim() || undefined,
             ativa: true,
             accountType: 'empresarial'
@@ -427,6 +445,7 @@ export default function History({
       }
       setShowAddModal(false);
     }
+
 
     // Reset Form
     setFormTitle('');
@@ -1262,6 +1281,14 @@ export default function History({
               </div>
 
               <form onSubmit={handleFormSubmit} className="flex flex-col gap-4 text-left">
+                {/* Validation Error Banner */}
+                {formValidationError && (
+                  <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-semibold flex items-center gap-2">
+                    <span className="material-symbols-outlined text-base text-rose-400">error</span>
+                    <span>{formValidationError}</span>
+                  </div>
+                )}
+
                 {/* Type Selection */}
                 <div className="grid grid-cols-2 p-1 bg-[#0d0d12] rounded-2xl border border-white/[0.06]">
                   <button
@@ -1492,6 +1519,31 @@ export default function History({
                         />
                       </div>
                     </div>
+
+                    {/* Data de Término (Obrigatória) */}
+                    <div className="flex flex-col gap-1.5 pt-1 border-t border-white/5">
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase flex items-center justify-between">
+                        <span className="flex items-center gap-1">
+                          <span>Data de Término da Recorrência</span>
+                          <span className="text-rose-400 font-bold">*</span>
+                        </span>
+                        <span className="text-[9px] text-zinc-500 font-normal">Obrigatório</span>
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        value={formRecurrenceEndDate}
+                        onChange={(e) => {
+                          setFormRecurrenceEndDate(e.target.value);
+                          if (formValidationError) setFormValidationError('');
+                        }}
+                        min={formDate}
+                        className="bg-[#181426] border border-white/10 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-400"
+                      />
+                      <span className="text-[10px] text-zinc-500">
+                        A recorrência será gerada exclusivamente até esta data de término.
+                      </span>
+                    </div>
                   </div>
                 )}
 
@@ -1554,6 +1606,31 @@ export default function History({
                           className="bg-[#181426] border border-white/10 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-primary"
                         />
                       </div>
+                    </div>
+
+                    {/* Data de Término (Obrigatória) */}
+                    <div className="flex flex-col gap-1.5 pt-1 border-t border-white/5">
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase flex items-center justify-between">
+                        <span className="flex items-center gap-1">
+                          <span>Data de Término da Recorrência</span>
+                          <span className="text-rose-400 font-bold">*</span>
+                        </span>
+                        <span className="text-[9px] text-zinc-500 font-normal">Obrigatório</span>
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        value={formRecurrenceEndDate}
+                        onChange={(e) => {
+                          setFormRecurrenceEndDate(e.target.value);
+                          if (formValidationError) setFormValidationError('');
+                        }}
+                        min={formDate}
+                        className="bg-[#181426] border border-white/10 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-primary"
+                      />
+                      <span className="text-[10px] text-zinc-500">
+                        A recorrência será gerada mensalmente apenas até esta data final.
+                      </span>
                     </div>
                   </div>
                 )}
