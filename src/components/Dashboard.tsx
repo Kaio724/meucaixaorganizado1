@@ -87,12 +87,23 @@ export default function Dashboard({
     }
   };
 
-  // Load estimated fixed total from registered fixed accounts
+  // Load estimated fixed total from registered fixed accounts, respecting active month and term
   useEffect(() => {
     fetchContas(userId, 'empresarial')
       .then((contas) => {
+        const selectedMonthKey = `${selectedYear}-${String(selectedMonthIndex + 1).padStart(2, '0')}`;
         const sum = contas
-          .filter((c) => c.tipo === 'fixa' && c.ativa)
+          .filter((c) => {
+            if (c.tipo !== 'fixa' || !c.ativa) return false;
+            // Respect competence limits if defined
+            if (c.dataInicio && c.dataInicio.substring(0, 7) > selectedMonthKey) {
+              return false;
+            }
+            if (c.dataTermino && c.dataTermino.substring(0, 7) < selectedMonthKey) {
+              return false;
+            }
+            return true;
+          })
           .reduce((acc, c) => {
             if (c.frequencia === 'semanal') return acc + c.valor * 4;
             if (c.frequencia === 'quinzenal') return acc + c.valor * 2;
@@ -102,7 +113,7 @@ export default function Dashboard({
         setEstimatedFixedTotal(sum);
       })
       .catch((err) => console.warn(err));
-  }, [userId, transactions]);
+  }, [userId, transactions, selectedMonthIndex, selectedYear]);
 
   // STRICT MONTHLY ACCRUAL:
   // Visible transactions are strictly scoped to the active selected month & year.
@@ -363,7 +374,7 @@ export default function Dashboard({
         <motion.div 
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="hero-master-card rounded-[28px] p-5 sm:p-6 shadow-2xl flex flex-col gap-4 relative overflow-hidden text-left w-full border border-primary/30 bg-gradient-to-b from-[#1b1531] via-[#140e26] to-[#0e0a1b]"
+          className="hero-master-card rounded-[28px] p-5 sm:p-6 shadow-2xl flex flex-col gap-4 relative overflow-hidden text-left w-full border border-primary/30"
         >
           <div className="absolute top-0 right-0 w-44 h-44 bg-primary/15 rounded-full filter blur-3xl pointer-events-none"></div>
 
@@ -385,7 +396,7 @@ export default function Dashboard({
 
             {/* Protagonist Typography: 40-44px ExtraBold */}
             <div className="flex items-baseline gap-2 mt-1">
-              <h1 className={`text-4xl sm:text-[42px] font-extrabold tracking-tight ${totalSobrou >= 0 ? 'text-white' : 'text-rose-400'}`}>
+              <h1 className={`text-4xl sm:text-[42px] font-extrabold tracking-tight ${totalSobrou >= 0 ? 'text-zinc-900 dark:text-white' : 'text-rose-500 dark:text-rose-400'}`}>
                 {formatBRL(totalSobrou)}
               </h1>
             </div>
@@ -436,64 +447,64 @@ export default function Dashboard({
 
           <div className="grid grid-cols-2 gap-3">
             {/* Entrou */}
-            <div className="flex flex-col justify-between p-4 rounded-2xl bg-[#130f21]/90 border border-emerald-500/20 min-h-[84px] shadow-sm">
+            <div className="flex flex-col justify-between p-4 rounded-2xl bg-white dark:bg-[#130f21]/90 border border-zinc-200 dark:border-emerald-500/20 min-h-[84px] shadow-sm">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] uppercase font-bold text-zinc-400 tracking-wider">
+                <span className="text-[11px] uppercase font-bold text-zinc-500 dark:text-zinc-400 tracking-wider">
                   Entrou
                 </span>
-                <div className="w-7 h-7 rounded-lg bg-emerald-500/15 flex items-center justify-center text-emerald-400">
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/15 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                   <span className="material-symbols-outlined text-base">arrow_downward</span>
                 </div>
               </div>
-              <div className="text-xl sm:text-2xl font-extrabold text-emerald-400 tracking-tight mt-1 truncate">
+              <div className="text-xl sm:text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 tracking-tight mt-1 truncate">
                 {formatBRL(totalEntradas)}
               </div>
-              <span className="text-[10px] text-zinc-400 font-semibold mt-1 truncate" title={`Fixa: ${formatBRL(receitasFixas)} • Var: ${formatBRL(receitasVariaveis)}`}>
+              <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-semibold mt-1 truncate" title={`Fixa: ${formatBRL(receitasFixas)} • Var: ${formatBRL(receitasVariaveis)}`}>
                 Fixa: {formatBRL(receitasFixas)} • Var: {formatBRL(receitasVariaveis)}
               </span>
             </div>
 
             {/* Saiu */}
-            <div className="flex flex-col justify-between p-4 rounded-2xl bg-[#130f21]/90 border border-rose-500/20 min-h-[84px] shadow-sm">
+            <div className="flex flex-col justify-between p-4 rounded-2xl bg-white dark:bg-[#130f21]/90 border border-zinc-200 dark:border-rose-500/20 min-h-[84px] shadow-sm">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] uppercase font-bold text-zinc-400 tracking-wider">
+                <span className="text-[11px] uppercase font-bold text-zinc-500 dark:text-zinc-400 tracking-wider">
                   Saiu
                 </span>
-                <div className="w-7 h-7 rounded-lg bg-rose-500/15 flex items-center justify-center text-rose-400">
+                <div className="w-7 h-7 rounded-lg bg-rose-500/15 flex items-center justify-center text-rose-600 dark:text-rose-400">
                   <span className="material-symbols-outlined text-base">arrow_upward</span>
                 </div>
               </div>
-              <div className="text-xl sm:text-2xl font-extrabold text-rose-400 tracking-tight mt-1 truncate">
+              <div className="text-xl sm:text-2xl font-extrabold text-rose-600 dark:text-rose-400 tracking-tight mt-1 truncate">
                 {formatBRL(totalSaidas)}
               </div>
-              <span className="text-[10px] text-zinc-400 font-semibold mt-1 truncate" title={`Fixas: ${formatBRL(despesasFixas > 0 ? despesasFixas : estimatedFixedTotal)} • Var: ${formatBRL(despesasVariaveis)}`}>
+              <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-semibold mt-1 truncate" title={`Fixas: ${formatBRL(despesasFixas > 0 ? despesasFixas : estimatedFixedTotal)} • Var: ${formatBRL(despesasVariaveis)}`}>
                 Fixas: {formatBRL(despesasFixas > 0 ? despesasFixas : estimatedFixedTotal)} • Var: {formatBRL(despesasVariaveis)}
               </span>
             </div>
 
             {/* Composição das Receitas & Previsibilidade (Requirement 10 & 11) */}
-            <div className="col-span-2 p-4 rounded-2xl bg-gradient-to-r from-[#101b22] via-[#0d161c] to-[#0a1117] border border-emerald-500/25 flex flex-col gap-3 shadow-md">
+            <div className="col-span-2 p-4 rounded-2xl bg-white dark:bg-gradient-to-r dark:from-[#101b22] dark:via-[#0d161c] dark:to-[#0a1117] border border-zinc-200 dark:border-emerald-500/25 flex flex-col gap-3 shadow-md transition-colors">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-500/15 dark:bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                     <span className="material-symbols-outlined text-base">analytics</span>
                   </div>
                   <div>
-                    <span className="text-[11px] uppercase font-extrabold text-white tracking-wider block">
+                    <span className="text-[11px] uppercase font-extrabold text-zinc-900 dark:text-white tracking-wider block">
                       Composição de Receitas
                     </span>
-                    <span className="text-[10px] text-zinc-400">
+                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
                       Previsibilidade do faturamento do negócio
                     </span>
                   </div>
                 </div>
 
                 {totalEntradas > 0 && (
-                  <div className="flex items-center gap-1.5 bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 rounded-full">
-                    <span className="text-[9px] font-black uppercase text-emerald-300">
+                  <div className="flex items-center gap-1.5 bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 rounded-full">
+                    <span className="text-[9px] font-black uppercase text-emerald-600 dark:text-emerald-300">
                       Previsibilidade:
                     </span>
-                    <span className="text-xs font-black text-emerald-400">
+                    <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">
                       {previsibilidadeReceita.toFixed(1).replace('.', ',')}%
                     </span>
                   </div>
@@ -501,43 +512,43 @@ export default function Dashboard({
               </div>
 
               {/* Progress bar */}
-              <div className="w-full bg-black/40 h-2 rounded-full overflow-hidden flex border border-white/5">
+              <div className="w-full bg-zinc-100 dark:bg-black/40 h-2 rounded-full overflow-hidden flex border border-zinc-200 dark:border-white/5">
                 <div
-                  className="bg-emerald-400 h-full transition-all duration-500"
+                  className="bg-emerald-500 dark:bg-emerald-400 h-full transition-all duration-500"
                   style={{ width: `${totalEntradas > 0 ? (receitasFixas / totalEntradas) * 100 : 0}%` }}
                   title={`Receita Fixa: ${formatBRL(receitasFixas)}`}
                 />
                 <div
-                  className="bg-sky-400 h-full transition-all duration-500"
+                  className="bg-sky-500 dark:bg-sky-400 h-full transition-all duration-500"
                   style={{ width: `${totalEntradas > 0 ? (receitasVariaveis / totalEntradas) * 100 : 0}%` }}
                   title={`Receita Variável: ${formatBRL(receitasVariaveis)}`}
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-2 pt-1 border-t border-white/5">
+              <div className="grid grid-cols-3 gap-2 pt-1 border-t border-zinc-100 dark:border-white/5">
                 <div className="flex flex-col">
-                  <span className="text-[9px] font-bold text-emerald-400 uppercase flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
                     Receita Fixa
                   </span>
-                  <span className="text-xs sm:text-sm font-black text-white mt-0.5 truncate">
+                  <span className="text-xs sm:text-sm font-black text-zinc-900 dark:text-white mt-0.5 truncate">
                     {formatBRL(receitasFixas)}
                   </span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[9px] font-bold text-sky-400 uppercase flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+                  <span className="text-[9px] font-bold text-sky-600 dark:text-sky-400 uppercase flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-sky-500 dark:bg-sky-400" />
                     Receita Variável
                   </span>
-                  <span className="text-xs sm:text-sm font-black text-white mt-0.5 truncate">
+                  <span className="text-xs sm:text-sm font-black text-zinc-900 dark:text-white mt-0.5 truncate">
                     {formatBRL(receitasVariaveis)}
                   </span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[9px] font-bold text-zinc-400 uppercase">
+                  <span className="text-[9px] font-bold text-zinc-500 dark:text-zinc-400 uppercase">
                     Total Receitas
                   </span>
-                  <span className="text-xs sm:text-sm font-black text-emerald-300 mt-0.5 truncate">
+                  <span className="text-xs sm:text-sm font-black text-emerald-600 dark:text-emerald-300 mt-0.5 truncate">
                     {formatBRL(totalEntradas)}
                   </span>
                 </div>
@@ -545,16 +556,16 @@ export default function Dashboard({
             </div>
 
             {/* Você Retirou (Pró-Labore) - Centralizado/Full width */}
-            <div className="col-span-2 flex items-center justify-between p-4 rounded-2xl bg-[#130f21]/90 border border-primary/20 min-h-[72px] shadow-sm">
+            <div className="col-span-2 flex items-center justify-between p-4 rounded-2xl bg-white dark:bg-[#130f21]/90 border border-zinc-200 dark:border-primary/20 min-h-[72px] shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-primary/15 flex items-center justify-center text-primary border border-primary/30">
                   <span className="material-symbols-outlined text-lg">account_balance</span>
                 </div>
                 <div>
-                  <span className="text-[11px] uppercase font-bold text-zinc-400 tracking-wider block">
+                  <span className="text-[11px] uppercase font-bold text-zinc-500 dark:text-zinc-400 tracking-wider block">
                     Você Retirou (Pró-Labore)
                   </span>
-                  <span className="text-[11px] text-zinc-500 font-medium">
+                  <span className="text-[11px] text-zinc-500 dark:text-zinc-500 font-medium">
                     Transferências e retiradas pessoais
                   </span>
                 </div>
@@ -565,17 +576,17 @@ export default function Dashboard({
             </div>
 
             {/* Contas Fixas e Variáveis Widget (Requirement 9) */}
-            <div className="col-span-2 p-4 rounded-2xl bg-gradient-to-r from-[#171328] via-[#141022] to-[#100d1c] border border-primary/20 flex flex-col gap-3 shadow-md">
+            <div className="col-span-2 p-4 rounded-2xl bg-white dark:bg-gradient-to-r dark:from-[#171328] dark:via-[#141022] dark:to-[#100d1c] border border-zinc-200 dark:border-primary/20 flex flex-col gap-3 shadow-md">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center text-primary">
                     <span className="material-symbols-outlined text-base">receipt_long</span>
                   </div>
                   <div>
-                    <span className="text-[11px] uppercase font-extrabold text-white tracking-wider block">
+                    <span className="text-[11px] uppercase font-extrabold text-zinc-900 dark:text-white tracking-wider block">
                       Contas Fixas & Variáveis
                     </span>
-                    <span className="text-[10px] text-zinc-400">
+                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
                       Estrutura de despesas do negócio
                     </span>
                   </div>
@@ -583,29 +594,29 @@ export default function Dashboard({
 
                 <button
                   onClick={() => onNavigateToTab('contas')}
-                  className="text-[11px] font-bold text-primary hover:text-white flex items-center gap-0.5 cursor-pointer"
+                  className="text-[11px] font-bold text-primary hover:text-primary-container flex items-center gap-0.5 cursor-pointer"
                 >
                   <span>Gerenciar</span>
                   <span className="material-symbols-outlined text-xs">arrow_forward</span>
                 </button>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 pt-1 border-t border-white/5">
+              <div className="grid grid-cols-3 gap-2 pt-1 border-t border-zinc-100 dark:border-white/5">
                 <div className="flex flex-col">
-                  <span className="text-[9px] font-bold text-zinc-400 uppercase">Despesas Fixas</span>
+                  <span className="text-[9px] font-bold text-zinc-500 dark:text-zinc-400 uppercase">Despesas Fixas</span>
                   <span className="text-xs sm:text-sm font-black text-primary mt-0.5 truncate">
                     {formatBRL(despesasFixas > 0 ? despesasFixas : estimatedFixedTotal)}
                   </span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[9px] font-bold text-zinc-400 uppercase">Variáveis</span>
-                  <span className="text-xs sm:text-sm font-black text-amber-300 mt-0.5 truncate">
+                  <span className="text-[9px] font-bold text-zinc-500 dark:text-zinc-400 uppercase">Variáveis</span>
+                  <span className="text-xs sm:text-sm font-black text-amber-500 dark:text-amber-300 mt-0.5 truncate">
                     {formatBRL(despesasVariaveis)}
                   </span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[9px] font-bold text-zinc-400 uppercase">Total Despesas</span>
-                  <span className="text-xs sm:text-sm font-black text-rose-400 mt-0.5 truncate">
+                  <span className="text-[9px] font-bold text-zinc-500 dark:text-zinc-400 uppercase">Total Despesas</span>
+                  <span className="text-xs sm:text-sm font-black text-rose-500 dark:text-rose-400 mt-0.5 truncate">
                     {formatBRL(totalSaidas)}
                   </span>
                 </div>

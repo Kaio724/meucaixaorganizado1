@@ -427,21 +427,21 @@ export default function DesktopDashboard({
       </div>
 
       {/* Row 2.5: Banner Contas Fixas e Variáveis (Requirement 9) */}
-      <div className="p-4 rounded-2xl bg-gradient-to-r from-[#171328] via-[#141022] to-[#100d1c] border border-primary/20 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg">
+      <div className="p-4 rounded-2xl bg-white dark:bg-gradient-to-r dark:from-[#171328] dark:via-[#141022] dark:to-[#100d1c] border border-zinc-200 dark:border-primary/20 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg transition-colors">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary shrink-0">
             <span className="material-symbols-outlined text-xl">receipt_long</span>
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h4 className="text-xs sm:text-sm font-extrabold text-white">
+              <h4 className="text-xs sm:text-sm font-extrabold text-zinc-900 dark:text-white">
                 Contas Fixas & Variáveis
               </h4>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30">
                 Previsibilidade de Caixa
               </span>
             </div>
-            <p className="text-[11px] text-zinc-300 mt-0.5">
+            <p className="text-[11px] text-zinc-600 dark:text-zinc-300 mt-0.5">
               {estimatedFixedTotal > 0
                 ? `Seu negócio possui ${formatBRL(estimatedFixedTotal)} em despesas fixas recorrentes.`
                 : 'Identifique quais despesas são fixas e onde seu dinheiro está variando.'}

@@ -75,6 +75,7 @@ export default function ContasFixasVariaveis({
   const [formFrequencia, setFormFrequencia] = useState<ContaFrequencia>('mensal');
   const [formFrequenciaPersonalizada, setFormFrequenciaPersonalizada] = useState('');
   const [formDiaVencimento, setFormDiaVencimento] = useState<string>('10');
+  const [formDataInicio, setFormDataInicio] = useState<string>(new Date().toISOString().split('T')[0]);
   const [formDataVencimento, setFormDataVencimento] = useState<string>('');
   const [formDataTermino, setFormDataTermino] = useState<string>('');
   const [formValidationError, setFormValidationError] = useState<string>('');
@@ -169,17 +170,22 @@ export default function ContasFixasVariaveis({
     return contas.filter((c) => c.tipo === 'variavel');
   }, [contas]);
 
-  // Estimated total of active registered fixed accounts for a month
+  // Estimated total of active registered fixed accounts for the selected month
   const totalEstimadoFixas = useMemo(() => {
     return contasFixas
-      .filter((c) => c.ativa)
+      .filter((c) => {
+        if (!c.ativa) return false;
+        if (c.dataInicio && c.dataInicio.substring(0, 7) > currentMonthKey) return false;
+        if (c.dataTermino && c.dataTermino.substring(0, 7) < currentMonthKey) return false;
+        return true;
+      })
       .reduce((sum, c) => {
         if (c.frequencia === 'semanal') return sum + c.valor * 4;
         if (c.frequencia === 'quinzenal') return sum + c.valor * 2;
         if (c.frequencia === 'anual') return sum + c.valor / 12;
         return sum + c.valor; // mensal & personalizada
       }, 0);
-  }, [contasFixas]);
+  }, [contasFixas, currentMonthKey]);
 
   // Effective Total de Despesas Fixas:
   // If user has launched fixed expenses, show launched or estimated, whichever is greater/relevant
@@ -245,6 +251,7 @@ export default function ContasFixasVariaveis({
     setFormFrequencia('mensal');
     setFormFrequenciaPersonalizada('');
     setFormDiaVencimento('10');
+    setFormDataInicio(new Date().toISOString().split('T')[0]);
     setFormDataVencimento('');
     setFormDataTermino('');
     setFormValidationError('');
@@ -265,6 +272,7 @@ export default function ContasFixasVariaveis({
     setFormFrequencia(conta.frequencia);
     setFormFrequenciaPersonalizada(conta.frequenciaPersonalizada || '');
     setFormDiaVencimento(conta.diaVencimento ? String(conta.diaVencimento) : '10');
+    setFormDataInicio(conta.dataInicio || new Date().toISOString().split('T')[0]);
     setFormDataVencimento(conta.dataVencimento || '');
     setFormDataTermino(conta.dataTermino || '');
     setFormValidationError('');
@@ -283,10 +291,14 @@ export default function ContasFixasVariaveis({
     const parsedVal = parseFloat(formValor.replace(',', '.'));
     if (isNaN(parsedVal) || parsedVal <= 0) return;
 
-    // Validate mandatory end date for fixed accounts
+    // Validate mandatory end date and start date for fixed accounts
     if (formTipo === 'fixa') {
       if (!formDataTermino) {
         setFormValidationError('A data de término da conta fixa é obrigatória.');
+        return;
+      }
+      if (formDataInicio && formDataTermino < formDataInicio) {
+        setFormValidationError('A data de término deve ser igual ou posterior à data de início.');
         return;
       }
     }
@@ -308,6 +320,7 @@ export default function ContasFixasVariaveis({
       frequencia: formTipo === 'fixa' ? formFrequencia : 'avulsa',
       frequenciaPersonalizada: formFrequencia === 'personalizada' ? formFrequenciaPersonalizada : undefined,
       diaVencimento: !isNaN(diaNum as number) ? diaNum : undefined,
+      dataInicio: formTipo === 'fixa' ? (formDataInicio || undefined) : undefined,
       dataVencimento: formDataVencimento || undefined,
       dataTermino: formTipo === 'fixa' ? (formDataTermino || undefined) : undefined,
       observacao: formObservacao.trim() || undefined,
@@ -1219,20 +1232,38 @@ export default function ContasFixasVariaveis({
                       </select>
                     </div>
 
-                    {/* Dia de Vencimento */}
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider">
-                        Dia do Vencimento (1 a 31)
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="31"
-                        placeholder="Ex: 10"
-                        value={formDiaVencimento}
-                        onChange={(e) => setFormDiaVencimento(e.target.value)}
-                        className="bg-[#181426] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-primary"
-                      />
+                    {/* Dia de Vencimento e Data de Início */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider">
+                          Dia do Vencimento
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="31"
+                          placeholder="Ex: 10"
+                          value={formDiaVencimento}
+                          onChange={(e) => setFormDiaVencimento(e.target.value)}
+                          className="bg-[#181426] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-primary"
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider">
+                          Data de Início
+                        </label>
+                        <input
+                          type="date"
+                          required
+                          value={formDataInicio}
+                          onChange={(e) => {
+                            setFormDataInicio(e.target.value);
+                            if (formValidationError) setFormValidationError('');
+                          }}
+                          className="bg-[#181426] border border-white/10 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-primary"
+                        />
+                      </div>
                     </div>
 
                     {/* Data de Término (Obrigatória) */}
@@ -1248,6 +1279,7 @@ export default function ContasFixasVariaveis({
                         type="date"
                         required
                         value={formDataTermino}
+                        min={formDataInicio}
                         onChange={(e) => {
                           setFormDataTermino(e.target.value);
                           if (formValidationError) setFormValidationError('');
@@ -1255,7 +1287,7 @@ export default function ContasFixasVariaveis({
                         className="bg-[#181426] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-primary"
                       />
                       <span className="text-[10px] text-zinc-500">
-                        A recorrência da conta fixa é válida até esta data de término.
+                        A recorrência da conta fixa é válida e contabilizada até esta data de término.
                       </span>
                     </div>
 

@@ -90,6 +90,7 @@ export default function History({
   const [formExpenseType, setFormExpenseType] = useState<ExpenseType>('variavel');
   const [formRevenueType, setFormRevenueType] = useState<RevenueType>('variavel');
   const [formRecurrenceFrequency, setFormRecurrenceFrequency] = useState<RecurrenceFrequency>('mensal');
+  const [formRecurrenceDay, setFormRecurrenceDay] = useState<number>(10);
   const [formHasEndDate, setFormHasEndDate] = useState<boolean>(true);
   const [formRecurrenceEndDate, setFormRecurrenceEndDate] = useState<string>('');
   const [formValidationError, setFormValidationError] = useState<string>('');
