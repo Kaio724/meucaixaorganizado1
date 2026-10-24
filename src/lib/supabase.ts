@@ -7,6 +7,7 @@ let hasContaColumn = typeof window !== 'undefined' && localStorage.getItem('mco_
 let hasTipoContaColumn = typeof window !== 'undefined' && localStorage.getItem('mco_db_has_tipo_conta') !== 'false';
 let hasTipoDespesaColumn = typeof window !== 'undefined' && localStorage.getItem('mco_db_has_tipo_despesa') !== 'false';
 let hasTipoReceitaColumn = typeof window !== 'undefined' && localStorage.getItem('mco_db_has_tipo_receita') !== 'false';
+let hasStatusColumn = typeof window !== 'undefined' && localStorage.getItem('mco_db_has_status') !== 'false';
 
 export function getSupabaseUrl() {
   return (import.meta as any).env.VITE_SUPABASE_URL || 'https://yfbgauajvijwngvhrkms.supabase.co';
@@ -132,6 +133,11 @@ export function mapDbToTransaction(row: any): Transaction {
     recurrenceEndDate: row.recorrencia_data_fim || row.recurrence_end_date || undefined,
     recurrenceId: row.recorrencia_id || row.recurrence_id || undefined,
     contaId: row.conta_id || row.contaId || undefined,
+    status: row.status || undefined,
+    dueDate: row.data_vencimento || row.due_date || undefined,
+    effectiveDate: row.data_efetiva || row.effective_date || undefined,
+    amountPaid: row.valor_pago !== undefined && row.valor_pago !== null ? Number(row.valor_pago) : undefined,
+    observation: row.observacao || undefined,
   };
 }
 
@@ -181,6 +187,13 @@ export function mapTransactionToDb(tx: any, userId: string) {
   }
   if (tx.contaId) {
     row.conta_id = tx.contaId;
+  }
+  if (hasStatusColumn) {
+    if (tx.status) row.status = tx.status;
+    if (tx.dueDate) row.data_vencimento = tx.dueDate;
+    if (tx.effectiveDate) row.data_efetiva = tx.effectiveDate;
+    if (tx.amountPaid !== undefined && tx.amountPaid !== null) row.valor_pago = tx.amountPaid;
+    if (tx.observation) row.observacao = tx.observation;
   }
   return row;
 }
@@ -441,7 +454,7 @@ export async function insertTransaction(userId: string, tx: Omit<Transaction, 'i
       .single();
 
     if (error) {
-      if (error.message?.includes('tipo_conta') || error.message?.includes('conta') || error.message?.includes('tipo_despesa') || error.message?.includes('tipo_receita') || error.message?.includes('recorrencia') || error.message?.includes('column')) {
+      if (error.message?.includes('tipo_conta') || error.message?.includes('conta') || error.message?.includes('tipo_despesa') || error.message?.includes('tipo_receita') || error.message?.includes('recorrencia') || error.message?.includes('status') || error.message?.includes('vencimento') || error.message?.includes('efetiva') || error.message?.includes('valor_pago') || error.message?.includes('observacao') || error.message?.includes('column')) {
         if (error.message?.includes('tipo_conta')) {
           hasTipoContaColumn = false;
           if (typeof window !== 'undefined') localStorage.setItem('mco_db_has_tipo_conta', 'false');
@@ -458,6 +471,10 @@ export async function insertTransaction(userId: string, tx: Omit<Transaction, 'i
           hasTipoReceitaColumn = false;
           if (typeof window !== 'undefined') localStorage.setItem('mco_db_has_tipo_receita', 'false');
         }
+        if (error.message?.includes('status') || error.message?.includes('vencimento') || error.message?.includes('efetiva') || error.message?.includes('valor_pago') || error.message?.includes('observacao')) {
+          hasStatusColumn = false;
+          if (typeof window !== 'undefined') localStorage.setItem('mco_db_has_status', 'false');
+        }
         const retryDbTx = { ...dbTx };
         if (!hasContaColumn) delete retryDbTx.conta;
         if (!hasTipoContaColumn) delete retryDbTx.tipo_conta;
@@ -470,6 +487,13 @@ export async function insertTransaction(userId: string, tx: Omit<Transaction, 'i
           delete retryDbTx.recorrencia_data_inicio;
           delete retryDbTx.recorrencia_data_fim;
         }
+        if (!hasStatusColumn) {
+          delete retryDbTx.status;
+          delete retryDbTx.data_vencimento;
+          delete retryDbTx.data_efetiva;
+          delete retryDbTx.valor_pago;
+          delete retryDbTx.observacao;
+        }
         const { data: retryData, error: retryError } = await supabase
           .from('lancamentos')
           .insert(retryDbTx)
@@ -479,7 +503,19 @@ export async function insertTransaction(userId: string, tx: Omit<Transaction, 'i
           console.warn('Supabase retry insert failed, running with local fallback:', retryError.message);
           return fallbackTx;
         }
-        return mapDbToTransaction(retryData);
+        const mappedRetry = mapDbToTransaction(retryData);
+        return {
+          ...fallbackTx,
+          ...mappedRetry,
+          status: tx.status || mappedRetry.status,
+          dueDate: tx.dueDate || mappedRetry.dueDate,
+          effectiveDate: tx.effectiveDate || mappedRetry.effectiveDate,
+          amountPaid: tx.amountPaid !== undefined ? tx.amountPaid : mappedRetry.amountPaid,
+          observation: tx.observation || mappedRetry.observation,
+          expenseType: tx.expenseType || mappedRetry.expenseType,
+          revenueType: tx.revenueType || mappedRetry.revenueType,
+          contaId: tx.contaId || mappedRetry.contaId,
+        };
       }
       console.warn('Supabase insert failed, running with local fallback:', error.message);
       return fallbackTx;
@@ -489,6 +525,11 @@ export async function insertTransaction(userId: string, tx: Omit<Transaction, 'i
     const insertedTx: Transaction = {
       ...fallbackTx,
       ...mapped,
+      status: tx.status || mapped.status,
+      dueDate: tx.dueDate || mapped.dueDate,
+      effectiveDate: tx.effectiveDate || mapped.effectiveDate,
+      amountPaid: tx.amountPaid !== undefined ? tx.amountPaid : mapped.amountPaid,
+      observation: tx.observation || mapped.observation,
       expenseType: tx.expenseType || mapped.expenseType,
       revenueType: tx.revenueType || mapped.revenueType,
       contaId: tx.contaId || mapped.contaId,
@@ -545,7 +586,7 @@ export async function updateTransaction(userId: string, tx: Transaction): Promis
       .single();
 
     if (error) {
-      if (error.message?.includes('tipo_conta') || error.message?.includes('conta') || error.message?.includes('tipo_despesa') || error.message?.includes('tipo_receita') || error.message?.includes('recorrencia') || error.message?.includes('column')) {
+      if (error.message?.includes('tipo_conta') || error.message?.includes('conta') || error.message?.includes('tipo_despesa') || error.message?.includes('tipo_receita') || error.message?.includes('recorrencia') || error.message?.includes('status') || error.message?.includes('vencimento') || error.message?.includes('efetiva') || error.message?.includes('valor_pago') || error.message?.includes('observacao') || error.message?.includes('column')) {
         if (error.message?.includes('tipo_conta')) {
           hasTipoContaColumn = false;
           if (typeof window !== 'undefined') localStorage.setItem('mco_db_has_tipo_conta', 'false');
@@ -562,6 +603,10 @@ export async function updateTransaction(userId: string, tx: Transaction): Promis
           hasTipoReceitaColumn = false;
           if (typeof window !== 'undefined') localStorage.setItem('mco_db_has_tipo_receita', 'false');
         }
+        if (error.message?.includes('status') || error.message?.includes('vencimento') || error.message?.includes('efetiva') || error.message?.includes('valor_pago') || error.message?.includes('observacao')) {
+          hasStatusColumn = false;
+          if (typeof window !== 'undefined') localStorage.setItem('mco_db_has_status', 'false');
+        }
         const retryDbTx = { ...dbTx };
         if (!hasContaColumn) delete retryDbTx.conta;
         if (!hasTipoContaColumn) delete retryDbTx.tipo_conta;
@@ -573,6 +618,13 @@ export async function updateTransaction(userId: string, tx: Transaction): Promis
           delete retryDbTx.recorrencia_dia;
           delete retryDbTx.recorrencia_data_inicio;
           delete retryDbTx.recorrencia_data_fim;
+        }
+        if (!hasStatusColumn) {
+          delete retryDbTx.status;
+          delete retryDbTx.data_vencimento;
+          delete retryDbTx.data_efetiva;
+          delete retryDbTx.valor_pago;
+          delete retryDbTx.observacao;
         }
         const { data: retryData, error: retryError } = await supabase
           .from('lancamentos')
@@ -589,6 +641,11 @@ export async function updateTransaction(userId: string, tx: Transaction): Promis
         return {
           ...tx,
           ...mappedRetry,
+          status: tx.status || mappedRetry.status,
+          dueDate: tx.dueDate || mappedRetry.dueDate,
+          effectiveDate: tx.effectiveDate || mappedRetry.effectiveDate,
+          amountPaid: tx.amountPaid !== undefined ? tx.amountPaid : mappedRetry.amountPaid,
+          observation: tx.observation || mappedRetry.observation,
           expenseType: tx.expenseType || mappedRetry.expenseType,
           revenueType: tx.revenueType || mappedRetry.revenueType,
           contaId: tx.contaId || mappedRetry.contaId,
@@ -602,6 +659,11 @@ export async function updateTransaction(userId: string, tx: Transaction): Promis
     return {
       ...tx,
       ...mappedSuccess,
+      status: tx.status || mappedSuccess.status,
+      dueDate: tx.dueDate || mappedSuccess.dueDate,
+      effectiveDate: tx.effectiveDate || mappedSuccess.effectiveDate,
+      amountPaid: tx.amountPaid !== undefined ? tx.amountPaid : mappedSuccess.amountPaid,
+      observation: tx.observation || mappedSuccess.observation,
       expenseType: tx.expenseType || mappedSuccess.expenseType,
       revenueType: tx.revenueType || mappedSuccess.revenueType,
       contaId: tx.contaId || mappedSuccess.contaId,

@@ -24,6 +24,7 @@ import PersonalMoreMenuModal from './components/personal/PersonalMoreMenuModal';
 import UpgradeSuccessModal from './components/UpgradeSuccessModal';
 import ThemeToggle from './components/ThemeToggle';
 import ContasFixasVariaveis from './components/ContasFixasVariaveis';
+import ContasPagarReceber from './components/ContasPagarReceber';
 
 // Supabase Helpers
 import { 
@@ -83,12 +84,12 @@ export default function App() {
       localStorage.setItem('mco_active_account_type', newAccount);
     }
     if (newAccount === 'pessoal') {
-      const validPersonalTabs: ActiveTab[] = ['dashboard', 'historico', 'metas', 'orcamentos', 'recorrencias', 'resumo', 'categorias'];
+      const validPersonalTabs: ActiveTab[] = ['dashboard', 'historico', 'contas_pagar_receber', 'contas', 'metas', 'orcamentos', 'recorrencias', 'resumo', 'categorias'];
       if (!validPersonalTabs.includes(activeTab)) {
         setActiveTab('dashboard');
       }
     } else {
-      const validEmpresarialTabs: ActiveTab[] = ['dashboard', 'historico', 'retirar', 'resumo', 'planos', 'categorias'];
+      const validEmpresarialTabs: ActiveTab[] = ['dashboard', 'historico', 'contas_pagar_receber', 'contas', 'retirar', 'resumo', 'planos', 'categorias'];
       if (!validEmpresarialTabs.includes(activeTab)) {
         setActiveTab('dashboard');
       }
@@ -866,7 +867,8 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
   const NAV_ITEMS_EMPRESARIAL = [
     { id: 'dashboard' as ActiveTab, label: 'Dashboard', icon: 'home' },
     { id: 'historico' as ActiveTab, label: 'Histórico', icon: 'history' },
-    { id: 'contas' as ActiveTab, label: 'Contas', icon: 'receipt_long' },
+    { id: 'contas_pagar_receber' as ActiveTab, label: 'A Pagar/Receber', icon: 'receipt_long' },
+    { id: 'contas' as ActiveTab, label: 'Contas Fixas', icon: 'autorenew' },
     { id: 'retirar' as ActiveTab, label: 'Retirar', icon: 'payments' },
     { id: 'resumo' as ActiveTab, label: 'Resumo', icon: 'pie_chart' },
     { id: 'categorias' as ActiveTab, label: 'Categorias', icon: 'category' },
@@ -1117,6 +1119,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                         <>
                           {activeTab === 'dashboard' && 'Dashboard Financeiro'}
                           {activeTab === 'historico' && 'Histórico de Lançamentos'}
+                          {activeTab === 'contas_pagar_receber' && 'Contas a Pagar e a Receber'}
                           {activeTab === 'contas' && 'Contas Fixas & Variáveis'}
                           {activeTab === 'retirar' && 'Retirar e Retornos'}
                           {activeTab === 'resumo' && 'Resumo Financeiro'}
@@ -1468,6 +1471,19 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                             onDeleteTransaction={handleDeleteTransaction}
                             onBatchEditTransactions={handleBatchEditTransactions}
                             onBatchDeleteTransactions={handleBatchDeleteTransactions}
+                          />
+                        )}
+
+                        {activeTab === 'contas_pagar_receber' && (
+                          <ContasPagarReceber
+                            profile={profile}
+                            userId={session?.user?.id || 'default_user'}
+                            accountType="empresarial"
+                            transactions={empresarialTransactions}
+                            onAddTransaction={handleAddTransaction}
+                            onEditTransaction={handleEditTransaction}
+                            onDeleteTransaction={handleDeleteTransaction}
+                            onNavigateToTab={setActiveTab}
                           />
                         )}
 

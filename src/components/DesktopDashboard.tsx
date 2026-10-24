@@ -31,6 +31,13 @@ interface DesktopDashboardProps {
   receitasFixas?: number;
   receitasVariaveis?: number;
   previsibilidadeReceita?: number;
+  entradasPrevistas?: number;
+  saidasPrevistas?: number;
+  saldoPrevisto?: number;
+  receitasEmAtraso?: number;
+  despesasEmAtraso?: number;
+  qtdReceitasEmAtraso?: number;
+  qtdDespesasEmAtraso?: number;
   selectedMonthIndex?: number;
   selectedYear?: number;
   onPrevMonth?: () => void;
@@ -65,6 +72,13 @@ export default function DesktopDashboard({
   receitasFixas = 0,
   receitasVariaveis = 0,
   previsibilidadeReceita = 0,
+  entradasPrevistas = 0,
+  saidasPrevistas = 0,
+  saldoPrevisto = 0,
+  receitasEmAtraso = 0,
+  despesasEmAtraso = 0,
+  qtdReceitasEmAtraso = 0,
+  qtdDespesasEmAtraso = 0,
   selectedMonthIndex,
   selectedYear,
   onPrevMonth,
@@ -170,13 +184,29 @@ export default function DesktopDashboard({
             {/* Left part of the Hero: Value & Variation Badge */}
             <div className="lg:col-span-4 flex flex-col gap-2 text-left relative z-10 justify-center">
               <div className="flex flex-col gap-0.5">
-                <span className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1.5 leading-none">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(208,188,255,0.8)]"></span>
-                  Sobrou este mês
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1.5 leading-none">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(208,188,255,0.8)]"></span>
+                    Sobrou em Caixa
+                  </span>
+                  <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-1.5 py-0.2 rounded-full uppercase">
+                    Realizado
+                  </span>
+                </div>
                 <h1 className={`text-3xl lg:text-4xl font-black tracking-tight leading-tight ${totalSobrou >= 0 ? 'text-on-surface' : 'text-error glow-text-red'}`}>
                   {formatBRL(totalSobrou)}
                 </h1>
+                <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-on-surface-variant/90">
+                  <span>Previsão do mês:</span>
+                  <strong className={`font-black ${saldoPrevisto >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {formatBRL(saldoPrevisto)}
+                  </strong>
+                  {(entradasPrevistas > 0 || saidasPrevistas > 0) && (
+                    <span className="text-[9px] text-on-surface-variant/60">
+                      (+{formatBRL(entradasPrevistas)} / -{formatBRL(saidasPrevistas)})
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="flex items-center gap-2">
@@ -336,13 +366,61 @@ export default function DesktopDashboard({
         </motion.div>
       </div>
 
+      {/* Row 1.5: Interactive Alert Banner for Contas a Pagar/Receber & Atrasos */}
+      {(entradasPrevistas > 0 || saidasPrevistas > 0 || despesasEmAtraso > 0 || receitasEmAtraso > 0) && (
+        <div 
+          onClick={() => onNavigateToTab('contas_pagar_receber')}
+          className="p-3.5 rounded-2xl bg-gradient-to-r from-[#1a142e] to-[#120f24] border border-primary/25 hover:border-primary/50 transition-all cursor-pointer shadow-lg flex items-center justify-between gap-4 group"
+        >
+          <div className="flex items-center gap-3">
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${
+              despesasEmAtraso > 0 || receitasEmAtraso > 0
+                ? 'bg-error/15 text-error border-error/30 animate-pulse'
+                : 'bg-primary/15 text-primary border-primary/30'
+            }`}>
+              <span className="material-symbols-outlined text-lg">
+                {despesasEmAtraso > 0 || receitasEmAtraso > 0 ? 'warning' : 'receipt_long'}
+              </span>
+            </div>
+            <div className="flex items-center gap-3 flex-wrap text-left">
+              <span className="text-xs font-black text-on-surface flex items-center gap-2">
+                Contas a Pagar e a Receber
+                {(despesasEmAtraso > 0 || receitasEmAtraso > 0) && (
+                  <span className="text-[9px] font-black uppercase px-2 py-0.2 rounded-full bg-error/20 text-error border border-error/30">
+                    {qtdDespesasEmAtraso + qtdReceitasEmAtraso} em atraso ({formatBRL(despesasEmAtraso + receitasEmAtraso)})
+                  </span>
+                )}
+              </span>
+              <span className="text-[11px] text-on-surface-variant flex items-center gap-2">
+                <span>A receber: <strong className="text-blue-400 font-bold">{formatBRL(entradasPrevistas)}</strong></span>
+                <span>•</span>
+                <span>A pagar: <strong className="text-amber-400 font-bold">{formatBRL(saidasPrevistas)}</strong></span>
+                <span>•</span>
+                <span>Previsão de saldo: <strong className={saldoPrevisto >= 0 ? "text-emerald-400 font-bold" : "text-error font-bold"}>{formatBRL(saldoPrevisto)}</strong></span>
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-1 text-primary text-xs font-bold shrink-0 group-hover:translate-x-1 transition-transform">
+            <span>Ver Previsões & Pendências</span>
+            <span className="material-symbols-outlined text-base">chevron_right</span>
+          </div>
+        </div>
+      )}
+
       {/* Row 2: CARDS SECUNDÁRIOS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
         {/* Card 1: Entradas */}
-        <div className="glass-card glass-card-interactive rounded-2xl p-4 border border-white/[0.08] bg-gradient-to-b from-surface-container/30 to-surface-container-low/20 flex flex-col justify-between min-h-[104px] relative group hover:border-tertiary/30 transition-all duration-300">
+        <div 
+          onClick={() => onNavigateToTab('contas_pagar_receber')}
+          className="glass-card glass-card-interactive rounded-2xl p-4 border border-white/[0.08] bg-gradient-to-b from-surface-container/30 to-surface-container-low/20 flex flex-col justify-between min-h-[104px] relative group hover:border-tertiary/30 transition-all duration-300 cursor-pointer"
+          title="Clique para ver Contas a Receber"
+        >
           <div className="absolute top-0 right-0 w-16 h-16 bg-tertiary/10 rounded-full filter blur-xl pointer-events-none"></div>
           <div className="flex justify-between items-start">
-            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Entradas do Mês</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Entradas do Mês</span>
+              <span className="text-[8px] font-bold uppercase px-1.5 py-0.2 rounded bg-tertiary/15 text-tertiary border border-tertiary/25">Realizado</span>
+            </div>
             <div className="w-7 h-7 rounded-lg bg-tertiary/10 flex items-center justify-center border border-tertiary/25 shadow-[0_0_8px_rgba(78,222,163,0.12)]">
               <span className="material-symbols-outlined text-tertiary text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>arrow_upward</span>
             </div>
@@ -352,9 +430,9 @@ export default function DesktopDashboard({
               <span className="text-lg font-black text-tertiary glow-text-green tracking-tight leading-none">
                 {formatBRL(totalEntradas)}
               </span>
-              {totalEntradas > 0 && (
-                <span className="text-[9px] font-black text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 rounded leading-none">
-                  {previsibilidadeReceita.toFixed(1).replace('.', ',')}% prev.
+              {entradasPrevistas > 0 && (
+                <span className="text-[9px] font-bold text-blue-300 bg-blue-500/15 border border-blue-500/30 px-1.5 py-0.5 rounded leading-none" title="Receitas ainda aguardando recebimento">
+                  +{formatBRL(entradasPrevistas)} a receber
                 </span>
               )}
             </div>
@@ -366,18 +444,32 @@ export default function DesktopDashboard({
         </div>
 
         {/* Card 2: Saídas */}
-        <div className="glass-card glass-card-interactive rounded-2xl p-4 border border-white/[0.08] bg-gradient-to-b from-surface-container/30 to-surface-container-low/20 flex flex-col justify-between min-h-[104px] relative group hover:border-error/30 transition-all duration-300">
+        <div 
+          onClick={() => onNavigateToTab('contas_pagar_receber')}
+          className="glass-card glass-card-interactive rounded-2xl p-4 border border-white/[0.08] bg-gradient-to-b from-surface-container/30 to-surface-container-low/20 flex flex-col justify-between min-h-[104px] relative group hover:border-error/30 transition-all duration-300 cursor-pointer"
+          title="Clique para ver Contas a Pagar"
+        >
           <div className="absolute top-0 right-0 w-16 h-16 bg-error/10 rounded-full filter blur-xl pointer-events-none"></div>
           <div className="flex justify-between items-start">
-            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Saídas do Mês</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Saídas do Mês</span>
+              <span className="text-[8px] font-bold uppercase px-1.5 py-0.2 rounded bg-error/15 text-error border border-error/25">Realizado</span>
+            </div>
             <div className="w-7 h-7 rounded-lg bg-error/10 flex items-center justify-center border border-error/25 shadow-[0_0_8px_rgba(255,180,171,0.12)]">
               <span className="material-symbols-outlined text-error text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>arrow_downward</span>
             </div>
           </div>
           <div className="flex flex-col text-left mt-2">
-            <span className="text-lg font-black text-error glow-text-red tracking-tight leading-none">
-              {formatBRL(totalSaidas)}
-            </span>
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-lg font-black text-error glow-text-red tracking-tight leading-none">
+                {formatBRL(totalSaidas)}
+              </span>
+              {saidasPrevistas > 0 && (
+                <span className="text-[9px] font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 rounded leading-none" title="Despesas ainda pendentes de pagamento">
+                  -{formatBRL(saidasPrevistas)} a pagar
+                </span>
+              )}
+            </div>
             <span className="text-[9px] text-on-surface-variant/70 font-semibold mt-1 flex items-center gap-1 truncate" title={`Fixas: ${formatBRL(despesasFixas > 0 ? despesasFixas : estimatedFixedTotal)} | Variáveis: ${formatBRL(despesasVariaveis)}`}>
               <span className="w-1 h-1 rounded-full bg-error shadow-[0_0_4px_rgba(255,180,171,0.8)]"></span>
               Fixas: {formatBRL(despesasFixas > 0 ? despesasFixas : estimatedFixedTotal)} • Var: {formatBRL(despesasVariaveis)}

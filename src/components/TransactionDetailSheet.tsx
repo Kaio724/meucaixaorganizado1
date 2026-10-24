@@ -13,11 +13,15 @@ import {
   ArrowUpRight, 
   ArrowDownRight,
   Sparkles,
-  Receipt
+  Receipt,
+  CheckCircle2,
+  Clock,
+  AlertTriangle
 } from 'lucide-react';
 import { Transaction } from '../types';
 import { getCategoryInfo } from '../lib/categories';
 import { getPersonalCategoryInfo } from '../lib/personalCategories';
+import { getTransactionDueStatus, isTransactionRealized, getTodayDateStr } from '../lib/financialMath';
 
 interface TransactionDetailSheetProps {
   transaction: Transaction | null;
@@ -25,6 +29,7 @@ interface TransactionDetailSheetProps {
   onClose: () => void;
   onEdit: (tx: Transaction) => void;
   onDelete: (id: string) => void;
+  onOpenSettlement?: (tx: Transaction) => void;
   userId?: string;
 }
 
@@ -34,6 +39,7 @@ export default function TransactionDetailSheet({
   onClose,
   onEdit,
   onDelete,
+  onOpenSettlement,
   userId = 'default_user'
 }: TransactionDetailSheetProps) {
   if (!isOpen || !transaction) return null;
@@ -42,6 +48,9 @@ export default function TransactionDetailSheet({
   const catInfo = isPersonal
     ? getPersonalCategoryInfo(transaction.category, transaction.type, userId)
     : getCategoryInfo(transaction.category, transaction.type, userId);
+
+  const isRealized = isTransactionRealized(transaction);
+  const dueStatus = getTransactionDueStatus(transaction, getTodayDateStr());
 
   const formatBRL = (val: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -130,6 +139,83 @@ export default function TransactionDetailSheet({
             {/* Structured Detail Grid */}
             <div className="bg-black/30 border border-white/5 rounded-2xl p-4 flex flex-col divide-y divide-white/5">
               
+              {/* Status Financeiro */}
+              <div className="py-3 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2 text-zinc-400">
+                  <Clock className="w-4 h-4 text-zinc-500" />
+                  <span className="font-medium">Situação</span>
+                </div>
+                <div>
+                  {dueStatus === 'atrasado' && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      Em atraso
+                    </span>
+                  )}
+                  {dueStatus === 'vence_hoje' && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                      <Clock className="w-3.5 h-3.5" />
+                      Vence hoje
+                    </span>
+                  )}
+                  {dueStatus === 'a_vencer' && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-purple-500/20 text-purple-300 border border-purple-500/35">
+                      <Clock className="w-3.5 h-3.5" />
+                      A vencer (Previsto)
+                    </span>
+                  )}
+                  {dueStatus === 'recebido' && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/35">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Recebido (Realizado)
+                    </span>
+                  )}
+                  {dueStatus === 'pago' && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-sky-500/20 text-sky-300 border border-sky-500/35">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Pago (Realizado)
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Data de Vencimento */}
+              <div className="py-3 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2 text-zinc-400">
+                  <Calendar className="w-4 h-4 text-zinc-500" />
+                  <span className="font-medium">Data de Vencimento</span>
+                </div>
+                <span className="font-bold text-zinc-200">
+                  {(transaction.dueDate || transaction.date).split('-').reverse().join('/')}
+                </span>
+              </div>
+
+              {/* Data Efetiva de Pagamento / Recebimento */}
+              {isRealized && transaction.effectiveDate && (
+                <div className="py-3 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 text-zinc-400">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span className="font-medium">Data Efetiva da Baixa</span>
+                  </div>
+                  <span className="font-bold text-emerald-300">
+                    {transaction.effectiveDate.split('-').reverse().join('/')}
+                  </span>
+                </div>
+              )}
+
+              {/* Valor Efetivamente Pago / Recebido (se diferente) */}
+              {isRealized && transaction.amountPaid !== undefined && transaction.amountPaid !== transaction.amount && (
+                <div className="py-3 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 text-zinc-400">
+                    <Receipt className="w-4 h-4 text-zinc-500" />
+                    <span className="font-medium">Valor Efetivado</span>
+                  </div>
+                  <span className="font-extrabold text-white">
+                    {formatBRL(transaction.amountPaid)}
+                  </span>
+                </div>
+              )}
+
               {/* Categoria */}
               <div className="py-3 flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2 text-zinc-400">
@@ -140,17 +226,6 @@ export default function TransactionDetailSheet({
                   <span className={`w-2 h-2 rounded-full ${catInfo.color.replace('text-', 'bg-') || 'bg-primary'}`} />
                   <span>{transaction.category}</span>
                 </div>
-              </div>
-
-              {/* Data */}
-              <div className="py-3 flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2 text-zinc-400">
-                  <Calendar className="w-4 h-4 text-zinc-500" />
-                  <span className="font-medium">Data</span>
-                </div>
-                <span className="font-semibold text-zinc-200 capitalize">
-                  {formattedDate}
-                </span>
               </div>
 
               {/* Forma de Pagamento */}
@@ -302,10 +377,23 @@ export default function TransactionDetailSheet({
                 <div className="py-3 flex flex-col gap-1.5 text-xs">
                   <div className="flex items-center gap-2 text-zinc-400">
                     <FileText className="w-4 h-4 text-zinc-500" />
-                    <span className="font-medium">Observações</span>
+                    <span className="font-medium">Descrição</span>
                   </div>
                   <p className="text-zinc-300 bg-white/[0.02] p-2.5 rounded-xl border border-white/5 leading-relaxed">
                     {transaction.description}
+                  </p>
+                </div>
+              )}
+
+              {/* Observações da Baixa */}
+              {transaction.observation && (
+                <div className="py-3 flex flex-col gap-1.5 text-xs">
+                  <div className="flex items-center gap-2 text-zinc-400">
+                    <FileText className="w-4 h-4 text-emerald-400" />
+                    <span className="font-medium text-emerald-300">Observação da Baixa</span>
+                  </div>
+                  <p className="text-zinc-200 bg-emerald-500/10 p-2.5 rounded-xl border border-emerald-500/20 leading-relaxed font-medium">
+                    {transaction.observation}
                   </p>
                 </div>
               )}
@@ -315,29 +403,57 @@ export default function TransactionDetailSheet({
           </div>
 
           {/* Footer Actions */}
-          <div className="p-5 border-t border-white/5 bg-[#100c1c] flex items-center gap-3">
-            <button
-              onClick={() => {
-                onClose();
-                onEdit(transaction);
-              }}
-              className="flex-1 h-12 rounded-xl bg-primary hover:bg-[#8b4bf0] text-white font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md active:scale-95"
-            >
-              <Edit3 className="w-4 h-4" />
-              <span>Editar Lançamento</span>
-            </button>
+          <div className="p-5 border-t border-white/5 bg-[#100c1c] flex flex-col sm:flex-row items-center gap-2.5">
+            {onOpenSettlement && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenSettlement(transaction);
+                }}
+                className={`w-full sm:flex-1 h-12 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md active:scale-95 ${
+                  isRealized
+                    ? 'bg-white/10 hover:bg-white/15 text-white border border-white/15'
+                    : transaction.type === 'entrada'
+                      ? 'bg-emerald-500 hover:bg-emerald-400 text-white shadow-emerald-500/20'
+                      : 'bg-rose-500 hover:bg-rose-400 text-white shadow-rose-500/20'
+                }`}
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>
+                  {isRealized
+                    ? 'Ver / Ajustar Baixa'
+                    : transaction.type === 'entrada'
+                      ? 'Confirmar Recebimento'
+                      : 'Confirmar Pagamento'}
+                </span>
+              </button>
+            )}
 
-            <button
-              onClick={() => {
-                onClose();
-                onDelete(transaction.id);
-              }}
-              className="h-12 px-4 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 hover:text-rose-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer border border-rose-500/20 active:scale-95"
-              title="Excluir"
-            >
-              <Trash2 className="w-4 h-4" />
-              <span className="hidden sm:inline">Excluir</span>
-            </button>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <button
+                onClick={() => {
+                  onClose();
+                  onEdit(transaction);
+                }}
+                className="flex-1 sm:flex-initial h-12 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer border border-white/10 active:scale-95"
+              >
+                <Edit3 className="w-4 h-4" />
+                <span>Editar</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  onClose();
+                  onDelete(transaction.id);
+                }}
+                className="h-12 px-4 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 hover:text-rose-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer border border-rose-500/20 active:scale-95"
+                title="Excluir"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span className="hidden sm:inline">Excluir</span>
+              </button>
+            </div>
           </div>
 
         </motion.div>

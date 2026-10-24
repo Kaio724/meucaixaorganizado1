@@ -6,6 +6,16 @@ import { getCategoryNamesByType, getCategoryInfo } from '../lib/categories';
 import { buildRecurringRevenueTransactions, buildRecurringExpenseTransactions } from '../lib/revenueRecurrence';
 import { saveConta } from '../lib/contasData';
 import TransactionDetailSheet from './TransactionDetailSheet';
+import ConfirmSettlementModal from './ConfirmSettlementModal';
+import {
+  calculateMonthlyFinancialMetrics,
+  getTransactionDueStatus,
+  isTransactionRealized,
+  isTransactionPending,
+  getTodayDateStr,
+  settleTransaction,
+  unsettleTransaction,
+} from '../lib/financialMath';
 
 const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://checkout.wiven.com.br/checkout/cmr9mqf4p000j01q0qlrqcl4w?offer=LEJVTNC';
 
@@ -41,6 +51,9 @@ export default function History({
   const [filterType, setFilterType] = useState<'tudo' | 'entrada' | 'saida'>('tudo');
   const [filterExpenseType, setFilterExpenseType] = useState<'todas' | 'fixas' | 'variaveis'>('todas');
   const [filterRevenueType, setFilterRevenueType] = useState<'todas' | 'fixas' | 'variaveis'>('todas');
+  const [filterStatus, setFilterStatus] = useState<'todos' | 'realizados' | 'pendentes' | 'em_atraso'>('todos');
+  const [settlementTx, setSettlementTx] = useState<Transaction | null>(null);
+  const [isSettlementModalOpen, setIsSettlementModalOpen] = useState(false);
   const [selectedMonthIndex, setSelectedMonthIndex] = useState(new Date().getMonth()); // default to current month
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [searchQuery, setSearchQuery] = useState('');
@@ -240,8 +253,25 @@ export default function History({
       if (!match) return false;
     }
 
+    // 8. Status Filter (Todos | Realizados | Pendentes | Em atraso)
+    if (filterStatus !== 'todos') {
+      const today = getTodayDateStr();
+      const isRealized = isTransactionRealized(tx);
+      const isPending = isTransactionPending(tx);
+      const dueStatus = getTransactionDueStatus(tx, today);
+
+      if (filterStatus === 'realizados' && !isRealized) return false;
+      if (filterStatus === 'pendentes' && !isPending) return false;
+      if (filterStatus === 'em_atraso' && dueStatus !== 'atrasado') return false;
+    }
+
     return true;
   });
+
+  const todayStr = getTodayDateStr();
+  const periodMetrics = React.useMemo(() => {
+    return calculateMonthlyFinancialMetrics(transactions, selectedYear, selectedMonthIndex);
+  }, [transactions, selectedYear, selectedMonthIndex]);
 
   // Group filtered transactions by date
   const groupTransactionsByDate = () => {
@@ -536,9 +566,72 @@ export default function History({
     return getCategoryInfo(category, type, userId).icon;
   };
 
-      const isCurrentMonth = selectedMonthIndex === new Date().getMonth() && selectedYear === new Date().getFullYear();
+  const handleConfirmSettlement = (tx: Transaction, actualAmount: number, actualDate: string, observation?: string) => {
+    const updated = settleTransaction(tx, actualAmount, actualDate, observation);
+    onEditTransaction(updated);
+    setIsSettlementModalOpen(false);
+    setSettlementTx(null);
+  };
 
-      const sortedFilteredTransactions = [...filteredTransactions].sort((a, b) => b.date.localeCompare(a.date));
+  const handleUnsettleTransaction = (tx: Transaction) => {
+    const updated = unsettleTransaction(tx);
+    onEditTransaction(updated);
+    setIsSettlementModalOpen(false);
+    setSettlementTx(null);
+  };
+
+  const renderStatusBadge = (tx: Transaction) => {
+    const dueStatus = getTransactionDueStatus(tx, todayStr);
+    switch (dueStatus) {
+      case 'atrasado':
+        return (
+          <span className="inline-flex items-center gap-1 text-[9.5px] font-extrabold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40">
+            <span className="material-symbols-outlined text-[11px]">warning</span>
+            Em atraso
+          </span>
+        );
+      case 'vence_hoje':
+        return (
+          <span className="inline-flex items-center gap-1 text-[9.5px] font-extrabold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+            <span className="material-symbols-outlined text-[11px]">today</span>
+            Vence hoje
+          </span>
+        );
+      case 'a_vencer':
+        return (
+          <span className="inline-flex items-center gap-1 text-[9.5px] font-extrabold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/35">
+            <span className="material-symbols-outlined text-[11px]">schedule</span>
+            A vencer
+          </span>
+        );
+      case 'recebido':
+        return (
+          <span className="inline-flex items-center gap-1 text-[9.5px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/35">
+            <span className="material-symbols-outlined text-[11px]">check_circle</span>
+            Recebido
+          </span>
+        );
+      case 'pago':
+        return (
+          <span className="inline-flex items-center gap-1 text-[9.5px] font-extrabold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/35">
+            <span className="material-symbols-outlined text-[11px]">task_alt</span>
+            Pago
+          </span>
+        );
+      case 'cancelado':
+        return (
+          <span className="inline-flex items-center gap-1 text-[9.5px] font-extrabold px-2 py-0.5 rounded-full bg-zinc-500/20 text-zinc-400 border border-zinc-500/35">
+            Cancelado
+          </span>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const isCurrentMonth = selectedMonthIndex === new Date().getMonth() && selectedYear === new Date().getFullYear();
+
+  const sortedFilteredTransactions = [...filteredTransactions].sort((a, b) => b.date.localeCompare(a.date));
 
       return (
         <div className="flex flex-col gap-6 w-full max-w-lg md:max-w-4xl lg:max-w-full pb-24 lg:pb-0 text-left">
@@ -585,6 +678,68 @@ export default function History({
               >
                 <span className="material-symbols-outlined text-lg font-bold">add</span>
               </button>
+            </div>
+          </div>
+
+          {/* Resumo Financeiro do Período - Realizado vs Previsto */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-[#140f24]/85 border border-emerald-500/20 flex flex-col gap-1 shadow-lg">
+              <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1">
+                <span className="material-symbols-outlined text-xs">arrow_downward</span>
+                Entradas Realizadas
+              </span>
+              <span className="text-base sm:text-xl font-black text-white">
+                {formatBRL(periodMetrics.entradasRealizadas)}
+              </span>
+              <span className="text-[10px] text-zinc-400">
+                Previsto: <strong className="text-zinc-300 font-bold">{formatBRL(periodMetrics.entradasPrevistas)}</strong>
+              </span>
+            </div>
+
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-[#140f24]/85 border border-rose-500/20 flex flex-col gap-1 shadow-lg">
+              <span className="text-[10px] font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1">
+                <span className="material-symbols-outlined text-xs">arrow_upward</span>
+                Saídas Realizadas
+              </span>
+              <span className="text-base sm:text-xl font-black text-white">
+                {formatBRL(periodMetrics.saidasRealizadas)}
+              </span>
+              <span className="text-[10px] text-zinc-400">
+                Previsto: <strong className="text-zinc-300 font-bold">{formatBRL(periodMetrics.saidasPrevistas)}</strong>
+              </span>
+            </div>
+
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-[#140f24]/85 border border-primary/20 flex flex-col gap-1 shadow-lg">
+              <span className="text-[10px] font-bold text-primary uppercase tracking-wider flex items-center gap-1">
+                <span className="material-symbols-outlined text-xs">account_balance_wallet</span>
+                Saldo Realizado
+              </span>
+              <span className={`text-base sm:text-xl font-black ${periodMetrics.saldoRealizado >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {formatBRL(periodMetrics.saldoRealizado)}
+              </span>
+              <span className="text-[10px] text-zinc-400">
+                Saldo Previsto: <strong className="text-zinc-300 font-bold">{formatBRL(periodMetrics.saldoPrevisto)}</strong>
+              </span>
+            </div>
+
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-[#140f24]/85 border border-amber-500/20 flex flex-col gap-1 shadow-lg">
+              <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                <span className="material-symbols-outlined text-xs">pending_actions</span>
+                Pendências do Mês
+              </span>
+              <span className="text-base sm:text-xl font-black text-amber-300">
+                {periodMetrics.pendentesCount} {periodMetrics.pendentesCount === 1 ? 'pendência' : 'pendências'}
+              </span>
+              <span className="text-[10px] text-zinc-400">
+                {periodMetrics.atrasadosCount > 0 ? (
+                  <span className="text-rose-400 font-bold flex items-center gap-0.5">
+                    <span className="material-symbols-outlined text-[10px]">warning</span>
+                    {periodMetrics.atrasadosCount} em atraso
+                  </span>
+                ) : (
+                  <span>Nenhum atraso</span>
+                )}
+              </span>
             </div>
           </div>
     
@@ -926,6 +1081,58 @@ export default function History({
                 )}
               </div>
             </div>
+
+            {/* Status pills row: Todos | Realizados | Pendentes | Em atraso */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-white/5">
+              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mr-1">Status:</span>
+              <button
+                type="button"
+                onClick={() => setFilterStatus('todos')}
+                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  filterStatus === 'todos'
+                    ? 'bg-white/20 text-white border border-white/30'
+                    : 'bg-black/30 text-zinc-400 hover:text-white border border-white/5'
+                }`}
+              >
+                Todos ({filteredTransactions.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterStatus('realizados')}
+                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                  filterStatus === 'realizados'
+                    ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/40'
+                    : 'bg-black/30 text-zinc-400 hover:text-white border border-white/5'
+                }`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                Realizados
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterStatus('pendentes')}
+                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                  filterStatus === 'pendentes'
+                    ? 'bg-amber-500/25 text-amber-300 border border-amber-500/40'
+                    : 'bg-black/30 text-zinc-400 hover:text-white border border-white/5'
+                }`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                Pendentes
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterStatus('em_atraso')}
+                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                  filterStatus === 'em_atraso'
+                    ? 'bg-rose-500/25 text-rose-300 border border-rose-500/40'
+                    : 'bg-black/30 text-zinc-400 hover:text-white border border-white/5'
+                }`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                Em atraso
+              </button>
+            </div>
           </div>
     
           {/* Main Groups Container (Mobile Card List) */}
@@ -959,7 +1166,7 @@ export default function History({
                     <div 
                       key={tx.id} 
                       onClick={() => setSelectedTxForDetail(tx)}
-                      className="h-16 px-4 flex items-center justify-between hover:bg-white/[0.03] active:bg-white/[0.06] transition-colors cursor-pointer select-none"
+                      className="py-3 px-4 flex items-center justify-between hover:bg-white/[0.03] active:bg-white/[0.06] transition-colors cursor-pointer select-none"
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1 text-left">
                         <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
@@ -969,9 +1176,12 @@ export default function History({
                             {tx.type === 'entrada' ? 'arrow_downward' : 'arrow_upward'}
                           </span>
                         </div>
-                        <div className="min-w-0">
-                          <h4 className="text-xs sm:text-sm font-semibold text-white leading-tight truncate">{tx.title}</h4>
-                          <p className="text-[11px] text-zinc-500 mt-0.5 truncate flex items-center gap-1.5">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h4 className="text-xs sm:text-sm font-semibold text-white leading-tight truncate">{tx.title}</h4>
+                            {renderStatusBadge(tx)}
+                          </div>
+                          <p className="text-[11px] text-zinc-500 mt-1 truncate flex items-center gap-1.5">
                             {tx.type === 'entrada' ? (
                               <span className={`text-[9.5px] font-extrabold px-1.5 py-0.2 rounded-md uppercase tracking-wider ${
                                 tx.revenueType === 'fixa'
@@ -1006,6 +1216,29 @@ export default function History({
                             {tx.type === 'entrada' ? '+' : '-'} {formatBRL(tx.amount)}
                           </span>
                         </div>
+
+                        {/* Direct Settlement Action Button */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSettlementTx(tx);
+                            setIsSettlementModalOpen(true);
+                          }}
+                          className={`p-1.5 rounded-xl border transition-all cursor-pointer flex items-center justify-center shrink-0 ${
+                            isTransactionRealized(tx)
+                              ? 'bg-white/5 border-white/10 text-zinc-400 hover:text-white'
+                              : tx.type === 'entrada'
+                                ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border-emerald-500/40'
+                                : 'bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border-rose-500/40'
+                          }`}
+                          title={isTransactionRealized(tx) ? 'Ver / Ajustar baixa' : tx.type === 'entrada' ? 'Confirmar recebimento' : 'Confirmar pagamento'}
+                        >
+                          <span className="material-symbols-outlined text-sm">
+                            {isTransactionRealized(tx) ? 'check' : 'check_circle'}
+                          </span>
+                        </button>
+
                         <span className="material-symbols-outlined text-zinc-600 text-sm">chevron_right</span>
                       </div>
                     </div>
@@ -1042,6 +1275,7 @@ export default function History({
                   <th className="p-4 font-bold text-zinc-400 uppercase tracking-wider">Data</th>
                   <th className="p-4 font-bold text-zinc-400 uppercase tracking-wider">Especificação</th>
                   <th className="p-4 font-bold text-zinc-400 uppercase tracking-wider">Categoria</th>
+                  <th className="p-4 font-bold text-zinc-400 uppercase tracking-wider">Status</th>
                   <th className="p-4 font-bold text-zinc-400 uppercase tracking-wider">Pagamento</th>
                   <th className="p-4 font-bold text-zinc-400 uppercase tracking-wider text-right">Valor</th>
                   <th className="p-4 font-bold text-zinc-400 uppercase tracking-wider text-center">Ações</th>
@@ -1056,7 +1290,7 @@ export default function History({
                   if (isEditingThis) {
                     return (
                       <tr key={tx.id} className="bg-surface-container-high border-2 border-primary/30">
-                        <td colSpan={7} className="p-5">
+                        <td colSpan={8} className="p-5">
                           <form onSubmit={handleFormSubmit} className="flex flex-col gap-4">
                             <div className="flex items-center justify-between border-b border-white/5 pb-2">
                               <span className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
@@ -1207,6 +1441,9 @@ export default function History({
                           </span>
                         </div>
                       </td>
+                      <td className="p-4">
+                        {renderStatusBadge(tx)}
+                      </td>
                       <td className="p-4 text-on-surface-variant/80 font-medium">
                         <div>{tx.paymentMethod}</div>
                         {tx.account && (
@@ -1225,9 +1462,31 @@ export default function History({
                       </td>
                       <td className="p-4">
                         <div className="flex items-center justify-center gap-1.5">
+                          {/* Direct Settlement Action Button */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSettlementTx(tx);
+                              setIsSettlementModalOpen(true);
+                            }}
+                            className={`h-7 px-2.5 rounded-full text-[11px] font-bold flex items-center gap-1 transition-all duration-200 cursor-pointer ${
+                              isTransactionRealized(tx)
+                                ? 'bg-white/5 hover:bg-white/10 text-zinc-300 border border-white/10'
+                                : tx.type === 'entrada'
+                                  ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 shadow-sm'
+                                  : 'bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 shadow-sm'
+                            }`}
+                            title={isTransactionRealized(tx) ? 'Ver / Ajustar baixa' : tx.type === 'entrada' ? 'Confirmar recebimento' : 'Confirmar pagamento'}
+                          >
+                            <span className="material-symbols-outlined text-xs">
+                              {isTransactionRealized(tx) ? 'tune' : 'check_circle'}
+                            </span>
+                            <span>{isTransactionRealized(tx) ? 'Baixado' : tx.type === 'entrada' ? 'Receber' : 'Pagar'}</span>
+                          </button>
+
                           <button 
                             onClick={() => startEdit(tx)}
-                            className="w-8 h-8 rounded-full bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant/20 flex items-center justify-center text-on-surface-variant hover:text-primary transition-all duration-200"
+                            className="w-8 h-8 rounded-full bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant/20 flex items-center justify-center text-on-surface-variant hover:text-primary transition-all duration-200 cursor-pointer"
                             title="Editar"
                           >
                             <span className="material-symbols-outlined text-base">edit</span>
@@ -1995,7 +2254,6 @@ export default function History({
         })()}
       </AnimatePresence>
 
-      {/* Transaction Detail Bottom Sheet (Progressive Disclosure) */}
       <TransactionDetailSheet
         transaction={selectedTxForDetail}
         isOpen={Boolean(selectedTxForDetail)}
@@ -2017,6 +2275,23 @@ export default function History({
           onDeleteTransaction(id);
           setSelectedTxForDetail(null);
         }}
+        onOpenSettlement={(tx) => {
+          setSelectedTxForDetail(null);
+          setSettlementTx(tx);
+          setIsSettlementModalOpen(true);
+        }}
+      />
+
+      {/* Modal de Confirmação de Baixa (Recebimento / Pagamento) */}
+      <ConfirmSettlementModal
+        isOpen={isSettlementModalOpen}
+        onClose={() => {
+          setIsSettlementModalOpen(false);
+          setSettlementTx(null);
+        }}
+        transaction={settlementTx}
+        onConfirm={handleConfirmSettlement}
+        onUnsettle={handleUnsettleTransaction}
       />
 
       {/* Modal de confirmação/aquisição do Plano PRO */}

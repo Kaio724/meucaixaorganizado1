@@ -12,6 +12,7 @@ import MonthComparison from './MonthComparison';
 import DesktopDashboard from './DesktopDashboard';
 import ImportModal from './ImportModal';
 import TransactionDetailSheet from './TransactionDetailSheet';
+import { calculateMonthlyFinancialMetrics, getTodayDateStr } from '../lib/financialMath';
 
 const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://checkout.wiven.com.br/checkout/cmr9mqf4p000j01q0qlrqcl4w?offer=LEJVTNC';
 
@@ -132,34 +133,26 @@ export default function Dashboard({
     });
   }, [transactions, selectedMonthIndex, selectedYear]);
 
-  // Calculations
-  const totalEntradas = visibleTransactions
-    .filter(t => t.type === 'entrada')
-    .reduce((sum, t) => sum + t.amount, 0);
+  // CENTRALIZED REALIZED VS PROJECTED FINANCIAL METRICS:
+  // Strictly separates actual cash moved from future/unconfirmed expectations
+  const metrics = React.useMemo(() => {
+    return calculateMonthlyFinancialMetrics(transactions, selectedYear, selectedMonthIndex);
+  }, [transactions, selectedYear, selectedMonthIndex]);
 
-  const totalSaidas = visibleTransactions
-    .filter(t => t.type === 'saida')
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const totalSobrou = totalEntradas - totalSaidas;
-
-  // Despesas Fixas vs Despesas Variáveis (Requirement 9)
-  const despesasFixas = visibleTransactions
-    .filter(t => t.type === 'saida' && t.expenseType === 'fixa')
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const despesasVariaveis = visibleTransactions
-    .filter(t => t.type === 'saida' && t.expenseType !== 'fixa')
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  // Receitas Fixas vs Receitas Variáveis (Requirement 10 & 11)
-  const receitasFixas = visibleTransactions
-    .filter(t => t.type === 'entrada' && t.revenueType === 'fixa')
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const receitasVariaveis = visibleTransactions
-    .filter(t => t.type === 'entrada' && t.revenueType !== 'fixa')
-    .reduce((sum, t) => sum + t.amount, 0);
+  const totalEntradas = metrics.entradasRealizadas;
+  const totalSaidas = metrics.saidasRealizadas;
+  const totalSobrou = metrics.saldoRealizado;
+  const despesasFixas = metrics.despesasFixasRealizadas;
+  const despesasVariaveis = metrics.despesasVariaveisRealizadas;
+  const receitasFixas = metrics.receitasFixasRealizadas;
+  const receitasVariaveis = metrics.receitasVariaveisRealizadas;
+  const entradasPrevistas = metrics.entradasPrevistas;
+  const saidasPrevistas = metrics.saidasPrevistas;
+  const saldoPrevisto = metrics.saldoPrevisto;
+  const receitasEmAtraso = metrics.receitasEmAtraso;
+  const despesasEmAtraso = metrics.despesasEmAtraso;
+  const qtdReceitasEmAtraso = metrics.qtdReceitasEmAtraso;
+  const qtdDespesasEmAtraso = metrics.qtdDespesasEmAtraso;
 
   // Indicador de Previsibilidade: Receita Fixa ÷ Receita Total × 100
   const previsibilidadeReceita = totalEntradas > 0
@@ -260,11 +253,16 @@ export default function Dashboard({
       }
     } else {
       // Receita Variável ou Despesa Variável
+      const isFutureDate = date > getTodayDateStr();
       await onAddTransaction({
         title: title.trim() || category || (txType === 'entrada' ? 'Receita Variável' : 'Despesa Variável'),
         amount: parsedAmount,
         type: txType,
         date,
+        dueDate: date,
+        status: isFutureDate ? 'pendente' : 'realizado',
+        effectiveDate: isFutureDate ? undefined : date,
+        amountPaid: isFutureDate ? undefined : parsedAmount,
         category,
         paymentMethod,
         account,
@@ -401,6 +399,13 @@ export default function Dashboard({
               </h1>
             </div>
 
+            <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-zinc-400">
+              <span>Previsão ao fim do mês:</span>
+              <strong className={`font-black ${saldoPrevisto >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {formatBRL(saldoPrevisto)}
+              </strong>
+            </div>
+
             {/* Progress Bar & Support micro-text */}
             <div className="flex items-center gap-3 mt-2">
               <div className="flex-1 bg-black/40 h-2.5 rounded-full overflow-hidden border border-white/5">
@@ -435,10 +440,50 @@ export default function Dashboard({
           </button>
         </div>
 
+        {/* Interactive Alert Banner for Contas a Pagar/Receber & Atrasos */}
+        {(entradasPrevistas > 0 || saidasPrevistas > 0 || despesasEmAtraso > 0 || receitasEmAtraso > 0) && (
+          <div 
+            onClick={() => onNavigateToTab('contas_pagar_receber')}
+            className="p-3.5 rounded-2xl bg-[#140e22] border border-primary/25 hover:border-primary/50 transition-all cursor-pointer shadow-lg flex items-center justify-between gap-3 group select-none"
+          >
+            <div className="flex items-center gap-3">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${
+                despesasEmAtraso > 0 || receitasEmAtraso > 0
+                  ? 'bg-error/15 text-error border-error/30 animate-pulse'
+                  : 'bg-primary/15 text-primary border-primary/30'
+              }`}>
+                <span className="material-symbols-outlined text-lg">
+                  {despesasEmAtraso > 0 || receitasEmAtraso > 0 ? 'warning' : 'receipt_long'}
+                </span>
+              </div>
+              <div className="flex flex-col text-left">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-xs font-black text-white">
+                    Contas a Pagar e a Receber
+                  </span>
+                  {(despesasEmAtraso > 0 || receitasEmAtraso > 0) && (
+                    <span className="text-[9px] font-black uppercase px-2 py-0.2 rounded-full bg-error/20 text-error border border-error/30">
+                      {qtdDespesasEmAtraso + qtdReceitasEmAtraso} em atraso
+                    </span>
+                  )}
+                </div>
+                <p className="text-[10px] text-zinc-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                  <span>A receber: <strong className="text-blue-400 font-bold">{formatBRL(entradasPrevistas)}</strong></span>
+                  <span>•</span>
+                  <span>A pagar: <strong className="text-amber-400 font-bold">{formatBRL(saidasPrevistas)}</strong></span>
+                </p>
+              </div>
+            </div>
+            <span className="material-symbols-outlined text-primary text-base shrink-0 group-hover:translate-x-1 transition-transform">
+              chevron_right
+            </span>
+          </div>
+        )}
+
         {/* ================= LEVEL 2: BELOW THE FOLD ================= */}
 
         {/* Section: Resumo de Entradas e Saídas (Opção A - 2 cards + 1 card pró-labore) */}
-        <div className="flex flex-col gap-3 mt-4">
+        <div className="flex flex-col gap-3 mt-1">
           <div className="flex items-center justify-between">
             <span className="text-[13px] uppercase tracking-[0.5px] text-zinc-400 font-semibold">
               Movimentação do Mês
@@ -447,10 +492,13 @@ export default function Dashboard({
 
           <div className="grid grid-cols-2 gap-3">
             {/* Entrou */}
-            <div className="flex flex-col justify-between p-4 rounded-2xl bg-white dark:bg-[#130f21]/90 border border-zinc-200 dark:border-emerald-500/20 min-h-[84px] shadow-sm">
+            <div 
+              onClick={() => onNavigateToTab('contas_pagar_receber')}
+              className="flex flex-col justify-between p-4 rounded-2xl bg-white dark:bg-[#130f21]/90 border border-zinc-200 dark:border-emerald-500/20 min-h-[84px] shadow-sm cursor-pointer hover:border-emerald-500/40 transition-colors"
+            >
               <div className="flex items-center justify-between">
                 <span className="text-[11px] uppercase font-bold text-zinc-500 dark:text-zinc-400 tracking-wider">
-                  Entrou
+                  Entrou (Realizado)
                 </span>
                 <div className="w-7 h-7 rounded-lg bg-emerald-500/15 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                   <span className="material-symbols-outlined text-base">arrow_downward</span>
@@ -459,16 +507,25 @@ export default function Dashboard({
               <div className="text-xl sm:text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 tracking-tight mt-1 truncate">
                 {formatBRL(totalEntradas)}
               </div>
-              <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-semibold mt-1 truncate" title={`Fixa: ${formatBRL(receitasFixas)} • Var: ${formatBRL(receitasVariaveis)}`}>
-                Fixa: {formatBRL(receitasFixas)} • Var: {formatBRL(receitasVariaveis)}
-              </span>
+              {entradasPrevistas > 0 ? (
+                <span className="text-[10px] text-blue-400 font-bold mt-1 truncate">
+                  +{formatBRL(entradasPrevistas)} a receber
+                </span>
+              ) : (
+                <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-semibold mt-1 truncate" title={`Fixa: ${formatBRL(receitasFixas)} • Var: ${formatBRL(receitasVariaveis)}`}>
+                  Fixa: {formatBRL(receitasFixas)} • Var: {formatBRL(receitasVariaveis)}
+                </span>
+              )}
             </div>
 
             {/* Saiu */}
-            <div className="flex flex-col justify-between p-4 rounded-2xl bg-white dark:bg-[#130f21]/90 border border-zinc-200 dark:border-rose-500/20 min-h-[84px] shadow-sm">
+            <div 
+              onClick={() => onNavigateToTab('contas_pagar_receber')}
+              className="flex flex-col justify-between p-4 rounded-2xl bg-white dark:bg-[#130f21]/90 border border-zinc-200 dark:border-rose-500/20 min-h-[84px] shadow-sm cursor-pointer hover:border-rose-500/40 transition-colors"
+            >
               <div className="flex items-center justify-between">
                 <span className="text-[11px] uppercase font-bold text-zinc-500 dark:text-zinc-400 tracking-wider">
-                  Saiu
+                  Saiu (Realizado)
                 </span>
                 <div className="w-7 h-7 rounded-lg bg-rose-500/15 flex items-center justify-center text-rose-600 dark:text-rose-400">
                   <span className="material-symbols-outlined text-base">arrow_upward</span>
@@ -477,9 +534,15 @@ export default function Dashboard({
               <div className="text-xl sm:text-2xl font-extrabold text-rose-600 dark:text-rose-400 tracking-tight mt-1 truncate">
                 {formatBRL(totalSaidas)}
               </div>
-              <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-semibold mt-1 truncate" title={`Fixas: ${formatBRL(despesasFixas > 0 ? despesasFixas : estimatedFixedTotal)} • Var: ${formatBRL(despesasVariaveis)}`}>
-                Fixas: {formatBRL(despesasFixas > 0 ? despesasFixas : estimatedFixedTotal)} • Var: {formatBRL(despesasVariaveis)}
-              </span>
+              {saidasPrevistas > 0 ? (
+                <span className="text-[10px] text-amber-400 font-bold mt-1 truncate">
+                  -{formatBRL(saidasPrevistas)} a pagar
+                </span>
+              ) : (
+                <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-semibold mt-1 truncate" title={`Fixas: ${formatBRL(despesasFixas > 0 ? despesasFixas : estimatedFixedTotal)} • Var: ${formatBRL(despesasVariaveis)}`}>
+                  Fixas: {formatBRL(despesasFixas > 0 ? despesasFixas : estimatedFixedTotal)} • Var: {formatBRL(despesasVariaveis)}
+                </span>
+              )}
             </div>
 
             {/* Composição das Receitas & Previsibilidade (Requirement 10 & 11) */}
@@ -793,6 +856,13 @@ export default function Dashboard({
           receitasFixas={receitasFixas}
           receitasVariaveis={receitasVariaveis}
           previsibilidadeReceita={previsibilidadeReceita}
+          entradasPrevistas={entradasPrevistas}
+          saidasPrevistas={saidasPrevistas}
+          saldoPrevisto={saldoPrevisto}
+          receitasEmAtraso={receitasEmAtraso}
+          despesasEmAtraso={despesasEmAtraso}
+          qtdReceitasEmAtraso={qtdReceitasEmAtraso}
+          qtdDespesasEmAtraso={qtdDespesasEmAtraso}
           selectedMonthIndex={selectedMonthIndex}
           selectedYear={selectedYear}
           onPrevMonth={handlePrevMonth}

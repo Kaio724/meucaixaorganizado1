@@ -15,13 +15,14 @@ export type TransactionType = 'entrada' | 'saida';
 export type ExpenseType = 'fixa' | 'variavel';
 export type RevenueType = 'fixa' | 'variavel';
 export type RecurrenceFrequency = 'mensal' | 'semanal' | 'quinzenal' | 'anual';
+export type TransactionStatus = 'pendente' | 'realizado' | 'cancelado';
 
 export interface Transaction {
   id: string;
   title: string;
   amount: number; // positive value in both types, we rely on type or negative math
   type: TransactionType;
-  date: string; // YYYY-MM-DD
+  date: string; // YYYY-MM-DD (competence or registration date)
   paymentMethod: string; // e.g. 'Pix', 'Dinheiro', 'Cartão de Crédito', 'Débito', etc.
   category: string; // e.g. 'Cliente Avulso', 'Sinal', 'Materiais', 'Transporte', 'Aluguel', 'Impostos', 'Outros'
   description?: string;
@@ -35,9 +36,14 @@ export interface Transaction {
   recurrenceEndDate?: string; // Data final opcional (YYYY-MM-DD)
   recurrenceId?: string; // ID da série recorrente para gerenciar lançamentos vinculados
   contaId?: string; // Reference to ContaFinanceira if generated or launched from a registered account
+  status?: TransactionStatus; // 'pendente' | 'realizado' | 'cancelado' (default: 'realizado' for legacy past txs, 'pendente' for scheduled/forecasts)
+  dueDate?: string; // Data de vencimento YYYY-MM-DD
+  effectiveDate?: string; // Data efetiva de recebimento ou pagamento YYYY-MM-DD
+  amountPaid?: number; // Valor efetivo recebido ou pago
+  observation?: string; // Observações da baixa ou lançamento
 }
 
-export type ActiveTab = 'dashboard' | 'historico' | 'contas' | 'retirar' | 'resumo' | 'planos' | 'categorias' | 'metas' | 'orcamentos' | 'recorrencias';
+export type ActiveTab = 'dashboard' | 'historico' | 'contas' | 'contas_pagar_receber' | 'retirar' | 'resumo' | 'planos' | 'categorias' | 'metas' | 'orcamentos' | 'recorrencias';
 
 export type ContaTipo = 'fixa' | 'variavel';
 export type ContaFrequencia = 'mensal' | 'semanal' | 'quinzenal' | 'anual' | 'personalizada' | 'avulsa';

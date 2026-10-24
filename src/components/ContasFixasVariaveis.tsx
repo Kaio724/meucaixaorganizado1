@@ -409,11 +409,16 @@ export default function ContasFixasVariaveis({
         ? undefined
         : (conta.frequencia as any);
 
+      const todayStr = new Date().toISOString().split('T')[0];
+      const isFutureOrToday = dateStr >= todayStr;
+
       await onAddTransaction({
         title: conta.nome,
         amount: conta.valor,
         type: 'saida',
         date: dateStr,
+        dueDate: dateStr,
+        status: isFutureOrToday ? 'pendente' : 'realizado',
         category: conta.categoria,
         paymentMethod: 'Boleto',
         accountType,
@@ -541,6 +546,18 @@ export default function ContasFixasVariaveis({
               <span className="material-symbols-outlined text-sm">chevron_right</span>
             </button>
           </div>
+
+          {/* Quick link to Contas a Pagar e a Receber */}
+          {onNavigateToTab && (
+            <button
+              onClick={() => onNavigateToTab('contas_pagar_receber')}
+              className="px-3.5 py-2.5 rounded-2xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white border border-white/10 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+              title="Acessar Contas a Pagar e a Receber"
+            >
+              <span className="material-symbols-outlined text-sm">calendar_month</span>
+              <span className="hidden sm:inline">A Pagar / Receber</span>
+            </button>
+          )}
 
           {/* Add Account Button */}
           <button

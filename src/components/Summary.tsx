@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Transaction, UserProfile } from '../types';
+import { isTransactionRealized, isTransactionPending } from '../lib/financialMath';
 
 interface SummaryProps {
   transactions: Transaction[];
@@ -54,16 +55,33 @@ export default function Summary({ transactions, profile, onNavigateToPlanos }: S
     });
   }, [transactions, selectedMonthIndex, selectedYear, viewAllTime]);
 
-  // Calculations
-  const totalEntradas = filteredTransactions
+  // Realized calculations (actual cash moved)
+  const entradasRealizadas = filteredTransactions
+    .filter(t => t.type === 'entrada' && isTransactionRealized(t))
+    .reduce((sum, t) => sum + (t.amountPaid ?? t.amount), 0);
+
+  const saidasRealizadas = filteredTransactions
+    .filter(t => t.type === 'saida' && isTransactionRealized(t))
+    .reduce((sum, t) => sum + (t.amountPaid ?? t.amount), 0);
+
+  const netBalanceRealizado = entradasRealizadas - saidasRealizadas;
+
+  // Forecast calculations (all movements planned for the period)
+  const totalEntradasPrevistas = filteredTransactions
     .filter(t => t.type === 'entrada')
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const totalSaidas = filteredTransactions
+  const totalSaidasPrevistas = filteredTransactions
     .filter(t => t.type === 'saida')
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const netBalance = totalEntradas - totalSaidas;
+  const netBalancePrevisto = totalEntradasPrevistas - totalSaidasPrevistas;
+
+  const totalEntradas = totalEntradasPrevistas;
+  const totalSaidas = totalSaidasPrevistas;
+  const netBalance = netBalanceRealizado;
+
+  const pendentesCount = filteredTransactions.filter(t => isTransactionPending(t)).length;
 
   // Despesas Fixas vs Variáveis (Requirement 14)
   const despesasFixas = filteredTransactions
@@ -198,41 +216,52 @@ export default function Summary({ transactions, profile, onNavigateToPlanos }: S
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full filter blur-2xl pointer-events-none"></div>
 
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-primary">Lucro Líquido Real</h3>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-primary">Lucro em Caixa (Realizado)</h3>
             <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border ${
-              netBalance >= 0 
+              netBalanceRealizado >= 0 
                 ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-600 dark:text-emerald-400' 
                 : 'bg-rose-500/15 border-rose-500/30 text-rose-600 dark:text-rose-400'
             }`}>
-              {netBalance >= 0 ? 'Lucro' : 'Prejuízo'}
+              {netBalanceRealizado >= 0 ? 'Lucro Realizado' : 'Déficit Realizado'}
             </span>
           </div>
 
-          <div className="flex items-baseline gap-2">
-            <h1 className={`text-3xl sm:text-4xl font-black tracking-tight ${netBalance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-              {formatBRL(netBalance)}
+          <div className="flex flex-col gap-1">
+            <h1 className={`text-3xl sm:text-4xl font-black tracking-tight ${netBalanceRealizado >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+              {formatBRL(netBalanceRealizado)}
             </h1>
+            <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+              <span>Previsão final:</span>
+              <strong className={netBalancePrevisto >= 0 ? 'text-zinc-700 dark:text-zinc-200' : 'text-rose-400'}>
+                {formatBRL(netBalancePrevisto)}
+              </strong>
+              {pendentesCount > 0 && (
+                <span className="text-[10px] bg-amber-500/15 text-amber-500 dark:text-amber-400 px-2 py-0.5 rounded-full font-bold">
+                  {pendentesCount} {pendentesCount === 1 ? 'pendência' : 'pendências'}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Small horizontal percentage visualization */}
-          {totalEntradas > 0 && (
+          {entradasRealizadas > 0 && (
             <div className="flex flex-col gap-2 mt-2 pt-3 border-t border-zinc-100 dark:border-white/5">
-              <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Estrutura de Gastos</span>
+              <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Estrutura Realizada de Gastos</span>
               <div className="w-full bg-zinc-100 dark:bg-black/40 h-3 rounded-full flex overflow-hidden border border-zinc-200 dark:border-white/5 p-0.5">
                 <div 
                   className="bg-emerald-500 dark:bg-emerald-400 h-full rounded-l-full transition-all duration-500"
-                  style={{ width: `${Math.max(0, Math.round(((totalEntradas - totalSaidas) / totalEntradas) * 100))}%` }}
+                  style={{ width: `${Math.max(0, Math.round(((entradasRealizadas - saidasRealizadas) / entradasRealizadas) * 100))}%` }}
                   title="Lucro Guardado"
                 ></div>
                 <div 
                   className="bg-rose-500 dark:bg-rose-400 h-full rounded-r-full transition-all duration-500"
-                  style={{ width: `${Math.min(100, Math.round((totalSaidas / totalEntradas) * 100))}%` }}
-                  title="Despesas"
+                  style={{ width: `${Math.min(100, Math.round((saidasRealizadas / entradasRealizadas) * 100))}%` }}
+                  title="Despesas Realizadas"
                 ></div>
               </div>
               <div className="flex items-center justify-between text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mt-0.5">
-                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400"></span> Retido ({Math.max(0, Math.round(((totalEntradas - totalSaidas) / totalEntradas) * 100))}%)</span>
-                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-rose-500 dark:bg-rose-400"></span> Gasto ({Math.min(100, Math.round((totalSaidas / totalEntradas) * 100))}%)</span>
+                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400"></span> Retido ({Math.max(0, Math.round(((entradasRealizadas - saidasRealizadas) / entradasRealizadas) * 100))}%)</span>
+                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-rose-500 dark:bg-rose-400"></span> Gasto ({Math.min(100, Math.round((saidasRealizadas / entradasRealizadas) * 100))}%)</span>
               </div>
             </div>
           )}

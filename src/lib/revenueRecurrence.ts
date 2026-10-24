@@ -150,6 +150,8 @@ export function buildRecurringRevenueTransactions(
     category: config.category,
     paymentMethod: config.paymentMethod || 'Pix',
     date: dateStr,
+    dueDate: dateStr,
+    status: 'pendente' as const,
     description: config.description || undefined,
     account: config.account || undefined,
     accountType: config.accountType || 'empresarial',
@@ -180,6 +182,7 @@ export interface RecurringExpenseConfig {
 /**
  * Creates full transaction objects for a recurring fixed expense (despesa fixa recorrente).
  * Preserves expenseType: 'fixa' across all generated occurrences.
+ * Each occurrence is an independent forecast with status: 'pendente'.
  */
 export function buildRecurringExpenseTransactions(
   config: RecurringExpenseConfig
@@ -201,6 +204,8 @@ export function buildRecurringExpenseTransactions(
     category: config.category,
     paymentMethod: config.paymentMethod || 'Boleto',
     date: dateStr,
+    dueDate: dateStr,
+    status: 'pendente' as const,
     description: config.description || undefined,
     account: config.account || undefined,
     accountType: config.accountType || 'empresarial',
