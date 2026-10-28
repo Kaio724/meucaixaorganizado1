@@ -69,11 +69,81 @@ export function mapUserProfileToDbProfile(profile: UserProfile, userId: string) 
   };
 }
 
+// Context embedding helpers to ensure persistent isolation even if db schema column is missing
+export function embedContextInDescription(desc: string | null | undefined, accountType: 'empresarial' | 'pessoal'): string {
+  const clean = (desc || '').replace(/\s*<!--ctx:(pessoal|empresarial)-->\s*/g, '').trim();
+  const tag = `<!--ctx:${accountType}-->`;
+  return clean ? `${clean} ${tag}` : tag;
+}
+
+export function extractContextFromDescription(desc: string | null | undefined): { accountType?: 'empresarial' | 'pessoal'; cleanDescription: string } {
+  if (!desc) return { cleanDescription: '' };
+  const match = desc.match(/<!--ctx:(pessoal|empresarial)-->/);
+  const cleanDescription = desc.replace(/\s*<!--ctx:(pessoal|empresarial)-->\s*/g, '').trim();
+  if (match) {
+    return { accountType: match[1] as 'empresarial' | 'pessoal', cleanDescription };
+  }
+  return { cleanDescription };
+}
+
 // Map db row to Transaction
 export function mapDbToTransaction(row: any): Transaction {
   const isEntrada = row.tipo === 'entrada';
   const isSaida = row.tipo === 'saida';
   const resolvedRevenueType = row.tipo_receita || row.revenue_type || (isEntrada ? 'variavel' : undefined);
+
+  // Extract clean description and embedded accountType tag
+  const { accountType: tagCtx, cleanDescription } = extractContextFromDescription(row.descricao);
+
+  // Determine accountType with multi-layer resilience:
+  // 1. Column in database if it exists
+  let resolvedAccountType: 'empresarial' | 'pessoal' | undefined = undefined;
+  if (row.tipo_conta === 'pessoal' || row.tipo_conta === 'empresarial') {
+    resolvedAccountType = row.tipo_conta;
+  } else if (row.account_type === 'pessoal' || row.account_type === 'empresarial') {
+    resolvedAccountType = row.account_type;
+  }
+
+  // 2. Embedded tag in descricao
+  if (!resolvedAccountType && tagCtx) {
+    resolvedAccountType = tagCtx;
+  }
+
+  // 3. LocalStorage context cache for this transaction id
+  if (!resolvedAccountType && row.id && typeof window !== 'undefined') {
+    const cachedCtx = localStorage.getItem(`mco_tx_ctx_${row.id}`);
+    if (cachedCtx === 'pessoal' || cachedCtx === 'empresarial') {
+      resolvedAccountType = cachedCtx as 'empresarial' | 'pessoal';
+    }
+  }
+
+  // 4. Category-based inference for legacy records
+  if (!resolvedAccountType && row.categoria) {
+    const cat = row.categoria.trim().toLowerCase();
+    const personalOnlyCats = [
+      'salário', 'salario', 'pró-labore recebido', 'pro-labore recebido', 'prolabore recebido',
+      'freelance', 'moradia', 'saúde', 'saude', 'lazer', 'educação', 'educacao',
+      'vestuário', 'vestuario', 'assinaturas', 'pets', 'cuidados pessoais', 'dívidas', 'dividas',
+      'investimentos pessoais', 'investimento pessoal'
+    ];
+    if (personalOnlyCats.includes(cat)) {
+      resolvedAccountType = 'pessoal';
+    }
+  }
+
+  // 5. Default fallback
+  if (!resolvedAccountType) {
+    resolvedAccountType = 'empresarial';
+  }
+
+  // Cache resolved context for next time
+  if (row.id && typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(`mco_tx_ctx_${row.id}`, resolvedAccountType);
+    } catch (e) {
+      // ignore
+    }
+  }
 
   // Precise and consistent resolution of expenseType ('fixa' vs 'variavel')
   let resolvedExpenseType: 'fixa' | 'variavel' | undefined = undefined;
@@ -98,7 +168,7 @@ export function mapDbToTransaction(row: any): Transaction {
           if (accountsEmpresarial) allContas.push(...JSON.parse(accountsEmpresarial));
           if (accountsPessoal) allContas.push(...JSON.parse(accountsPessoal));
 
-          const rowTitle = (row.titulo || row.descricao || '').trim().toLowerCase();
+          const rowTitle = (row.titulo || cleanDescription || '').trim().toLowerCase();
           if (rowTitle) {
             isFixedFromContas = allContas.some((c: any) =>
               c.tipo === 'fixa' &&
@@ -116,15 +186,15 @@ export function mapDbToTransaction(row: any): Transaction {
 
   return {
     id: row.id,
-    title: row.titulo || row.descricao || 'Lançamento',
+    title: row.titulo || cleanDescription || 'Lançamento',
     amount: Number(row.valor) || 0,
     type: row.tipo as 'entrada' | 'saida',
     date: row.data,
     paymentMethod: row.forma_pagamento || 'Pix',
     category: row.categoria || 'Outros',
-    description: row.descricao || '',
+    description: cleanDescription,
     account: row.conta || undefined,
-    accountType: (row.tipo_conta as 'empresarial' | 'pessoal') || 'empresarial',
+    accountType: resolvedAccountType,
     expenseType: isSaida ? resolvedExpenseType : undefined,
     revenueType: isEntrada ? resolvedRevenueType : undefined,
     recurrenceFrequency: row.recorrencia_frequencia || row.recurrence_frequency || undefined,
@@ -143,6 +213,9 @@ export function mapDbToTransaction(row: any): Transaction {
 
 // Map Transaction to db row
 export function mapTransactionToDb(tx: any, userId: string) {
+  const resolvedAccountType: 'empresarial' | 'pessoal' = tx.accountType === 'pessoal' ? 'pessoal' : 'empresarial';
+  const effectiveDescription = embedContextInDescription(tx.description, resolvedAccountType);
+
   const row: any = {
     id: tx.id || undefined,
     user_id: userId,
@@ -151,14 +224,14 @@ export function mapTransactionToDb(tx: any, userId: string) {
     valor: tx.amount,
     titulo: tx.title,
     forma_pagamento: tx.paymentMethod,
-    descricao: tx.description || null,
+    descricao: effectiveDescription,
     data: tx.date,
   };
   if (hasContaColumn && tx.account) {
     row.conta = tx.account;
   }
   if (hasTipoContaColumn) {
-    row.tipo_conta = tx.accountType || 'empresarial';
+    row.tipo_conta = resolvedAccountType;
   }
   if (hasTipoDespesaColumn) {
     if (tx.expenseType) {
@@ -415,21 +488,26 @@ export async function fetchTransactions(userId: string): Promise<Transaction[]> 
 }
 
 export async function insertTransaction(userId: string, tx: Omit<Transaction, 'id'> & { id?: string }): Promise<Transaction> {
+  const targetAccountType: 'empresarial' | 'pessoal' = tx.accountType === 'pessoal' ? 'pessoal' : 'empresarial';
+
   if (userId === 'local') {
     const localTxsSaved = localStorage.getItem('mco_transactions');
     const list = localTxsSaved ? JSON.parse(localTxsSaved) : [];
     const newTx: Transaction = {
       ...tx,
+      accountType: targetAccountType,
       id: tx.id || Math.random().toString(36).substring(2, 9),
     } as Transaction;
     list.unshift(newTx);
     localStorage.setItem('mco_transactions', JSON.stringify(list));
+    localStorage.setItem(`mco_tx_ctx_${newTx.id}`, targetAccountType);
     return newTx;
   }
 
   const supabase = getSupabase();
   const fallbackTx: Transaction = {
     ...tx,
+    accountType: targetAccountType,
     id: tx.id || 'offline_' + Math.random().toString(36).substring(2, 9),
   } as Transaction;
 
@@ -439,6 +517,7 @@ export async function insertTransaction(userId: string, tx: Omit<Transaction, 'i
     const list = cachedStr ? JSON.parse(cachedStr) : [];
     list.unshift(fallbackTx);
     localStorage.setItem(`mco_cached_transactions_${userId}`, JSON.stringify(list));
+    localStorage.setItem(`mco_tx_ctx_${fallbackTx.id}`, targetAccountType);
   } catch (e) {
     console.warn('Error caching new transaction locally:', e);
   }
@@ -446,7 +525,7 @@ export async function insertTransaction(userId: string, tx: Omit<Transaction, 'i
   if (!supabase) return fallbackTx;
 
   try {
-    const dbTx = mapTransactionToDb(tx, userId);
+    const dbTx = mapTransactionToDb({ ...tx, accountType: targetAccountType }, userId);
     const { data, error } = await supabase
       .from('lancamentos')
       .insert(dbTx)
@@ -504,9 +583,10 @@ export async function insertTransaction(userId: string, tx: Omit<Transaction, 'i
           return fallbackTx;
         }
         const mappedRetry = mapDbToTransaction(retryData);
-        return {
+        const finalRetryTx: Transaction = {
           ...fallbackTx,
           ...mappedRetry,
+          accountType: targetAccountType, // Guaranteed context isolation
           status: tx.status || mappedRetry.status,
           dueDate: tx.dueDate || mappedRetry.dueDate,
           effectiveDate: tx.effectiveDate || mappedRetry.effectiveDate,
@@ -516,6 +596,10 @@ export async function insertTransaction(userId: string, tx: Omit<Transaction, 'i
           revenueType: tx.revenueType || mappedRetry.revenueType,
           contaId: tx.contaId || mappedRetry.contaId,
         };
+        if (typeof window !== 'undefined' && finalRetryTx.id) {
+          localStorage.setItem(`mco_tx_ctx_${finalRetryTx.id}`, targetAccountType);
+        }
+        return finalRetryTx;
       }
       console.warn('Supabase insert failed, running with local fallback:', error.message);
       return fallbackTx;
@@ -525,6 +609,7 @@ export async function insertTransaction(userId: string, tx: Omit<Transaction, 'i
     const insertedTx: Transaction = {
       ...fallbackTx,
       ...mapped,
+      accountType: targetAccountType, // Guaranteed context isolation
       status: tx.status || mapped.status,
       dueDate: tx.dueDate || mapped.dueDate,
       effectiveDate: tx.effectiveDate || mapped.effectiveDate,
@@ -534,6 +619,9 @@ export async function insertTransaction(userId: string, tx: Omit<Transaction, 'i
       revenueType: tx.revenueType || mapped.revenueType,
       contaId: tx.contaId || mapped.contaId,
     };
+    if (typeof window !== 'undefined' && insertedTx.id) {
+      localStorage.setItem(`mco_tx_ctx_${insertedTx.id}`, targetAccountType);
+    }
     // Replace fallback with real database transaction in local cache
     try {
       const cachedStr = localStorage.getItem(`mco_cached_transactions_${userId}`);
@@ -552,12 +640,16 @@ export async function insertTransaction(userId: string, tx: Omit<Transaction, 'i
 }
 
 export async function updateTransaction(userId: string, tx: Transaction): Promise<Transaction> {
+  const targetAccountType: 'empresarial' | 'pessoal' = tx.accountType === 'pessoal' ? 'pessoal' : 'empresarial';
+  const txWithTargetType = { ...tx, accountType: targetAccountType };
+
   if (userId === 'local') {
     const localTxsSaved = localStorage.getItem('mco_transactions');
     let list = localTxsSaved ? JSON.parse(localTxsSaved) : [];
-    list = list.map((t: any) => (t.id === tx.id ? tx : t));
+    list = list.map((t: any) => (t.id === tx.id ? txWithTargetType : t));
     localStorage.setItem('mco_transactions', JSON.stringify(list));
-    return tx;
+    localStorage.setItem(`mco_tx_ctx_${tx.id}`, targetAccountType);
+    return txWithTargetType;
   }
 
   // Update in local cache first
@@ -565,18 +657,19 @@ export async function updateTransaction(userId: string, tx: Transaction): Promis
     const cachedStr = localStorage.getItem(`mco_cached_transactions_${userId}`);
     if (cachedStr) {
       let list = JSON.parse(cachedStr);
-      list = list.map((t: any) => (t.id === tx.id ? tx : t));
+      list = list.map((t: any) => (t.id === tx.id ? txWithTargetType : t));
       localStorage.setItem(`mco_cached_transactions_${userId}`, JSON.stringify(list));
+      localStorage.setItem(`mco_tx_ctx_${tx.id}`, targetAccountType);
     }
   } catch (e) {
     console.warn('Error caching transaction update:', e);
   }
 
   const supabase = getSupabase();
-  if (!supabase) return tx;
+  if (!supabase) return txWithTargetType;
 
   try {
-    const dbTx = mapTransactionToDb(tx, userId);
+    const dbTx = mapTransactionToDb(txWithTargetType, userId);
     const { data, error } = await supabase
       .from('lancamentos')
       .update(dbTx)
@@ -635,12 +728,13 @@ export async function updateTransaction(userId: string, tx: Transaction): Promis
           .single();
         if (retryError) {
           console.warn('Supabase retry update failed, running with local fallback:', retryError.message);
-          return tx;
+          return txWithTargetType;
         }
         const mappedRetry = mapDbToTransaction(retryData);
-        return {
-          ...tx,
+        const finalRetryUpdate: Transaction = {
+          ...txWithTargetType,
           ...mappedRetry,
+          accountType: targetAccountType, // Guaranteed context isolation
           status: tx.status || mappedRetry.status,
           dueDate: tx.dueDate || mappedRetry.dueDate,
           effectiveDate: tx.effectiveDate || mappedRetry.effectiveDate,
@@ -650,15 +744,20 @@ export async function updateTransaction(userId: string, tx: Transaction): Promis
           revenueType: tx.revenueType || mappedRetry.revenueType,
           contaId: tx.contaId || mappedRetry.contaId,
         };
+        if (typeof window !== 'undefined' && finalRetryUpdate.id) {
+          localStorage.setItem(`mco_tx_ctx_${finalRetryUpdate.id}`, targetAccountType);
+        }
+        return finalRetryUpdate;
       }
       console.warn('Supabase update failed, running with local fallback:', error.message);
-      return tx;
+      return txWithTargetType;
     }
 
     const mappedSuccess = mapDbToTransaction(data);
-    return {
-      ...tx,
+    const updatedTx: Transaction = {
+      ...txWithTargetType,
       ...mappedSuccess,
+      accountType: targetAccountType, // Guaranteed context isolation
       status: tx.status || mappedSuccess.status,
       dueDate: tx.dueDate || mappedSuccess.dueDate,
       effectiveDate: tx.effectiveDate || mappedSuccess.effectiveDate,
@@ -668,13 +767,21 @@ export async function updateTransaction(userId: string, tx: Transaction): Promis
       revenueType: tx.revenueType || mappedSuccess.revenueType,
       contaId: tx.contaId || mappedSuccess.contaId,
     };
+    if (typeof window !== 'undefined' && updatedTx.id) {
+      localStorage.setItem(`mco_tx_ctx_${updatedTx.id}`, targetAccountType);
+    }
+    return updatedTx;
   } catch (err) {
     console.warn('Network error during update, running with local fallback:', err);
-    return tx;
+    return txWithTargetType;
   }
 }
 
 export async function deleteTransaction(userId: string, txId: string): Promise<boolean> {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(`mco_tx_ctx_${txId}`);
+  }
+
   if (userId === 'local') {
     const localTxsSaved = localStorage.getItem('mco_transactions');
     let list = localTxsSaved ? JSON.parse(localTxsSaved) : [];

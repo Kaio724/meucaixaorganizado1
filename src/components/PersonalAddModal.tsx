@@ -112,6 +112,10 @@ export default function PersonalAddModal({
     // Use category as title if title is empty
     const effectiveTitle = title.trim() || category || (txType === 'entrada' ? 'Entrada Pessoal' : 'Despesa Pessoal');
 
+    const todayStr = new Date().toISOString().split('T')[0];
+    const isFuture = date > todayStr;
+    const initialStatus = isFuture ? 'pendente' : 'realizado';
+
     onSave({
       id: editingTx ? editingTx.id : undefined,
       title: effectiveTitle,
@@ -122,7 +126,12 @@ export default function PersonalAddModal({
       paymentMethod,
       description: description.trim() || undefined,
       accountType: 'pessoal',
-      expenseType: txType === 'saida' ? expenseType : undefined
+      expenseType: txType === 'saida' ? expenseType : undefined,
+      status: editingTx?.status || initialStatus,
+      dueDate: editingTx?.dueDate || date,
+      effectiveDate: editingTx?.effectiveDate || (!isFuture ? date : undefined),
+      amountPaid: editingTx?.amountPaid !== undefined ? editingTx.amountPaid : (!isFuture ? parsedAmount : undefined),
+      observation: editingTx?.observation,
     });
 
     onClose();

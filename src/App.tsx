@@ -660,7 +660,25 @@ ALTER TABLE public.lancamentos ADD COLUMN IF NOT EXISTS recorrencia_id TEXT;
 ALTER TABLE public.lancamentos ADD COLUMN IF NOT EXISTS recorrencia_frequencia TEXT;
 ALTER TABLE public.lancamentos ADD COLUMN IF NOT EXISTS recorrencia_dia INTEGER;
 ALTER TABLE public.lancamentos ADD COLUMN IF NOT EXISTS recorrencia_data_inicio TEXT;
-ALTER TABLE public.lancamentos ADD COLUMN IF NOT EXISTS recorrencia_data_fim TEXT;`;
+ALTER TABLE public.lancamentos ADD COLUMN IF NOT EXISTS recorrencia_data_fim TEXT;
+ALTER TABLE public.lancamentos ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'realizado';
+ALTER TABLE public.lancamentos ADD COLUMN IF NOT EXISTS data_vencimento DATE;
+ALTER TABLE public.lancamentos ADD COLUMN IF NOT EXISTS data_efetiva DATE;
+ALTER TABLE public.lancamentos ADD COLUMN IF NOT EXISTS valor_pago NUMERIC;
+ALTER TABLE public.lancamentos ADD COLUMN IF NOT EXISTS observacao TEXT;
+
+-- Backfill seguro: restaura lançamentos pessoais existentes para isolamento total
+UPDATE public.lancamentos 
+SET tipo_conta = 'pessoal' 
+WHERE categoria IN (
+  'Salário', 'Pró-labore recebido', 'Freelance', 'Alimentação', 'Moradia', 
+  'Transporte', 'Saúde', 'Lazer', 'Educação', 'Vestuário', 'Assinaturas', 
+  'Pets', 'Cuidados Pessoais', 'Dívidas', 'Investimentos'
+) OR descricao LIKE '%<!--ctx:pessoal-->%';
+
+-- Índices de alta performance
+CREATE INDEX IF NOT EXISTS idx_lancamentos_user_tipo_conta ON public.lancamentos(user_id, tipo_conta);
+CREATE INDEX IF NOT EXISTS idx_lancamentos_user_data ON public.lancamentos(user_id, data);`;
 
     const sqlScript = `-- 1. Criar a tabela de perfis (profiles) vinculada ao auth.users
 CREATE TABLE IF NOT EXISTS public.profiles (
@@ -672,7 +690,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 2. Criar a tabela de lançamentos (lancamentos) com suporte a Conta Dupla, Receitas e Despesas Fixas/Variáveis
+-- 2. Criar a tabela de lançamentos (lancamentos) com suporte a Conta Dupla, Receitas e Despesas Fixas/Variáveis e Previsões
 CREATE TABLE IF NOT EXISTS public.lancamentos (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -692,6 +710,11 @@ CREATE TABLE IF NOT EXISTS public.lancamentos (
     recorrencia_dia INTEGER,
     recorrencia_data_inicio TEXT,
     recorrencia_data_fim TEXT,
+    status TEXT DEFAULT 'realizado',
+    data_vencimento DATE,
+    data_efetiva DATE,
+    valor_pago NUMERIC,
+    observacao TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 

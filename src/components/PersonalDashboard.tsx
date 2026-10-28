@@ -18,6 +18,7 @@ import { getPersonalCategoryInfo } from '../lib/personalCategories';
 import { fetchOrcamentos, fetchMetas, fetchRecorrencias, saveRecorrencia, computeNextDate } from '../lib/personalData';
 import { fetchContas } from '../lib/contasData';
 import TransactionDetailSheet from './TransactionDetailSheet';
+import { calculateMonthlyFinancialMetrics, resolveTransactionStatus } from '../lib/financialMath';
 
 interface PersonalDashboardProps {
   profile: UserProfile;
@@ -111,32 +112,21 @@ export default function PersonalDashboard({
     }
   };
 
-  // Filter transactions by selected month & year
-  const monthTransactions = transactions.filter((t) => {
-    if (t.accountType !== 'pessoal') return false;
-    const tDate = new Date(t.date + 'T12:00:00');
-    return tDate.getMonth() === selectedMonthIndex && tDate.getFullYear() === selectedYear;
-  });
+  // Strict check: only personal account transactions
+  const personalTxs = React.useMemo(() => {
+    return transactions.filter((t) => t.accountType === 'pessoal');
+  }, [transactions]);
 
-  // Calculate stats for current personal account
-  const totalEntradas = monthTransactions
-    .filter((t) => t.type === 'entrada')
-    .reduce((sum, t) => sum + t.amount, 0);
+  // Centralized Realized vs Projected calculation
+  const metrics = React.useMemo(() => {
+    return calculateMonthlyFinancialMetrics(personalTxs, selectedYear, selectedMonthIndex);
+  }, [personalTxs, selectedYear, selectedMonthIndex]);
 
-  const totalSaidas = monthTransactions
-    .filter((t) => t.type === 'saida')
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const saldoPessoal = totalEntradas - totalSaidas;
-
-  // Despesas Fixas vs Variáveis (Requirement 10 & 11)
-  const despesasFixas = monthTransactions
-    .filter((t) => t.type === 'saida' && t.expenseType === 'fixa')
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const despesasVariaveis = monthTransactions
-    .filter((t) => t.type === 'saida' && t.expenseType !== 'fixa')
-    .reduce((sum, t) => sum + t.amount, 0);
+  const totalEntradas = metrics.entradasRealizadas;
+  const totalSaidas = metrics.saidasRealizadas;
+  const saldoPessoal = metrics.saldoRealizado;
+  const despesasFixas = metrics.despesasFixasRealizadas;
+  const despesasVariaveis = metrics.despesasVariaveisRealizadas;
 
   // Format currency helper
   const formatBRL = (val: number) => {
@@ -146,10 +136,29 @@ export default function PersonalDashboard({
     }).format(val);
   };
 
+  // Month transactions for lists, recent items, and budget tracking
+  const monthTransactions = React.useMemo(() => {
+    return personalTxs.filter((t) => {
+      const isRealized = resolveTransactionStatus(t) === 'realizado';
+      const refDate = isRealized ? (t.effectiveDate || t.date) : (t.dueDate || t.date);
+      if (!refDate) return false;
+      const parts = refDate.split('-');
+      if (parts.length >= 2) {
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10) - 1;
+        return y === selectedYear && m === selectedMonthIndex;
+      }
+      const tDate = new Date(refDate + 'T12:00:00');
+      return tDate.getMonth() === selectedMonthIndex && tDate.getFullYear() === selectedYear;
+    });
+  }, [personalTxs, selectedYear, selectedMonthIndex]);
+
   // Latest 5 transactions
-  const recentTransactions = [...monthTransactions]
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 5);
+  const recentTransactions = React.useMemo(() => {
+    return [...monthTransactions]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 5);
+  }, [monthTransactions]);
 
   const isCurrentMonth = selectedMonthIndex === now.getMonth() && selectedYear === now.getFullYear();
 
@@ -297,7 +306,7 @@ export default function PersonalDashboard({
                 </span>
               </div>
 
-              <div className="flex items-baseline gap-2">
+              <div className="flex items-baseline gap-2 flex-wrap">
                 <span
                   className={`text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight drop-shadow-[0_2px_15px_rgba(0,0,0,0.6)] ${
                     saldoPessoal >= 0 ? 'text-emerald-400' : 'text-rose-400'
@@ -305,6 +314,11 @@ export default function PersonalDashboard({
                 >
                   {formatBRL(saldoPessoal)}
                 </span>
+                {(metrics.entradasPrevistas > 0 || metrics.saidasPrevistas > 0) && (
+                  <span className="text-xs font-semibold text-zinc-400">
+                    (Previsto: <strong className={metrics.saldoPrevisto >= 0 ? 'text-emerald-400' : 'text-rose-400'}>{formatBRL(metrics.saldoPrevisto)}</strong>)
+                  </span>
+                )}
               </div>
 
               <p className="text-xs text-zinc-400 max-w-md font-medium">
@@ -342,6 +356,11 @@ export default function PersonalDashboard({
             <div className="text-2xl sm:text-3xl font-black text-emerald-400 tracking-tight">
               {formatBRL(totalEntradas)}
             </div>
+            {metrics.entradasPrevistas > 0 && (
+              <span className="text-[10px] text-emerald-300/80 font-bold mt-0.5 block">
+                Previsto: +{formatBRL(metrics.entradasPrevistas)}
+              </span>
+            )}
             <span className="text-[11px] text-zinc-500 font-semibold mt-0.5 block">
               Salários, Freelas e Rendas
             </span>
@@ -363,6 +382,11 @@ export default function PersonalDashboard({
             <div className="text-2xl sm:text-3xl font-black text-rose-400 tracking-tight">
               {formatBRL(totalSaidas)}
             </div>
+            {metrics.saidasPrevistas > 0 && (
+              <span className="text-[10px] text-rose-300/80 font-bold mt-0.5 block">
+                Previsto: -{formatBRL(metrics.saidasPrevistas)}
+              </span>
+            )}
             <span className="text-[11px] text-zinc-500 font-semibold mt-0.5 block">
               Alimentação, Moradia e Contas
             </span>
