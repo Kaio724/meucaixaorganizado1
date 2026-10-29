@@ -43,7 +43,24 @@ export interface Transaction {
   observation?: string; // Observações da baixa ou lançamento
 }
 
-export type ActiveTab = 'dashboard' | 'historico' | 'contas' | 'contas_pagar_receber' | 'retirar' | 'resumo' | 'planos' | 'categorias' | 'metas' | 'orcamentos' | 'recorrencias';
+export type ActiveTab = 'dashboard' | 'historico' | 'contas' | 'contas_pagar_receber' | 'retirar' | 'resumo' | 'planos' | 'categorias' | 'metas' | 'orcamentos' | 'recorrencias' | 'relatorios_ia';
+
+export interface AiChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  createdAt: string;
+}
+
+export interface AiConversation {
+  id: string;
+  userId: string;
+  accountType: AccountType;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  messages: AiChatMessage[];
+}
 
 export type ContaTipo = 'fixa' | 'variavel';
 export type ContaFrequencia = 'mensal' | 'semanal' | 'quinzenal' | 'anual' | 'personalizada' | 'avulsa';

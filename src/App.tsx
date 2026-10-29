@@ -25,6 +25,9 @@ import UpgradeSuccessModal from './components/UpgradeSuccessModal';
 import ThemeToggle from './components/ThemeToggle';
 import ContasFixasVariaveis from './components/ContasFixasVariaveis';
 import ContasPagarReceber from './components/ContasPagarReceber';
+import AiReportsChat from './components/AiReportsChat';
+import EmpresarialAddModal from './components/EmpresarialAddModal';
+import EmpresarialMoreMenuModal from './components/EmpresarialMoreMenuModal';
 
 // Supabase Helpers
 import { 
@@ -63,6 +66,10 @@ export default function App() {
   const [showPersonalProModal, setShowPersonalProModal] = useState(false);
   const [showUpgradeSuccessModal, setShowUpgradeSuccessModal] = useState(false);
 
+  // Empresarial Account Modal States
+  const [isEmpresarialAddModalOpen, setIsEmpresarialAddModalOpen] = useState(false);
+  const [showEmpresarialMoreModal, setShowEmpresarialMoreModal] = useState(false);
+
   const handleCloseUpgradeSuccessModal = () => {
     const userId = session?.user?.id || 'local';
     if (typeof window !== 'undefined') {
@@ -84,12 +91,12 @@ export default function App() {
       localStorage.setItem('mco_active_account_type', newAccount);
     }
     if (newAccount === 'pessoal') {
-      const validPersonalTabs: ActiveTab[] = ['dashboard', 'historico', 'contas_pagar_receber', 'contas', 'metas', 'orcamentos', 'recorrencias', 'resumo', 'categorias'];
+      const validPersonalTabs: ActiveTab[] = ['dashboard', 'historico', 'contas_pagar_receber', 'contas', 'metas', 'orcamentos', 'recorrencias', 'resumo', 'categorias', 'relatorios_ia'];
       if (!validPersonalTabs.includes(activeTab)) {
         setActiveTab('dashboard');
       }
     } else {
-      const validEmpresarialTabs: ActiveTab[] = ['dashboard', 'historico', 'contas_pagar_receber', 'contas', 'retirar', 'resumo', 'planos', 'categorias'];
+      const validEmpresarialTabs: ActiveTab[] = ['dashboard', 'historico', 'contas_pagar_receber', 'contas', 'retirar', 'resumo', 'planos', 'categorias', 'relatorios_ia'];
       if (!validEmpresarialTabs.includes(activeTab)) {
         setActiveTab('dashboard');
       }
@@ -678,7 +685,34 @@ WHERE categoria IN (
 
 -- Índices de alta performance
 CREATE INDEX IF NOT EXISTS idx_lancamentos_user_tipo_conta ON public.lancamentos(user_id, tipo_conta);
-CREATE INDEX IF NOT EXISTS idx_lancamentos_user_data ON public.lancamentos(user_id, data);`;
+CREATE INDEX IF NOT EXISTS idx_lancamentos_user_data ON public.lancamentos(user_id, data);
+
+-- 3. Tabela de Conversas com o Assistente de IA (Relatórios Inteligentes)
+CREATE TABLE IF NOT EXISTS public.conversas_ia (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    account_type TEXT NOT NULL DEFAULT 'empresarial',
+    title TEXT NOT NULL,
+    messages JSONB NOT NULL DEFAULT '[]'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.conversas_ia ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can read own ai conversations" ON public.conversas_ia;
+CREATE POLICY "Users can read own ai conversations" ON public.conversas_ia FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert own ai conversations" ON public.conversas_ia;
+CREATE POLICY "Users can insert own ai conversations" ON public.conversas_ia FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update own ai conversations" ON public.conversas_ia;
+CREATE POLICY "Users can update own ai conversations" ON public.conversas_ia FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete own ai conversations" ON public.conversas_ia;
+CREATE POLICY "Users can delete own ai conversations" ON public.conversas_ia FOR DELETE USING (auth.uid() = user_id);
+
+CREATE INDEX IF NOT EXISTS idx_conversas_ia_user_account ON public.conversas_ia(user_id, account_type, updated_at DESC);`;
 
     const sqlScript = `-- 1. Criar a tabela de perfis (profiles) vinculada ao auth.users
 CREATE TABLE IF NOT EXISTS public.profiles (
@@ -718,11 +752,23 @@ CREATE TABLE IF NOT EXISTS public.lancamentos (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 3. Habilitar o RLS (Row Level Security) em ambas as tabelas
+-- 3. Criar a tabela de conversas com IA (conversas_ia)
+CREATE TABLE IF NOT EXISTS public.conversas_ia (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    account_type TEXT NOT NULL DEFAULT 'empresarial',
+    title TEXT NOT NULL,
+    messages JSONB NOT NULL DEFAULT '[]'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 4. Habilitar o RLS (Row Level Security) nas tabelas
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lancamentos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.conversas_ia ENABLE ROW LEVEL SECURITY;
 
--- 4. Criar as políticas de segurança RLS (Garantindo privacidade total)
+-- 5. Criar as políticas de segurança RLS (Garantindo privacidade total)
 DROP POLICY IF EXISTS "Users can read own profile" ON public.profiles;
 CREATE POLICY "Users can read own profile" ON public.profiles FOR SELECT USING (auth.uid() = id);
 
@@ -742,7 +788,21 @@ DROP POLICY IF EXISTS "Users can update own transactions" ON public.lancamentos;
 CREATE POLICY "Users can update own transactions" ON public.lancamentos FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 DROP POLICY IF EXISTS "Users can delete own transactions" ON public.lancamentos;
-CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELETE USING (auth.uid() = user_id);`;
+CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELETE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can read own ai conversations" ON public.conversas_ia;
+CREATE POLICY "Users can read own ai conversations" ON public.conversas_ia FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert own ai conversations" ON public.conversas_ia;
+CREATE POLICY "Users can insert own ai conversations" ON public.conversas_ia FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update own ai conversations" ON public.conversas_ia;
+CREATE POLICY "Users can update own ai conversations" ON public.conversas_ia FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete own ai conversations" ON public.conversas_ia;
+CREATE POLICY "Users can delete own ai conversations" ON public.conversas_ia FOR DELETE USING (auth.uid() = user_id);
+
+CREATE INDEX IF NOT EXISTS idx_conversas_ia_user_account ON public.conversas_ia(user_id, account_type, updated_at DESC);`;
 
     const handleCopySql = () => {
       const activeScript = sqlTab === 'upgrade' ? upgradeScript : sqlScript;
@@ -891,6 +951,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
     { id: 'dashboard' as ActiveTab, label: 'Dashboard', icon: 'home' },
     { id: 'historico' as ActiveTab, label: 'Histórico', icon: 'history' },
     { id: 'contas_pagar_receber' as ActiveTab, label: 'A Pagar/Receber', icon: 'receipt_long' },
+    { id: 'relatorios_ia' as ActiveTab, label: 'Relatórios com IA', icon: 'auto_awesome' },
     { id: 'contas' as ActiveTab, label: 'Contas Fixas', icon: 'autorenew' },
     { id: 'retirar' as ActiveTab, label: 'Retirar', icon: 'payments' },
     { id: 'resumo' as ActiveTab, label: 'Resumo', icon: 'pie_chart' },
@@ -901,6 +962,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
   const NAV_ITEMS_PESSOAL = [
     { id: 'dashboard' as ActiveTab, label: 'Início', icon: 'home' },
     { id: 'historico' as ActiveTab, label: 'Histórico', icon: 'history' },
+    { id: 'relatorios_ia' as ActiveTab, label: 'Relatórios com IA', icon: 'auto_awesome' },
     { id: 'contas' as ActiveTab, label: 'Contas', icon: 'receipt_long' },
     { id: 'metas' as ActiveTab, label: 'Metas', icon: 'track_changes' },
     { id: 'orcamentos' as ActiveTab, label: 'Orçamentos', icon: 'savings' },
@@ -1131,6 +1193,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                         <>
                           {activeTab === 'dashboard' && 'Dashboard Pessoal'}
                           {activeTab === 'historico' && 'Histórico Pessoal'}
+                          {activeTab === 'relatorios_ia' && 'Relatórios com IA'}
                           {activeTab === 'contas' && 'Contas Fixas & Variáveis'}
                           {activeTab === 'metas' && 'Metas de Economia'}
                           {activeTab === 'orcamentos' && 'Orçamentos Mensais'}
@@ -1143,6 +1206,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                           {activeTab === 'dashboard' && 'Dashboard Financeiro'}
                           {activeTab === 'historico' && 'Histórico de Lançamentos'}
                           {activeTab === 'contas_pagar_receber' && 'Contas a Pagar e a Receber'}
+                          {activeTab === 'relatorios_ia' && 'Relatórios com IA'}
                           {activeTab === 'contas' && 'Contas Fixas & Variáveis'}
                           {activeTab === 'retirar' && 'Retirar e Retornos'}
                           {activeTab === 'resumo' && 'Resumo Financeiro'}
@@ -1461,6 +1525,17 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                           />
                         )}
 
+                        {activeTab === 'relatorios_ia' && (
+                          <AiReportsChat
+                            profile={profile}
+                            userId={session?.user?.id || 'default_user'}
+                            accountType="pessoal"
+                            transactions={pessoalTransactions}
+                            authToken={session?.access_token}
+                            onNavigateToTab={setActiveTab}
+                          />
+                        )}
+
                         {activeTab === 'categorias' && (
                           <Categories
                             profile={profile}
@@ -1506,6 +1581,17 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                             onAddTransaction={handleAddTransaction}
                             onEditTransaction={handleEditTransaction}
                             onDeleteTransaction={handleDeleteTransaction}
+                            onNavigateToTab={setActiveTab}
+                          />
+                        )}
+
+                        {activeTab === 'relatorios_ia' && (
+                          <AiReportsChat
+                            profile={profile}
+                            userId={session?.user?.id || 'default_user'}
+                            accountType="empresarial"
+                            transactions={empresarialTransactions}
+                            authToken={session?.access_token}
                             onNavigateToTab={setActiveTab}
                           />
                         )}
@@ -1560,43 +1646,121 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                 </AnimatePresence>
               </main>
 
-              {/* Bottom Navigation */}
-              <nav className="fixed bottom-0 left-0 right-0 bg-[#0e0c18]/95 backdrop-blur-2xl border-t border-primary/20 z-40 shadow-[0_-8px_32px_rgba(0,0,0,0.6)] lg:hidden h-[calc(64px+env(safe-area-inset-bottom,0px))] pb-[env(safe-area-inset-bottom,0px)]">
-                <div className="max-w-lg mx-auto h-full px-1 sm:px-4 flex items-center justify-between">
+              {/* Bottom Navigation (Modern clean 5-slot mobile architecture) */}
+              <nav className="fixed bottom-0 left-0 right-0 bg-[#0e0c18]/95 backdrop-blur-2xl border-t border-primary/20 z-40 shadow-[0_-8px_32px_rgba(0,0,0,0.6)] lg:hidden h-[calc(66px+env(safe-area-inset-bottom,0px))] pb-[env(safe-area-inset-bottom,0px)]">
+                <div className="max-w-md mx-auto h-full px-2 flex items-center justify-between">
                   {activeAccount === 'empresarial' ? (
-                    NAV_ITEMS_EMPRESARIAL.map((item) => {
-                      const isActive = activeTab === item.id;
-                      
-                      return (
-                        <button
-                          key={item.id}
-                          onClick={() => {
-                            setActiveTab(item.id);
-                            setShowProfileMenu(false);
-                            setShowNotification(false);
-                          }}
-                          className="flex-1 h-full flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all relative group tap-target px-0.5"
-                        >
-                          <div className={`px-2 py-0.5 rounded-full flex items-center justify-center transition-all ${
-                            isActive 
-                              ? 'bg-primary/25 text-primary border border-primary/35 shadow-[0_0_14px_rgba(160,120,255,0.4)]' 
-                              : 'text-on-surface-variant hover:text-on-surface'
-                          }`}>
-                            <span className="material-symbols-outlined text-[19px]">
-                              {item.icon}
-                            </span>
-                          </div>
-                          <span className={`text-[8.5px] font-bold tracking-tight uppercase transition-colors whitespace-nowrap ${
-                            isActive ? 'text-primary drop-shadow-[0_0_6px_rgba(208,188,255,0.4)]' : 'text-on-surface-variant'
-                          }`}>
-                            {item.label}
-                          </span>
-                        </button>
-                      );
-                    })
+                    /* Empresarial 5-Slot Bottom Bar */
+                    <div className="w-full h-full flex items-center justify-between">
+                      {/* 1. Início */}
+                      <button
+                        onClick={() => {
+                          setActiveTab('dashboard');
+                          setShowProfileMenu(false);
+                          setShowNotification(false);
+                        }}
+                        className="flex-1 h-full flex flex-col items-center justify-center gap-1 cursor-pointer transition-all relative group tap-target"
+                      >
+                        <div className={`px-3 py-1 rounded-full flex items-center justify-center transition-all ${
+                          activeTab === 'dashboard'
+                            ? 'bg-primary/25 text-primary border border-primary/35 shadow-[0_0_14px_rgba(160,120,255,0.4)]'
+                            : 'text-on-surface-variant hover:text-on-surface'
+                        }`}>
+                          <span className="material-symbols-outlined text-[20px]">home</span>
+                        </div>
+                        <span className={`text-[9.5px] font-bold tracking-tight uppercase transition-colors whitespace-nowrap ${
+                          activeTab === 'dashboard' ? 'text-primary drop-shadow-[0_0_6px_rgba(208,188,255,0.4)]' : 'text-on-surface-variant'
+                        }`}>
+                          Início
+                        </span>
+                      </button>
+
+                      {/* 2. Histórico */}
+                      <button
+                        onClick={() => {
+                          setActiveTab('historico');
+                          setShowProfileMenu(false);
+                          setShowNotification(false);
+                        }}
+                        className="flex-1 h-full flex flex-col items-center justify-center gap-1 cursor-pointer transition-all relative group tap-target"
+                      >
+                        <div className={`px-3 py-1 rounded-full flex items-center justify-center transition-all ${
+                          activeTab === 'historico'
+                            ? 'bg-primary/25 text-primary border border-primary/35 shadow-[0_0_14px_rgba(160,120,255,0.4)]'
+                            : 'text-on-surface-variant hover:text-on-surface'
+                        }`}>
+                          <span className="material-symbols-outlined text-[20px]">history</span>
+                        </div>
+                        <span className={`text-[9.5px] font-bold tracking-tight uppercase transition-colors whitespace-nowrap ${
+                          activeTab === 'historico' ? 'text-primary drop-shadow-[0_0_6px_rgba(208,188,255,0.4)]' : 'text-on-surface-variant'
+                        }`}>
+                          Histórico
+                        </span>
+                      </button>
+
+                      {/* 3. + Lançar Center Action Pill */}
+                      <button
+                        onClick={() => {
+                          setIsEmpresarialAddModalOpen(true);
+                          setShowProfileMenu(false);
+                          setShowNotification(false);
+                        }}
+                        className="flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#6d3bd7] to-[#9333ea] text-white shadow-[0_0_20px_rgba(109,59,215,0.6)] border border-primary/40 -translate-y-2 hover:scale-105 active:scale-95 transition-all cursor-pointer tap-target mx-1 shrink-0"
+                        title="Novo Lançamento Empresarial"
+                        aria-label="Adicionar movimentação na empresa"
+                      >
+                        <span className="material-symbols-outlined text-2xl font-black">add</span>
+                      </button>
+
+                      {/* 4. Relatórios IA */}
+                      <button
+                        onClick={() => {
+                          setActiveTab('relatorios_ia');
+                          setShowProfileMenu(false);
+                          setShowNotification(false);
+                        }}
+                        className="flex-1 h-full flex flex-col items-center justify-center gap-1 cursor-pointer transition-all relative group tap-target"
+                      >
+                        <div className={`px-3 py-1 rounded-full flex items-center justify-center transition-all ${
+                          activeTab === 'relatorios_ia'
+                            ? 'bg-primary/25 text-primary border border-primary/35 shadow-[0_0_14px_rgba(160,120,255,0.4)]'
+                            : 'text-on-surface-variant hover:text-on-surface'
+                        }`}>
+                          <span className="material-symbols-outlined text-[20px]">auto_awesome</span>
+                        </div>
+                        <span className={`text-[9.5px] font-bold tracking-tight uppercase transition-colors whitespace-nowrap ${
+                          activeTab === 'relatorios_ia' ? 'text-primary drop-shadow-[0_0_6px_rgba(208,188,255,0.4)]' : 'text-on-surface-variant'
+                        }`}>
+                          Relatórios IA
+                        </span>
+                      </button>
+
+                      {/* 5. Mais */}
+                      <button
+                        onClick={() => {
+                          setShowEmpresarialMoreModal(true);
+                          setShowProfileMenu(false);
+                          setShowNotification(false);
+                        }}
+                        className="flex-1 h-full flex flex-col items-center justify-center gap-1 cursor-pointer transition-all relative group tap-target"
+                      >
+                        <div className={`px-3 py-1 rounded-full flex items-center justify-center transition-all ${
+                          ['contas_pagar_receber', 'contas', 'retirar', 'resumo', 'categorias', 'planos'].includes(activeTab)
+                            ? 'bg-primary/25 text-primary border border-primary/35 shadow-[0_0_14px_rgba(160,120,255,0.4)]'
+                            : 'text-on-surface-variant hover:text-on-surface'
+                        }`}>
+                          <span className="material-symbols-outlined text-[20px]">more_horiz</span>
+                        </div>
+                        <span className={`text-[9.5px] font-bold tracking-tight uppercase transition-colors whitespace-nowrap ${
+                          ['contas_pagar_receber', 'contas', 'retirar', 'resumo', 'categorias', 'planos'].includes(activeTab) ? 'text-primary drop-shadow-[0_0_6px_rgba(208,188,255,0.4)]' : 'text-on-surface-variant'
+                        }`}>
+                          Mais
+                        </span>
+                      </button>
+                    </div>
                   ) : (
-                    /* Personal Mobile Bottom Bar - 5 items */
-                    <div className="w-full h-full flex items-center justify-between px-1">
+                    /* Personal 5-Slot Bottom Bar */
+                    <div className="w-full h-full flex items-center justify-between">
                       {/* 1. Início */}
                       <button
                         onClick={() => {
@@ -1613,7 +1777,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                         }`}>
                           <span className="material-symbols-outlined text-[20px]">home</span>
                         </div>
-                        <span className={`text-[9px] font-bold tracking-tight uppercase transition-colors whitespace-nowrap ${
+                        <span className={`text-[9.5px] font-bold tracking-tight uppercase transition-colors whitespace-nowrap ${
                           activeTab === 'dashboard' ? 'text-[#c4b5fd]' : 'text-zinc-400'
                         }`}>
                           Início
@@ -1636,7 +1800,7 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                         }`}>
                           <span className="material-symbols-outlined text-[20px]">history</span>
                         </div>
-                        <span className={`text-[9px] font-bold tracking-tight uppercase transition-colors whitespace-nowrap ${
+                        <span className={`text-[9.5px] font-bold tracking-tight uppercase transition-colors whitespace-nowrap ${
                           activeTab === 'historico' ? 'text-[#c4b5fd]' : 'text-zinc-400'
                         }`}>
                           Histórico
@@ -1648,33 +1812,36 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                         onClick={() => {
                           setEditingPersonalTx(null);
                           setIsPersonalAddModalOpen(true);
+                          setShowProfileMenu(false);
+                          setShowNotification(false);
                         }}
-                        className="flex items-center justify-center w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#7C3AED] to-[#9333ea] text-white shadow-[0_0_18px_rgba(124,58,237,0.6)] border border-[#c4b5fd]/40 -translate-y-2 hover:scale-105 active:scale-95 transition-all cursor-pointer tap-target mx-0.5 shrink-0"
+                        className="flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#7C3AED] to-[#9333ea] text-white shadow-[0_0_20px_rgba(124,58,237,0.6)] border border-[#c4b5fd]/40 -translate-y-2 hover:scale-105 active:scale-95 transition-all cursor-pointer tap-target mx-1 shrink-0"
                         title="Novo Lançamento Pessoal"
+                        aria-label="Adicionar movimentação pessoal"
                       >
                         <span className="material-symbols-outlined text-2xl font-black">add</span>
                       </button>
 
-                      {/* 4. Metas */}
+                      {/* 4. Relatórios IA */}
                       <button
                         onClick={() => {
-                          setActiveTab('metas');
+                          setActiveTab('relatorios_ia');
                           setShowProfileMenu(false);
                           setShowNotification(false);
                         }}
                         className="flex-1 h-full flex flex-col items-center justify-center gap-1 cursor-pointer transition-all relative group tap-target"
                       >
                         <div className={`px-3 py-1 rounded-full flex items-center justify-center transition-all ${
-                          activeTab === 'metas'
+                          activeTab === 'relatorios_ia'
                             ? 'bg-[#7C3AED]/30 text-[#c4b5fd] border border-[#7C3AED]/40 shadow-[0_0_14px_rgba(124,58,237,0.4)]'
                             : 'text-zinc-400 hover:text-zinc-200'
                         }`}>
-                          <span className="material-symbols-outlined text-[20px]">track_changes</span>
+                          <span className="material-symbols-outlined text-[20px]">auto_awesome</span>
                         </div>
-                        <span className={`text-[9px] font-bold tracking-tight uppercase transition-colors whitespace-nowrap ${
-                          activeTab === 'metas' ? 'text-[#c4b5fd]' : 'text-zinc-400'
+                        <span className={`text-[9.5px] font-bold tracking-tight uppercase transition-colors whitespace-nowrap ${
+                          activeTab === 'relatorios_ia' ? 'text-[#c4b5fd]' : 'text-zinc-400'
                         }`}>
-                          Metas
+                          Relatórios IA
                         </span>
                       </button>
 
@@ -1688,14 +1855,14 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
                         className="flex-1 h-full flex flex-col items-center justify-center gap-1 cursor-pointer transition-all relative group tap-target"
                       >
                         <div className={`px-3 py-1 rounded-full flex items-center justify-center transition-all ${
-                          ['orcamentos', 'recorrencias', 'resumo', 'categorias', 'contas'].includes(activeTab)
+                          ['metas', 'orcamentos', 'recorrencias', 'resumo', 'categorias', 'contas'].includes(activeTab)
                             ? 'bg-[#7C3AED]/30 text-[#c4b5fd] border border-[#7C3AED]/40 shadow-[0_0_14px_rgba(124,58,237,0.4)]'
                             : 'text-zinc-400 hover:text-zinc-200'
                         }`}>
                           <span className="material-symbols-outlined text-[20px]">more_horiz</span>
                         </div>
-                        <span className={`text-[9px] font-bold tracking-tight uppercase transition-colors whitespace-nowrap ${
-                          ['orcamentos', 'recorrencias', 'resumo', 'categorias', 'contas'].includes(activeTab) ? 'text-[#c4b5fd]' : 'text-zinc-400'
+                        <span className={`text-[9.5px] font-bold tracking-tight uppercase transition-colors whitespace-nowrap ${
+                          ['metas', 'orcamentos', 'recorrencias', 'resumo', 'categorias', 'contas'].includes(activeTab) ? 'text-[#c4b5fd]' : 'text-zinc-400'
                         }`}>
                           Mais
                         </span>
@@ -1708,6 +1875,25 @@ CREATE POLICY "Users can delete own transactions" ON public.lancamentos FOR DELE
           </>
         )}
       </div>
+
+      {/* Empresarial More Menu Modal */}
+      <EmpresarialMoreMenuModal
+        isOpen={showEmpresarialMoreModal}
+        onClose={() => setShowEmpresarialMoreModal(false)}
+        onSelectTab={(tab) => {
+          setActiveTab(tab);
+          setShowEmpresarialMoreModal(false);
+        }}
+        profile={profile}
+      />
+
+      {/* Empresarial Add Modal */}
+      <EmpresarialAddModal
+        isOpen={isEmpresarialAddModalOpen}
+        onClose={() => setIsEmpresarialAddModalOpen(false)}
+        onAddTransaction={handleAddTransaction}
+        userId={session?.user?.id || 'default_user'}
+      />
 
       {/* Personal More Menu Modal */}
       <PersonalMoreMenuModal

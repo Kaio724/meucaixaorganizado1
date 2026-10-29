@@ -9,7 +9,8 @@ import {
   X, 
   ChevronRight, 
   Sparkles,
-  ShieldCheck
+  ShieldCheck,
+  Target
 } from 'lucide-react';
 import { ActiveTab } from '../../types';
 import ThemeToggle from '../ThemeToggle';
@@ -30,6 +31,22 @@ export default function PersonalMoreMenuModal({
   if (!isOpen) return null;
 
   const menuItems = [
+    {
+      id: 'metas' as ActiveTab,
+      label: 'Metas de Economia',
+      description: 'Acompanhe suas metas de reserva e objetivos pessoais',
+      icon: Target,
+      color: 'text-emerald-400',
+      bgColor: 'bg-emerald-500/15 border-emerald-500/30'
+    },
+    {
+      id: 'orcamentos' as ActiveTab,
+      label: 'Orçamentos',
+      description: 'Limites de gastos mensais por categoria',
+      icon: PiggyBank,
+      color: 'text-[#c4b5fd]',
+      bgColor: 'bg-[#7C3AED]/20 border-[#7C3AED]/35'
+    },
     {
       id: 'contas' as ActiveTab,
       label: 'Contas Fixas e Variáveis',

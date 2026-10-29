@@ -4,7 +4,10 @@ import { fileURLToPath } from 'url';
 import OpenAI from 'openai';
 import { GoogleGenAI, Type } from '@google/genai';
 import dotenv from 'dotenv';
+import { createClient } from '@supabase/supabase-js';
 import { processWivenWebhook } from './src/lib/wivenWebhook';
+import { buildFinancialContext, buildPromptContextText } from './src/lib/aiFinancialContext';
+import { mapDbToTransaction } from './src/lib/supabase';
 
 // Load environment variables from .env
 dotenv.config();
@@ -362,6 +365,215 @@ app.get('/api/webhook/wiven', handleWivenStatus);
 app.get('/api/webhook/pagamento', handleWivenStatus);
 app.post('/api/webhook/wiven', handleWivenWebhook);
 app.post('/api/webhook/pagamento', handleWivenWebhook);
+
+// ==========================================
+// RELATÓRIOS COM IA (GOOGLE GEMINI)
+// Agente Financeiro Inteligente integrado aos dados reais do MCO
+// ==========================================
+const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://yfbgauajvijwngvhrkms.supabase.co';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlmYmdhdWFqdmlqd25ndmhya21zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwMTUwNzUsImV4cCI6MjA5ODU5MTA3NX0.gmhQiDzKghNUWMhX5kh3WWrWvaAAX4Kdyi1RAAowzyM';
+const supabaseServerClient = createClient(supabaseUrl, supabaseKey);
+
+app.post('/api/ai-reports/chat', async (req, res) => {
+  try {
+    const { 
+      message, 
+      conversationId, 
+      history = [], 
+      accountType = 'empresarial', 
+      transactions: clientTxs = [], 
+      userId: clientUserId = 'local',
+      activeMonthYear
+    } = req.body;
+
+    if (!message || typeof message !== 'string' || !message.trim()) {
+      return res.status(400).json({ error: 'Mensagem do usuário é obrigatória.' });
+    }
+
+    // Verify authorized account type
+    const authorizedAccountType: 'empresarial' | 'pessoal' = accountType === 'pessoal' ? 'pessoal' : 'empresarial';
+
+    // Verify authentication if token provided
+    let verifiedUserId = clientUserId;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      if (token) {
+        try {
+          const { data: { user }, error: authErr } = await supabaseServerClient.auth.getUser(token);
+          if (user && !authErr) {
+            verifiedUserId = user.id;
+          }
+        } catch (e) {
+          console.warn('[AI Reports] Não foi possível verificar token Bearer:', e);
+        }
+      }
+    }
+
+    // Check Gemini API Key
+    const geminiApiKey = process.env.GEMINI_API_KEY;
+    if (!geminiApiKey) {
+      return res.status(503).json({
+        error: 'A chave da API do Google Gemini (GEMINI_API_KEY) não está configurada no servidor. Configure-a nas variáveis de ambiente para ativar o assistente inteligente.'
+      });
+    }
+
+    // Retrieve authorized transactions
+    // Prefer querying directly from Supabase for verified cloud users to guarantee server-side isolation
+    let authorizedTransactions: any[] = [];
+    if (verifiedUserId && verifiedUserId !== 'local') {
+      try {
+        const { data, error } = await supabaseServerClient
+          .from('lancamentos')
+          .select('*')
+          .eq('user_id', verifiedUserId);
+
+        if (!error && Array.isArray(data) && data.length > 0) {
+          authorizedTransactions = data.map(mapDbToTransaction);
+        }
+      } catch (dbErr) {
+        console.warn('[AI Reports] Falha ao consultar banco diretamente, usando fallback:', dbErr);
+      }
+    }
+
+    // If database returned no rows or user is local, use client-provided transactions after strict filtering
+    if (authorizedTransactions.length === 0 && Array.isArray(clientTxs)) {
+      authorizedTransactions = clientTxs;
+    }
+
+    // ABSOLUTE CONTEXT ISOLATION:
+    // Filter strictly by the requested authorized accountType
+    authorizedTransactions = authorizedTransactions.filter(t => (t.accountType || 'empresarial') === authorizedAccountType);
+
+    // Build the official financial briefing with zero hallucination
+    const targetYear = activeMonthYear?.year;
+    const targetMonthIndex = activeMonthYear?.month;
+    const financialBriefing = buildFinancialContext(authorizedTransactions, authorizedAccountType, targetYear, targetMonthIndex);
+    const financialContextText = buildPromptContextText(financialBriefing);
+
+    // Build system instructions for Gemini
+    const systemInstruction = `Você é o Assistente Financeiro Inteligente oficial do "Meu Caixa Organizado" (MCO).
+Seu objetivo é orientar o usuário com clareza, empatia, precisão matemática e visão prática sobre suas finanças.
+
+REGRAS OBRIGATÓRIAS E INEGOCIÁVEIS:
+1. PRECISÃO MATEMÁTICA: Os números fornecidos no bloco "DADOS FINANCEIROS OFICIAIS DO MCO" foram calculados pelo sistema oficial. NUNCA invente, altere ou estime valores diferentes dos fornecidos nos totais oficiais.
+2. PREVISTO VERSUS REALIZADO:
+   - "Realizado" é o dinheiro que JÁ ENTROU ou JÁ SAIU efetivamente do caixa.
+   - "Previsto/Pendente" são compromissos futuros esperados. NUNCA trate previsões como dinheiro já disponível ou gasto.
+   - "Em atraso" são contas vencidas sem confirmação. Alerte o usuário sobre elas.
+3. ISOLAMENTO DE CONTEXTO:
+   - Você está analisando exclusivamente a ${financialBriefing.accountLabel}.
+   - NUNCA mencione nem assuma despesas ou receitas do outro contexto (se for Pessoal, não fale de custos da empresa; se for Empresa, não misture com despesas pessoais).
+4. ESTRUTURA DOS RELATÓRIOS:
+   - Quando o usuário pedir um relatório geral, mensal ou análise completa, use títulos e tópicos claros em Markdown:
+     * Título principal com o mês/período
+     * **1. Visão Geral** (Receitas realizadas, Despesas realizadas, Saldo realizado e se foi positivo/negativo)
+     * **2. Receitas** (Totais, categorias dominantes e divisão fixa vs variável)
+     * **3. Despesas** (Totais, maiores centros de custos e divisão fixa vs variável)
+     * **4. Pendências & Alertas** (Contas a pagar/receber e contas em atraso, separadas do realizado)
+     * **5. Análise & Recomendações Práticas** (orientações práticas e construtivas para controle financeiro)
+   - Quando for uma pergunta específica (ex: "Onde gastei mais?", "Quanto tenho a pagar?", "Compare com o mês passado"), vá direto ao ponto respondendo à dúvida de forma concisa e amigável.
+5. LINGUAGEM:
+   - Português brasileiro fluente, profissional, acolhedor e simples.
+   - Sempre formate valores monetários no padrão brasileiro: R$ X.XXX,XX.
+   - Não use jargões contábeis difíceis sem explicar de forma prática.`;
+
+    // Format chat history for Gemini API
+    const formattedContents: any[] = [];
+    
+    // Add up to 8 recent message pairs from history for conversation memory
+    const recentHistory = history.slice(-8);
+    for (const item of recentHistory) {
+      if (item.role === 'user') {
+        formattedContents.push({ role: 'user', parts: [{ text: item.content }] });
+      } else if (item.role === 'assistant') {
+        formattedContents.push({ role: 'model', parts: [{ text: item.content }] });
+      }
+    }
+
+    // Append current user request with official financial context
+    const userPromptWithContext = `Aqui está minha pergunta/solicitação:
+"${message}"
+
+Abaixo estão meus dados financeiros oficiais atuais para você analisar e fundamentar sua resposta:
+${financialContextText}`;
+
+    formattedContents.push({
+      role: 'user',
+      parts: [{ text: userPromptWithContext }]
+    });
+
+    const modelName = process.env.GEMINI_MODEL || 'gemini-flash-latest';
+    console.log(`[AI Reports] Chamando modelo Gemini: ${modelName} para ${authorizedAccountType} (${authorizedTransactions.length} txs)...`);
+
+    let replyText = '';
+    try {
+      const response = await ai.models.generateContent({
+        model: modelName,
+        contents: formattedContents,
+        config: {
+          systemInstruction,
+          temperature: 0.2, // Low temperature for high factual accuracy
+        }
+      });
+      replyText = response.text || '';
+    } catch (genError: any) {
+      console.warn(`[AI Reports] Erro com modelo ${modelName}, tentando fallback:`, genError?.message);
+      // Try fallback to gemini-flash-latest if custom model failed
+      if (modelName !== 'gemini-flash-latest') {
+        const fallbackRes = await ai.models.generateContent({
+          model: 'gemini-flash-latest',
+          contents: formattedContents,
+          config: {
+            systemInstruction,
+            temperature: 0.2,
+          }
+        });
+        replyText = fallbackRes.text || '';
+      } else {
+        throw genError;
+      }
+    }
+
+    if (!replyText) {
+      replyText = 'Desculpe, não consegui gerar uma resposta com os dados fornecidos. Por favor, tente novamente.';
+    }
+
+    // Generate short conversation title if not existing
+    let title: string | undefined = undefined;
+    if (!conversationId || history.length === 0) {
+      const lower = message.toLowerCase();
+      if (lower.includes('relatório') || lower.includes('relatorio')) {
+        title = `Relatório de ${financialBriefing.currentPeriod.monthName}`;
+      } else if (lower.includes('despesa') || lower.includes('gasto')) {
+        title = `Análise de Despesas`;
+      } else if (lower.includes('receita') || lower.includes('entrada')) {
+        title = `Análise de Receitas`;
+      } else if (lower.includes('compar')) {
+        title = `Comparativo Mensal`;
+      } else if (lower.includes('pagar') || lower.includes('receber') || lower.includes('conta')) {
+        title = `Contas e Pendências`;
+      } else {
+        title = message.length > 28 ? message.slice(0, 28) + '...' : message;
+      }
+    }
+
+    return res.json({
+      reply: replyText,
+      title,
+      briefing: {
+        period: financialBriefing.currentPeriod,
+        realizado: financialBriefing.metricsCurrentMonth.saldoRealizado,
+        accountType: authorizedAccountType
+      }
+    });
+  } catch (error: any) {
+    console.error('[AI Reports] Erro ao processar chat:', error);
+    return res.status(500).json({
+      error: error.message || 'Erro ao processar a análise com a inteligência artificial. Por favor, tente novamente.'
+    });
+  }
+});
 
 // Setup Vite Dev Server / Static files middleware
 async function setupViteOrStatic() {
