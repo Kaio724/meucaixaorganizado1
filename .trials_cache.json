@@ -1,0 +1,144 @@
+{
+  "trials": {
+    "cliente_vip@gmail.com": {
+      "id": "trial_1793647772179_5l7sf",
+      "user_id": "usr_123",
+      "email": "cliente_vip@gmail.com",
+      "admin_id": "local",
+      "admin_email": "kaiopatrick42@gmail.com",
+      "duration_minutes": 60,
+      "released_at": "2026-11-02T19:29:32.179Z",
+      "started_at": "2026-11-02T19:29:32.864Z",
+      "expires_at": "2026-11-02T20:29:32.864Z",
+      "status": "cancelled",
+      "extensions_count": 1,
+      "notes": "Liberado pelo chat da IA",
+      "updated_at": "2026-11-02T19:29:34.658Z"
+    },
+    "kaiopatrick42@gmail.com": {
+      "id": "trial_1793648061308_qvxf0",
+      "user_id": "usr_kaio",
+      "email": "kaiopatrick42@gmail.com",
+      "admin_id": "local",
+      "admin_email": "kaiopatrick42@gmail.com",
+      "duration_minutes": 1,
+      "released_at": "2026-11-02T19:36:37.679Z",
+      "started_at": "2026-11-02T19:36:43.777Z",
+      "expires_at": "2026-11-02T19:37:43.777Z",
+      "status": "expired",
+      "extensions_count": 0,
+      "notes": "Liberado pelo chat da IA",
+      "updated_at": "2026-11-02T19:37:44.111Z"
+    },
+    "aparecidasantos3006@gmail.com": {
+      "id": "trial_1793648264506_82r8r",
+      "user_id": null,
+      "email": "aparecidasantos3006@gmail.com",
+      "admin_id": "local",
+      "admin_email": "kaiopatrick42@gmail.com",
+      "duration_minutes": 30,
+      "released_at": "2026-11-02T19:37:44.506Z",
+      "started_at": null,
+      "expires_at": null,
+      "status": "pending",
+      "extensions_count": 0,
+      "notes": "Liberado pelo chat da IA",
+      "updated_at": "2026-11-02T19:37:44.506Z"
+    }
+  },
+  "auditLogs": [
+    {
+      "id": "audit_1793647772497_503tl",
+      "trial_id": "trial_1793647772179_5l7sf",
+      "admin_id": "local",
+      "admin_email": "kaiopatrick42@gmail.com",
+      "target_email": "cliente_vip@gmail.com",
+      "action": "grant",
+      "details": {
+        "durationMinutes": 30
+      },
+      "created_at": "2026-11-02T19:29:32.497Z"
+    },
+    {
+      "id": "audit_1793647773501_8ljei",
+      "admin_id": "local",
+      "admin_email": "kaiopatrick42@gmail.com",
+      "target_email": "cliente_vip@gmail.com",
+      "action": "check_status",
+      "details": {},
+      "created_at": "2026-11-02T19:29:33.501Z"
+    },
+    {
+      "id": "audit_1793647774066_kac2v",
+      "trial_id": "trial_1793647772179_5l7sf",
+      "admin_id": "local",
+      "admin_email": "kaiopatrick42@gmail.com",
+      "target_email": "cliente_vip@gmail.com",
+      "action": "extend",
+      "details": {
+        "additionalMinutes": 30,
+        "newExpiresAt": "2026-11-02T20:29:32.864Z"
+      },
+      "created_at": "2026-11-02T19:29:34.066Z"
+    },
+    {
+      "id": "audit_1793647774978_g61rk",
+      "trial_id": "trial_1793647772179_5l7sf",
+      "admin_id": "local",
+      "admin_email": "kaiopatrick42@gmail.com",
+      "target_email": "cliente_vip@gmail.com",
+      "action": "cancel",
+      "details": {},
+      "created_at": "2026-11-02T19:29:34.978Z"
+    },
+    {
+      "id": "audit_1793648061625_31ssr",
+      "trial_id": "trial_1793648061308_qvxf0",
+      "admin_id": "admin_kaio",
+      "admin_email": "kaiopatrick42@gmail.com",
+      "target_email": "kaiopatrick42@gmail.com",
+      "action": "grant",
+      "details": {
+        "durationMinutes": 30,
+        "notes": "Teste inicial"
+      },
+      "created_at": "2026-11-02T19:34:21.625Z"
+    },
+    {
+      "id": "audit_1793648062620_souht",
+      "trial_id": "trial_1793648061308_qvxf0",
+      "admin_id": "admin_kaio",
+      "admin_email": "kaiopatrick42@gmail.com",
+      "target_email": "kaiopatrick42@gmail.com",
+      "action": "cancel",
+      "details": {
+        "reason": "Cancelado a pedido do administrador"
+      },
+      "created_at": "2026-11-02T19:34:22.620Z"
+    },
+    {
+      "id": "audit_1793648197949_6bzp7",
+      "trial_id": "trial_1793648061308_qvxf0",
+      "admin_id": "local",
+      "admin_email": "kaiopatrick42@gmail.com",
+      "target_email": "kaiopatrick42@gmail.com",
+      "action": "grant",
+      "details": {
+        "durationMinutes": 1
+      },
+      "created_at": "2026-11-02T19:36:37.949Z"
+    },
+    {
+      "id": "audit_1793648265121_xd3uj",
+      "trial_id": "trial_1793648264506_82r8r",
+      "admin_id": "local",
+      "admin_email": "kaiopatrick42@gmail.com",
+      "target_email": "aparecidasantos3006@gmail.com",
+      "action": "grant",
+      "details": {
+        "durationMinutes": 30
+      },
+      "created_at": "2026-11-02T19:37:45.121Z"
+    }
+  ]
+}
