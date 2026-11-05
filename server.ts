@@ -324,7 +324,7 @@ ${fileData}`;
 // ==========================================
 // WIVEN / GATEWAY DE PAGAMENTO WEBHOOK
 // Cria usuário automaticamente com senha user1234
-// e libera plano MCO Essencial (R$ 27,90) ou MCO Completo (R$ 47,00)
+// e libera o Plano Vitalício (R$ 49,90)
 // ==========================================
 const handleWivenWebhook = async (req: express.Request, res: express.Response) => {
   try {

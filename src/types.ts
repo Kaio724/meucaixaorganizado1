@@ -1,4 +1,4 @@
-export type PlanType = 'essential' | 'pro';
+export type PlanType = 'vitalicio' | 'pro' | 'essential';
 export type AccountType = 'empresarial' | 'pessoal';
 export type ThemeMode = 'light' | 'dark';
 
@@ -7,7 +7,7 @@ export interface UserProfile {
   businessName: string;
   businessType: 'cnpj' | 'autonomo';
   isOnboarded: boolean;
-  plan?: PlanType; // 'essential' | 'pro'
+  plan?: PlanType; // 'vitalicio' (Plano Vitalício R$ 49,90)
   theme?: ThemeMode;
 }
 

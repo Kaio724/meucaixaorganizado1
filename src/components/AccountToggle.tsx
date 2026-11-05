@@ -75,14 +75,6 @@ export default function AccountToggle({
           person
         </span>
         <span className="tracking-tight whitespace-nowrap">Pessoal</span>
-        {!isPro && (
-          <span 
-            className="text-[8px] bg-amber-400/20 text-amber-300 border border-amber-400/30 px-1 py-0.5 rounded font-black tracking-wider leading-none ml-0.5"
-            title="Exclusivo MCO Completo"
-          >
-            PRO
-          </span>
-        )}
       </button>
 
       {/* Active Pill Indicator */}

@@ -35,8 +35,8 @@ interface ParsedTransaction {
 }
 
 export default function ImportModal({ isOpen, onClose, profile, userId = 'default_user', onAddTransaction, onUpgradePlan }: ImportModalProps) {
-  const isPro = (profile.plan || 'essential') === 'pro';
-  const monthlyLimit = isPro ? 50 : 20;
+  const isPro = true;
+  const monthlyLimit = 50;
 
   // Flow State
   const [step, setStep] = useState<'upload' | 'processing' | 'review' | 'success' | 'limit_exceeded'>('upload');
@@ -434,24 +434,6 @@ export default function ImportModal({ isOpen, onClose, profile, userId = 'defaul
           {step === 'upload' && (
             <div className="flex flex-col gap-6 text-left max-w-3xl mx-auto py-4">
               
-              {/* Promo Banner if essential */}
-              {!isPro && (
-                <div className="bg-gradient-to-r from-primary/10 to-indigo-500/10 border border-primary/25 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <h4 className="text-sm font-bold text-on-surface">Upgrade para MCO Completo</h4>
-                    <p className="text-xs text-on-surface-variant leading-relaxed mt-0.5">
-                      No plano MCO Essencial você possui limite de 20 créditos mensais. No **MCO Completo** você tem **50 créditos mensais**, conta pessoal, inteligência avançada e relatórios expansivos.
-                    </p>
-                  </div>
-                  <button 
-                    onClick={onUpgradePlan}
-                    className="shrink-0 bg-primary hover:bg-[#8455ef] text-white text-xs font-extrabold px-4 py-2.5 rounded-xl transition-all cursor-pointer"
-                  >
-                    Fazer Upgrade
-                  </button>
-                </div>
-              )}
-
               {/* Credits counter */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-2">
                 <span className="text-xs text-on-surface-variant font-medium flex items-center gap-1.5">
@@ -652,13 +634,8 @@ export default function ImportModal({ isOpen, onClose, profile, userId = 'defaul
               <div className="w-full bg-white/[0.02] border border-white/5 rounded-2xl p-4 flex flex-col gap-3">
                 <div className="flex justify-between text-xs border-b border-white/5 pb-2">
                   <span className="text-on-surface-variant">Seu Limite Atual</span>
-                  <span className="font-bold text-on-surface">{monthlyLimit} créditos / mês ({isPro ? 'MCO Completo' : 'MCO Essencial'})</span>
+                  <span className="font-bold text-on-surface">{monthlyLimit} créditos / mês (Plano Vitalício)</span>
                 </div>
-                {!isPro && (
-                  <p className="text-[11px] text-primary font-medium leading-normal">
-                    💡 Faça o upgrade para o **MCO Completo** agora mesmo e aumente seu limite para **50 créditos mensais**, além de desbloquear todos os gráficos de análise avançada do fluxo de caixa e conta pessoal!
-                  </p>
-                )}
               </div>
 
               <div className="flex items-center gap-3 w-full mt-2">
@@ -677,22 +654,6 @@ export default function ImportModal({ isOpen, onClose, profile, userId = 'defaul
                 >
                   Restaurar Créditos
                 </button>
-                {!isPro && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onClose();
-                      if (onUpgradePlan) {
-                        onUpgradePlan();
-                      } else {
-                        window.open(CHECKOUT_PRO_URL, '_blank');
-                      }
-                    }}
-                    className="flex-1 bg-primary hover:bg-[#8455ef] text-white font-extrabold text-xs py-3.5 px-4 rounded-xl transition-all shadow-[0_4px_12px_rgba(109,59,215,0.25)] cursor-pointer"
-                  >
-                    Fazer Upgrade
-                  </button>
-                )}
               </div>
             </div>
           )}

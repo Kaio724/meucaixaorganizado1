@@ -25,7 +25,7 @@ export function extractCustomerAndSale(body: any): WivenSaleData {
       productName: '',
       status: 'unknown',
       plan: 'pro',
-      planName: 'MCO Completo'
+      planName: 'Plano Vitalício'
     };
   }
 
@@ -62,9 +62,9 @@ export function extractCustomerAndSale(body: any): WivenSaleData {
   const offerCode = String(offer.code || offer.id || body.offer_code || body.offerCode || body.offer || '').trim();
   const productName = String(product.name || product.title || body.product_name || body.product || '').trim();
 
-  // Regra atualizada: TODOS que adquirirem o sistema a partir de agora já entram com acesso ao MCO COMPLETO ('pro')
+  // Regra atualizada: TODOS que adquirirem o sistema entram com o Plano Vitalício de R$ 49,90
   const plan: 'pro' | 'essential' = 'pro';
-  const planName = 'MCO Completo';
+  const planName = 'Plano Vitalício';
 
   return {
     email,

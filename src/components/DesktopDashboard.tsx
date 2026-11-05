@@ -108,12 +108,9 @@ export default function DesktopDashboard({
               <span className="text-[10px] font-bold text-primary bg-primary/10 border border-primary/25 px-2.5 py-0.5 rounded-full select-none tracking-wider uppercase">
                 {profile.businessType === 'cnpj' ? 'MEI' : 'Autônomo'}
               </span>
-              <span className={`text-[9px] px-2 py-0.5 rounded-full uppercase font-black tracking-wider border ${
-                isPro
-                  ? 'bg-primary/20 text-primary border-primary/30'
-                  : 'bg-white/10 text-on-surface-variant border-white/10'
-              }`}>
-                {isPro ? 'MCO Completo' : 'MCO Essencial'}
+              <span className="text-[9px] px-2.5 py-0.5 rounded-full uppercase font-black tracking-wider border bg-emerald-500/15 text-emerald-400 border-emerald-500/30 flex items-center gap-1 select-none">
+                <span className="material-symbols-outlined text-[10px]">verified</span>
+                Plano Vitalício
               </span>
             </div>
             <h2 className="text-xl font-extrabold text-on-surface tracking-tight mt-1">
@@ -588,29 +585,13 @@ export default function DesktopDashboard({
                 <span className="material-symbols-outlined text-primary text-lg">compare_arrows</span>
                 <h3 className="text-sm font-bold text-on-surface">Comparativo Analítico Mensal</h3>
               </div>
-              <span className="text-[10px] text-on-surface-variant/60 font-medium bg-white/5 border border-white/5 px-2.5 py-0.5 rounded-full">
-                Exclusivo MCO Completo
+              <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                <span className="material-symbols-outlined text-[10px]">verified</span>
+                Plano Vitalício
               </span>
             </div>
             
             <div className="relative rounded-[24px] overflow-hidden">
-              {!isPro && (
-                <div className="absolute inset-0 bg-[#0c0c0f]/85 backdrop-blur-[6px] z-20 flex flex-col items-center justify-center text-center p-6 border border-white/10 rounded-[24px]">
-                  <div className="w-11 h-11 rounded-2xl bg-[#6934D1]/20 border border-[#6934D1]/30 flex items-center justify-center text-[#9b72ff] mb-3 shadow-[0_0_15px_rgba(105,52,209,0.25)]">
-                    <span className="material-symbols-outlined text-xl">lock</span>
-                  </div>
-                  <h4 className="text-sm font-black text-on-surface">Módulo de Comparativo Mensal</h4>
-                  <p className="text-[11px] text-on-surface-variant max-w-[340px] mt-1 leading-relaxed">
-                    Visualize a distribuição detalhada de suas receitas, despesas e lucro em barras comparativas do mês atual contra o anterior.
-                  </p>
-                  <button
-                    onClick={() => setShowProModal(true)}
-                    className="mt-4 px-4 py-2 bg-[#6934D1] hover:bg-[#834aff] text-white font-extrabold text-[11px] uppercase tracking-wider rounded-xl transition-all shadow-[0_0_15px_rgba(105,52,209,0.3)] hover:shadow-[0_0_25px_rgba(105,52,209,0.55)] cursor-pointer"
-                  >
-                    Desbloquear com o MCO Completo
-                  </button>
-                </div>
-              )}
               <MonthComparison transactions={transactions} />
             </div>
           </div>
@@ -715,27 +696,10 @@ export default function DesktopDashboard({
             </div>
 
             <div className="relative rounded-[24px] overflow-hidden">
-              {!isPro && (
-                <div className="absolute inset-0 bg-[#0c0c0f]/85 backdrop-blur-[5px] z-20 flex flex-col items-center justify-center text-center p-5 border border-white/10 rounded-[24px]">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary mb-2.5">
-                    <span className="material-symbols-outlined text-lg">track_changes</span>
-                  </div>
-                  <h4 className="text-xs font-black text-on-surface">Metas & Saúde Financeira</h4>
-                  <p className="text-[10px] text-on-surface-variant max-w-[220px] mt-1 leading-normal">
-                    Acompanhe objetivos de faturamento com barras de progresso reais e receba notas de saúde do caixa.
-                  </p>
-                  <button
-                    onClick={() => setShowProModal(true)}
-                    className="mt-3.5 px-3 py-1.5 bg-primary hover:bg-[#8455ef] text-white font-extrabold text-[10px] uppercase tracking-wider rounded-lg transition-all cursor-pointer"
-                  >
-                    Ativar com MCO Completo
-                  </button>
-                </div>
-              )}
               <ProGrowthPanel
                 transactions={transactions}
-                isPro={isPro}
-                onUnlockPro={() => setShowProModal(true)}
+                isPro={true}
+                onUnlockPro={() => setShowProModal(false)}
               />
             </div>
           </div>
@@ -750,23 +714,6 @@ export default function DesktopDashboard({
             </div>
 
             <div className="relative rounded-[24px] overflow-hidden">
-              {!isPro && (
-                <div className="absolute inset-0 bg-[#0c0c0f]/85 backdrop-blur-[5px] z-20 flex flex-col items-center justify-center text-center p-5 border border-white/10 rounded-[24px]">
-                  <div className="w-10 h-10 rounded-xl bg-[#00e5ff]/10 border border-[#00e5ff]/20 flex items-center justify-center text-[#00e5ff] mb-2.5">
-                    <span className="material-symbols-outlined text-lg">trending_up</span>
-                  </div>
-                  <h4 className="text-xs font-black text-on-surface">Comparativos Históricos MoM</h4>
-                  <p className="text-[10px] text-on-surface-variant max-w-[220px] mt-1 leading-normal">
-                    Monitore crescimento de receitas, despesas e pro-labore com comparativos reais do mês anterior.
-                  </p>
-                  <button
-                    onClick={() => setShowProModal(true)}
-                    className="mt-3.5 px-3 py-1.5 bg-primary hover:bg-[#8455ef] text-white font-extrabold text-[10px] uppercase tracking-wider rounded-lg transition-all cursor-pointer"
-                  >
-                    Ativar com MCO Completo
-                  </button>
-                </div>
-              )}
               <EvolutionCard transactions={transactions} />
             </div>
           </div>
@@ -781,34 +728,17 @@ export default function DesktopDashboard({
             </div>
 
             <div className="relative rounded-[24px] overflow-hidden">
-              {!isPro && (
-                <div className="absolute inset-0 bg-[#0c0c0f]/85 backdrop-blur-[5px] z-20 flex flex-col items-center justify-center text-center p-5 border border-white/10 rounded-[24px]">
-                  <div className="w-10 h-10 rounded-xl bg-[#ffd700]/10 border border-[#ffd700]/20 flex items-center justify-center text-[#ffd700] mb-2.5">
-                    <span className="material-symbols-outlined text-lg">psychology</span>
-                  </div>
-                  <h4 className="text-xs font-black text-on-surface">Diretrizes de Crescimento</h4>
-                  <p className="text-[10px] text-on-surface-variant max-w-[220px] mt-1 leading-normal">
-                    Algoritmo automatizado que estuda suas finanças e dá conselhos táticos inteligentes sob medida.
-                  </p>
-                  <button
-                    onClick={() => setShowProModal(true)}
-                    className="mt-3.5 px-3 py-1.5 bg-primary hover:bg-[#8455ef] text-white font-extrabold text-[10px] uppercase tracking-wider rounded-lg transition-all cursor-pointer"
-                  >
-                    Ativar com MCO Completo
-                  </button>
-                </div>
-              )}
               <ProInsights transactions={transactions} />
             </div>
           </div>
 
           {/* Lifetime access */}
           <div className="glass-card rounded-[24px] p-5 border border-primary/20 bg-primary/5 flex items-start gap-3 text-left">
-            <span className="material-symbols-outlined text-primary text-lg shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>verified_user</span>
+            <span className="material-symbols-outlined text-emerald-400 text-lg shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>verified_user</span>
             <div className="flex flex-col gap-0.5">
-              <span className="text-[10px] text-primary font-black uppercase tracking-wider">Acesso Vitalício Garantido</span>
+              <span className="text-[10px] text-emerald-400 font-black uppercase tracking-wider">Plano Vitalício Ativo</span>
               <p className="text-[11px] text-on-surface-variant font-medium leading-relaxed mt-1">
-                Membros do MCO Completo possuem <span className="text-primary font-extrabold">atualizações vitalícias</span> a novos recursos e melhorias no Meu Caixa Organizado.
+                Você possui o <span className="text-white font-extrabold">Plano Vitalício (R$ 49,90)</span> com acesso ilimitado a todas as ferramentas e atualizações do Meu Caixa Organizado.
               </p>
             </div>
           </div>

@@ -92,9 +92,9 @@ export default function UpgradeSuccessModal({ isOpen, onClose, userName }: Upgra
               </div>
             </div>
 
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold tracking-widest uppercase mt-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold tracking-widest uppercase mt-2">
               <span className="material-symbols-outlined text-xs">auto_awesome</span>
-              <span>Upgrade para MCO Completo</span>
+              <span>Plano Vitalício Ativado</span>
             </div>
 
             {/* Title */}
@@ -102,7 +102,7 @@ export default function UpgradeSuccessModal({ isOpen, onClose, userName }: Upgra
               Parabéns{userName ? `, ${userName}` : ''}! 🎉
             </h2>
             <p className="text-xs text-on-surface-variant leading-relaxed max-w-md">
-              Seu upgrade foi realizado com sucesso! Agora você possui o <strong className="text-primary font-bold">MCO Completo vitalício</strong> com todos os recursos e inteligência financeira desbloqueados.
+              Seu acesso foi ativado com sucesso! Agora você possui o <strong className="text-emerald-400 font-bold">Plano Vitalício (R$ 49,90)</strong> com todos os recursos e inteligência financeira desbloqueados.
             </p>
           </div>
 

@@ -57,7 +57,7 @@ export default function App() {
     return 'empresarial';
   });
 
-  const isPro = (profile?.plan || 'essential') === 'pro';
+  const isPro = true;
 
   // Personal Account Modal States
   const [isPersonalAddModalOpen, setIsPersonalAddModalOpen] = useState(false);
@@ -82,10 +82,6 @@ export default function App() {
   };
 
   const handleAccountChange = (newAccount: AccountType) => {
-    if (newAccount === 'pessoal' && !isPro) {
-      setShowPersonalProModal(true);
-      return;
-    }
     setActiveAccount(newAccount);
     if (typeof window !== 'undefined') {
       localStorage.setItem('mco_active_account_type', newAccount);
@@ -195,25 +191,11 @@ export default function App() {
         session?.user?.user_metadata?.plano === 'pro';
 
       if (dbProfile) {
-        if ((isKaio || isPromoUser || isProByMetadata) && dbProfile.plan !== 'pro') {
-          dbProfile.plan = 'pro';
-          try {
-            await upsertProfile(userId, dbProfile);
-            localStorage.setItem(`mco_profile_plan_${userId}`, 'pro');
-          } catch (e) {
-            console.warn('Set profile to pro failed:', e);
-          }
-        }
+        dbProfile.plan = 'vitalicio';
         setProfile(dbProfile);
-        const currentPlan = dbProfile.plan || 'essential';
-        if (currentPlan !== 'pro' && activeAccount === 'pessoal') {
-          setActiveAccount('empresarial');
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('mco_active_account_type', 'empresarial');
-          }
-        }
+        const currentPlan = dbProfile.plan;
 
-        // --- CHECK UPGRADE POPUP (APPEARS EXACTLY ONCE WHEN USER UPGRADES) ---
+        // --- CHECK UPGRADE POPUP (APPEARS ONCE IF MIGRATED OR UPGRADED) ---
         if (typeof window !== 'undefined') {
           const previousKnownPlan = localStorage.getItem(`mco_last_known_plan_${userId}`);
           const hasSeenUpgradePopup = localStorage.getItem(`mco_upgrade_popup_seen_${userId}`) === 'true';
@@ -224,18 +206,14 @@ export default function App() {
           const urlParams = new URLSearchParams(window.location.search);
           const isUpgradeUrlParam = 
             urlParams.get('upgrade') === 'success' || 
-            urlParams.get('upgraded') === 'true' || 
-            urlParams.get('plano') === 'pro';
+            urlParams.get('upgraded') === 'true';
           
           const hasUpgradeMetadata = !!(authUserMetadata?.ultimo_upgrade || session?.user?.user_metadata?.ultimo_upgrade);
 
-          if (currentPlan === 'pro' && !hasSeenUpgradePopup) {
-            // Only trigger if this is an upgrade from essential, or after completing checkout/upgrade intent/metadata
-            if (previousKnownPlan === 'essential' || hadUpgradeIntent || isUpgradeUrlParam || hasUpgradeMetadata) {
-              setShowUpgradeSuccessModal(true);
-              if (isUpgradeUrlParam) {
-                window.history.replaceState({}, document.title, window.location.pathname);
-              }
+          if (!hasSeenUpgradePopup && (previousKnownPlan === 'essential' || hadUpgradeIntent || isUpgradeUrlParam || hasUpgradeMetadata)) {
+            setShowUpgradeSuccessModal(true);
+            if (isUpgradeUrlParam) {
+              window.history.replaceState({}, document.title, window.location.pathname);
             }
           }
 
@@ -311,9 +289,8 @@ export default function App() {
         emailLower === 'adrianojose57@hotmail.com' ||
         emailLower === 'kaiopatrick42@gmail.com' ||
         emailLower === 'kaioparick42@gmail.com';
-      const isProByMetadata = session?.user?.user_metadata?.plano === 'pro';
-      // Todos que adquirirem ou configurarem o sistema a partir de agora entram com MCO Completo
-      newProfile.plan = 'pro';
+      // Todos entram com o Plano Vitalício de R$ 49,90
+      newProfile.plan = 'vitalicio';
       await upsertProfile(session.user.id, newProfile);
       setProfile(newProfile);
 
@@ -517,55 +494,24 @@ export default function App() {
     }
   };
 
-  // Update plan handler
-  const handleUpdatePlan = async (newPlan: 'essential' | 'pro') => {
+  // Update plan handler (unificado no Plano Vitalício)
+  const handleUpdatePlan = async () => {
     if (!profile) return;
     const userId = session?.user?.id || 'local';
-    const oldPlan = profile.plan || 'essential';
     setDbError(null);
     try {
       const updatedProfile: UserProfile = {
         ...profile,
-        plan: newPlan
+        plan: 'vitalicio'
       };
       if (userId !== 'local' && typeof window !== 'undefined') {
-        localStorage.setItem(`mco_profile_plan_${userId}`, newPlan);
-        localStorage.setItem(`mco_last_known_plan_${userId}`, newPlan);
+        localStorage.setItem(`mco_profile_plan_${userId}`, 'vitalicio');
+        localStorage.setItem(`mco_last_known_plan_${userId}`, 'vitalicio');
       }
       await upsertProfile(userId, updatedProfile);
       setProfile(updatedProfile);
-      
-      // If upgraded from essential to pro, trigger popup if not yet seen
-      if (oldPlan === 'essential' && newPlan === 'pro') {
-        const hasSeen = typeof window !== 'undefined' ? localStorage.getItem(`mco_upgrade_popup_seen_${userId}`) === 'true' : false;
-        if (!hasSeen) {
-          setShowUpgradeSuccessModal(true);
-        }
-      }
-      
-      // Also update in local storage if not logged in
-      if (userId === 'local') {
-        localStorage.setItem('mco_profile', JSON.stringify(updatedProfile));
-      }
-
-      if (newPlan !== 'pro' && activeAccount === 'pessoal') {
-        setActiveAccount('empresarial');
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('mco_active_account_type', 'empresarial');
-        }
-      }
     } catch (err: any) {
       console.warn('Error updating plan:', err);
-      const isSchemaError = err.message?.includes('profiles') || 
-                            err.message?.includes('schema cache') || 
-                            err.message?.includes('plano') ||
-                            err.message?.includes('relation');
-      if (isSchemaError) {
-        setDbSchemaError(true);
-      } else {
-        setDbError('Sem conexão para atualizar plano. Tente novamente.');
-      }
-      throw err;
     }
   };
 
@@ -1078,7 +1024,7 @@ CREATE INDEX IF NOT EXISTS idx_conversas_ia_user_account ON public.conversas_ia(
                       }`}
                     >
                       <span className="material-symbols-outlined text-lg">workspace_premium</span>
-                      <span>Planos</span>
+                      <span>Plano Vitalício</span>
                     </button>
                   </>
                 ) : (
@@ -1121,27 +1067,20 @@ CREATE INDEX IF NOT EXISTS idx_conversas_ia_user_account ON public.conversas_ia(
                 )}
               </div>
 
-              {/* Plano Atual & Botão Upgrade (Empresarial only) */}
+              {/* Plano Vitalício Status (Empresarial only) */}
               {activeAccount === 'empresarial' && (
                 <div className="bg-surface-container-low rounded-2xl p-4 border border-white/5 mb-4 flex flex-col gap-2.5 text-left">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wider">Plano Atual</span>
-                    <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase border ${
-                      (profile.plan || 'essential') === 'pro'
-                        ? 'bg-primary/20 text-primary border-primary/30'
-                        : 'bg-white/5 text-on-surface-variant/80 border-white/10'
-                    }`}>
-                      {profile.plan || 'essential'}
+                    <span className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wider">Seu Plano</span>
+                    <span className="text-[9px] px-2.5 py-0.5 rounded-full font-black uppercase border bg-emerald-500/15 text-emerald-400 border-emerald-500/30 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[10px]">verified</span>
+                      Vitalício
                     </span>
                   </div>
-                  {(profile.plan || 'essential') !== 'pro' && (
-                    <button
-                      onClick={() => setActiveTab('planos')}
-                      className="w-full py-2.5 rounded-xl bg-primary hover:bg-[#c0aeff] text-on-primary font-black text-xs transition-all duration-200 border border-primary/30 shadow-[0_4px_12px_rgba(160,120,255,0.15)] text-center cursor-pointer"
-                    >
-                      Upgrade para o PRO
-                    </button>
-                  )}
+                  <div className="flex items-baseline justify-between pt-1 border-t border-white/5">
+                    <span className="text-[11px] font-medium text-on-surface-variant">Valor Único</span>
+                    <span className="text-xs font-extrabold text-white">R$ 49,90</span>
+                  </div>
                 </div>
               )}
 
@@ -1210,7 +1149,7 @@ CREATE INDEX IF NOT EXISTS idx_conversas_ia_user_account ON public.conversas_ia(
                           {activeTab === 'contas' && 'Contas Fixas & Variáveis'}
                           {activeTab === 'retirar' && 'Retirar e Retornos'}
                           {activeTab === 'resumo' && 'Resumo Financeiro'}
-                          {activeTab === 'planos' && 'Upgrade de Plano'}
+                          {activeTab === 'planos' && 'Plano Vitalício'}
                           {activeTab === 'categorias' && 'Categorias'}
                         </>
                       )}
@@ -1235,12 +1174,9 @@ CREATE INDEX IF NOT EXISTS idx_conversas_ia_user_account ON public.conversas_ia(
                       <span className="text-[10px] text-on-surface-variant font-medium tracking-wider uppercase">
                         Plano
                       </span>
-                      <span className={`text-[10px] px-2.5 py-0.5 rounded-full uppercase font-extrabold border ${
-                        (profile.plan || 'essential') === 'pro'
-                          ? 'bg-primary/20 text-primary border-primary/30'
-                          : 'bg-white/10 text-on-surface-variant border-white/10'
-                      }`}>
-                        {(profile.plan || 'essential') === 'pro' ? 'MCO Completo' : 'MCO Essencial'}
+                      <span className="text-[10px] px-2.5 py-0.5 rounded-full uppercase font-black border bg-emerald-500/15 text-emerald-400 border-emerald-500/30 flex items-center gap-1 select-none">
+                        <span className="material-symbols-outlined text-xs">verified</span>
+                        Vitalício (R$ 49,90)
                       </span>
                     </div>
                   )}
@@ -1315,12 +1251,9 @@ CREATE INDEX IF NOT EXISTS idx_conversas_ia_user_account ON public.conversas_ia(
                         <div className="px-3 py-2 border-b border-white/5">
                           <div className="flex items-center justify-between gap-1.5">
                             <span className="text-[10px] uppercase font-bold text-primary tracking-wider">Espaço MCO</span>
-                            <span className={`text-[8px] px-1.5 py-0.5 rounded-full uppercase font-extrabold border ${
-                              (profile.plan || 'essential') === 'pro'
-                                ? 'bg-primary/20 text-primary border-primary/30'
-                                : 'bg-white/5 text-on-surface-variant border-white/10'
-                            }`}>
-                              {(profile.plan || 'essential') === 'pro' ? 'MCO Completo' : 'MCO Essencial'}
+                            <span className="text-[8px] px-2 py-0.5 rounded-full uppercase font-black border bg-emerald-500/15 text-emerald-400 border-emerald-500/30 flex items-center gap-1">
+                              <span className="material-symbols-outlined text-[9px]">verified</span>
+                              Vitalício
                             </span>
                           </div>
                           <h4 className="text-xs font-bold text-on-surface mt-0.5 truncate">{profile.name}</h4>
@@ -1348,16 +1281,16 @@ CREATE INDEX IF NOT EXISTS idx_conversas_ia_user_account ON public.conversas_ia(
                           Alterar Perfil
                         </button>
 
-                        {/* Gerenciar Planos Option (Empresarial) */}
+                        {/* Plano Vitalício Option */}
                         <button
                           onClick={() => {
                             setActiveTab('planos');
                             setShowProfileMenu(false);
                           }}
-                          className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold text-primary hover:bg-primary/10 transition-colors w-full cursor-pointer min-h-[44px]"
+                          className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold text-emerald-400 hover:bg-emerald-500/10 transition-colors w-full cursor-pointer min-h-[44px]"
                         >
                           <span className="material-symbols-outlined text-base">workspace_premium</span>
-                          Gerenciar Planos
+                          Plano Vitalício (R$ 49,90)
                         </button>
 
                         {/* Logout option */}

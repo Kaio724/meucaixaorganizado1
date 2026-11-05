@@ -1,55 +1,105 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { UserProfile, PlanType } from '../types';
+import { UserProfile } from '../types';
 
 const CHECKOUT_PRO_URL = import.meta.env.VITE_CHECKOUT_PRO_URL || 'https://checkout.wiven.com.br/checkout/cmr9mqf4p000j01q0qlrqcl4w?offer=LEJVTNC';
 
 interface PlansProps {
   profile: UserProfile;
-  onUpdatePlan: (plan: PlanType) => Promise<void>;
+  onUpdatePlan?: (plan: any) => Promise<void>;
   onNavigateToTab: (tab: 'dashboard' | 'historico' | 'retirar' | 'resumo') => void;
   onShowUpgradeCelebration?: () => void;
 }
 
-export default function Plans({ profile, onUpdatePlan, onNavigateToTab, onShowUpgradeCelebration }: PlansProps) {
-  const currentPlan = profile.plan || 'essential';
-  const [loadingPlan, setLoadingPlan] = React.useState<PlanType | null>(null);
-  const [showProModal, setShowProModal] = React.useState(false);
+export default function Plans({ profile, onNavigateToTab }: PlansProps) {
+  const isVitalicio = true;
 
-  const handleSelectPlan = async (plan: PlanType) => {
-    if (plan === currentPlan) return;
-    
-    if (plan === 'pro') {
-      setShowProModal(true);
-      return;
+  const features = [
+    {
+      icon: 'domain',
+      title: 'Gestão Empresarial Completa',
+      description: 'Entradas, saídas, fluxo de caixa diário e relatórios detalhados'
+    },
+    {
+      icon: 'person',
+      title: 'Conta Pessoal Integrada (PF + PJ)',
+      description: 'Separe 100% suas contas pessoais dos custos da empresa com um toque'
+    },
+    {
+      icon: 'repeat',
+      title: 'Contas Fixas & Variáveis',
+      description: 'Previsibilidade completa de custos operacionais e receitas recorrentes'
+    },
+    {
+      icon: 'calendar_month',
+      title: 'Contas a Pagar e a Receber',
+      description: 'Gestão de vencimentos, pendências em atraso e baixa com valor efetivo'
+    },
+    {
+      icon: 'track_changes',
+      title: 'Metas e Orçamentos Financeiros',
+      description: 'Defina metas de faturamento e tetos de gastos por categorias'
+    },
+    {
+      icon: 'psychology',
+      title: 'Assistente Financeiro com IA',
+      description: 'Análise automática das suas finanças com orientações e diagnósticos reais'
+    },
+    {
+      icon: 'upload_file',
+      title: 'Importação Inteligente de Extratos',
+      description: 'Leitura automática de PDF, OFX e CSV de qualquer banco com IA'
+    },
+    {
+      icon: 'query_stats',
+      title: 'Comparativo Mensal & Projeções',
+      description: 'Gráficos comparativos de faturamento, margem e evolução entre meses'
+    },
+    {
+      icon: 'payments',
+      title: 'Retiradas de Pró-labore',
+      description: 'Planeje sua remuneração de sócio sem descapitalizar seu caixa'
+    },
+    {
+      icon: 'category',
+      title: 'Categorias Ilimitadas',
+      description: 'Crie e organize categorias com ícones e cores exclusivas'
+    },
+    {
+      icon: 'cloud_done',
+      title: 'Sincronização em Nuvem Criptografada',
+      description: 'Seus dados salvos em tempo real com backup seguro permanente'
+    },
+    {
+      icon: 'all_inclusive',
+      title: 'Atualizações Perpétuas',
+      description: 'Acesso permanente a todos os novos recursos lançados no MCO'
     }
-
-    setLoadingPlan(plan);
-    try {
-      await onUpdatePlan(plan);
-    } catch (e) {
-      console.warn(e);
-    } finally {
-      setLoadingPlan(null);
-    }
-  };
+  ];
 
   return (
-    <div className="flex flex-col gap-8 w-full max-w-lg md:max-w-4xl lg:max-w-full pb-24 lg:pb-0 px-4 sm:px-0">
+    <div className="flex flex-col gap-8 w-full max-w-4xl mx-auto pb-24 lg:pb-12 px-4 sm:px-0 text-left">
       {/* Header */}
       <div className="flex items-start justify-between mt-2">
-        <div className="flex flex-col gap-2.5 text-left col-span-12">
-          <span className="self-start text-[9px] text-primary/90 font-bold tracking-widest uppercase bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-full leading-none">
-            Plano Atual: {currentPlan === 'pro' ? 'MCO Completo' : 'MCO Essencial'}
-          </span>
-          <h2 className="text-xl sm:text-2xl font-light text-on-surface tracking-tight mt-1">
-            Escolha o plano ideal para o seu negócio
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-emerald-400 font-extrabold tracking-widest uppercase bg-emerald-500/10 border border-emerald-500/25 px-3 py-1 rounded-full leading-none flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-xs">verified</span>
+              Plano Vitalício Unificado
+            </span>
+            <span className="text-[10px] text-primary font-bold bg-primary/10 border border-primary/25 px-2.5 py-1 rounded-full">
+              Sem Mensalidades
+            </span>
+          </div>
+
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight mt-1">
+            Plano Vitalício Meu Caixa Organizado
           </h2>
-          <p className="text-xs text-on-surface-variant/70 font-normal leading-relaxed max-w-sm">
-            Controle financeiro simples hoje. <br />
-            Recursos inteligentes para crescer amanhã.
+          <p className="text-xs sm:text-sm text-on-surface-variant/80 font-normal leading-relaxed max-w-2xl">
+            Todos os recursos do sistema unificados em um único plano vitalício por apenas <strong className="text-primary font-bold">R$ 49,90</strong>. Sem mensalidades, sem taxas adicionais e com acesso permanente a todas as ferramentas.
           </p>
         </div>
+
         <button
           onClick={() => onNavigateToTab('dashboard')}
           className="w-9 h-9 rounded-full bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant/30 flex items-center justify-center cursor-pointer transition-colors shrink-0 mt-1 lg:hidden"
@@ -59,309 +109,135 @@ export default function Plans({ profile, onUpdatePlan, onNavigateToTab, onShowUp
         </button>
       </div>
 
-      {/* Plans comparison cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
-        {/* Card MCO Essencial */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25 }}
-          className={`glass-card rounded-[24px] p-5.5 sm:p-6 border flex flex-col gap-5 bg-gradient-to-br from-white/[0.01] to-transparent ${
-            currentPlan === 'essential'
-              ? 'border-white/10 ring-1 ring-white/5'
-              : 'border-white/5 opacity-90'
-          }`}
-        >
-          {/* Top Info */}
-          <div className="flex justify-between items-start">
-            <div className="flex flex-col gap-1.5 text-left">
-              <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-on-surface">MCO Essencial</h3>
-                <span className="text-[9px] uppercase tracking-wider font-medium px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-on-surface-variant/80">
-                  Plano de Entrada
-                </span>
-              </div>
-              <p className="text-xs text-on-surface-variant/80 leading-relaxed font-normal">
-                Ideal para autônomos, MEIs e pequenos empreendedores que desejam organizar o fluxo de caixa de forma prática.
-              </p>
-            </div>
-          </div>
+      {/* Main Lifetime Plan Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+        className="glass-card rounded-[32px] p-6 sm:p-9 border border-primary/30 relative overflow-hidden bg-gradient-to-br from-[#1b152d] via-[#140f24] to-[#0e0a1b] shadow-2xl flex flex-col gap-8"
+      >
+        {/* Ambient Gradient Glows */}
+        <div className="absolute -top-24 -right-24 w-72 h-72 bg-primary/20 rounded-full filter blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-emerald-500/10 rounded-full filter blur-3xl pointer-events-none" />
 
-          {/* Price Layout */}
-          <div className="flex items-baseline gap-2.5 text-left py-1">
-            <span className="text-3xl font-extrabold text-on-surface tracking-tight">R$ 27,90</span>
-            <div className="flex flex-col">
-              <span className="text-[10px] font-medium text-emerald-400 bg-emerald-500/5 border border-emerald-500/10 px-1.5 py-0.5 rounded w-max leading-none">
-                Acesso Vitalício
-              </span>
-              <span className="text-[9px] text-on-surface-variant/60 font-medium mt-1 leading-none">
-                Pagamento único
-              </span>
-            </div>
-          </div>
-
-          {/* Button */}
-          {currentPlan === 'pro' ? (
-            <button
-              disabled
-              className="w-full py-3 rounded-xl text-xs font-semibold bg-white/[0.02] border border-white/5 text-on-surface-variant/40 cursor-not-allowed text-center transition-all"
-            >
-              Seu plano atual oferece recursos superiores.
-            </button>
-          ) : currentPlan === 'essential' ? (
-            <button
-              disabled
-              className="w-full py-3 rounded-xl text-xs font-bold bg-white/5 border border-white/10 text-on-surface-variant/70 cursor-default text-center transition-all"
-            >
-              Seu Plano Ativo
-            </button>
-          ) : (
-            <button
-              onClick={() => handleSelectPlan('essential')}
-              className="w-full py-3 rounded-xl text-xs font-bold bg-surface-container-high hover:bg-surface-container-highest text-on-surface border border-outline-variant/30 hover:-translate-y-0.5 cursor-pointer text-center transition-all"
-            >
-              Ativar MCO Essencial
-            </button>
-          )}
-
-          {/* Division */}
-          <div className="border-t border-white/5" />
-
-          {/* Included Features */}
-          <div className="flex flex-col gap-3">
-            <span className="text-[9px] font-bold text-on-surface-variant/60 tracking-wider uppercase text-left leading-none">
-              Recursos inclusos
-            </span>
-            <div className="flex flex-col gap-2.5 text-left">
-              {[
-                'Dashboard Financeiro',
-                'Entradas e Saídas',
-                'Histórico Completo',
-                'Categorias',
-                'Relatórios Financeiros',
-                'Controle Financeiro',
-                'Acesso Vitalício'
-              ].map((feature, i) => (
-                <div key={i} className="flex items-center gap-2 text-xs text-on-surface-variant">
-                  <span className="material-symbols-outlined text-xs text-emerald-400 select-none">check</span>
-                  <span className="font-normal">{feature}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Divider to premium features lock */}
-          <div className="border-t border-white/5" />
-
-          {/* Locked Pro features */}
-          <div className="flex flex-col gap-3">
-            <span className="text-[9px] font-bold text-on-surface-variant/50 tracking-wider uppercase text-left leading-none">
-              Recursos disponíveis apenas no MCO Completo
-            </span>
-            <div className="flex flex-col gap-2.5 text-left opacity-60">
-              {[
-                'Conta Pessoal & Gestão Dupla (PF + PJ)',
-                'Comparativo entre meses',
-                'Metas Financeiras e Orçamentos',
-                'Indicador de Saúde Financeira',
-                'Atualizações Vitalícias',
-                'Recursos exclusivos futuros'
-              ].map((feature, i) => (
-                <div key={i} className="flex items-center gap-2 text-xs text-on-surface-variant/75">
-                  <span className="material-symbols-outlined text-xs text-on-surface-variant/40 select-none">arrow_forward</span>
-                  <span className="font-normal">{feature}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-        </motion.div>
-
-        {/* Card MCO Completo */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25, delay: 0.1 }}
-          className={`glass-card rounded-[24px] p-6.5 sm:p-8 border flex flex-col gap-6 relative overflow-hidden bg-gradient-to-b from-primary/[0.04] to-transparent ${
-            currentPlan === 'pro'
-              ? 'border-primary/45 ring-1 ring-primary/20'
-              : 'border-primary/25 hover:border-primary/45 transition-all duration-300'
-          }`}
-        >
-          {/* Subtle gradient light flare background for the PRO card */}
-          <div className="absolute -top-16 -right-16 w-36 h-36 bg-primary/10 rounded-full filter blur-3xl pointer-events-none"></div>
-
-          {/* Top Info */}
-          <div className="flex justify-between items-start">
-            <div className="flex flex-col gap-2 text-left">
-              <div className="flex items-center gap-2">
-                <h3 className="text-lg font-bold text-on-surface">MCO Completo</h3>
-                <span className="text-[9px] uppercase tracking-wider font-extrabold px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary">
-                  Recomendado
-                </span>
-              </div>
-              <p className="text-xs text-on-surface-variant leading-relaxed font-normal">
-                Transforme seus lançamentos em informações estratégicas. Acompanhe a evolução do seu negócio, estabeleça metas e tenha acesso permanente às próximas atualizações do MCO.
-              </p>
-            </div>
-          </div>
-
-          {/* Price Layout */}
-          <div className="flex items-baseline justify-between py-1 border-b border-primary/10 pb-4">
-            <div className="flex items-baseline gap-2.5 text-left">
-              <span className="text-4xl font-extrabold text-primary tracking-tight">R$ 12,90</span>
-              <div className="flex flex-col">
-                <span className="text-[9px] font-bold text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded w-max leading-none mb-1">
-                  Valor do Upgrade (Plano R$ 47,00)
-                </span>
-                <span className="text-xs font-bold text-emerald-400">
-                  Acesso Vitalício
-                </span>
-                <span className="text-[9px] text-on-surface-variant/70 font-medium mt-0.5">
-                  Pagamento único
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* CTA Upgrade Button */}
-          {currentPlan === 'pro' ? (
-            <div className="flex flex-col gap-2">
-              <button
-                disabled
-                className="w-full py-3.5 rounded-xl text-xs font-bold bg-primary/10 border border-primary/20 text-primary cursor-default text-center transition-all flex items-center justify-center gap-1.5"
-              >
-                <span className="material-symbols-outlined text-sm">verified</span>
-                <span>Seu Plano Ativo</span>
-              </button>
-              {onShowUpgradeCelebration && (
-                <button
-                  type="button"
-                  onClick={onShowUpgradeCelebration}
-                  className="w-full py-2.5 rounded-xl text-[11px] font-bold text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-sm text-primary">workspace_premium</span>
-                  <span>Ver novidades do MCO Completo</span>
-                </button>
-              )}
-            </div>
-          ) : (
-            <a
-              href={CHECKOUT_PRO_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => {
-                if (typeof window !== 'undefined') {
-                  localStorage.setItem('mco_upgrade_intent_pending', 'true');
-                }
-              }}
-              className="w-full py-3.5 rounded-xl text-xs font-black bg-primary hover:bg-[#c0aeff] text-on-primary border border-primary/30 transition-all duration-200 shadow-[0_4px_12px_rgba(160,120,255,0.15)] hover:shadow-[0_6px_20px_rgba(160,120,255,0.3)] hover:-translate-y-0.5 cursor-pointer text-center flex items-center justify-center select-none"
-            >
-              Fazer Upgrade para MCO Completo
-            </a>
-          )}
-
-          {/* Features Checklist */}
-          <div className="flex flex-col gap-3">
-            <span className="text-[9px] font-bold text-primary/80 tracking-wider uppercase text-left leading-none">
-              Tudo do MCO Essencial +
-            </span>
-            <div className="flex flex-col gap-2.5 text-left">
-              {[
-                'Conta Pessoal & Gestão Dupla Integrada (PF + PJ)',
-                'Comparativo Financeiro entre Meses',
-                'Metas de Faturamento e Limites de Orçamento',
-                'Indicador de Saúde Financeira',
-                'Atualizações Vitalícias',
-                'Novos Recursos Exclusivos',
-                'Prioridade nas próximas funcionalidades'
-              ].map((feature, i) => (
-                <div key={i} className="flex items-center gap-2.5 text-xs text-on-surface">
-                  <span className="material-symbols-outlined text-xs text-primary select-none font-semibold">check_circle</span>
-                  <span className="font-normal leading-tight">{feature}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-        </motion.div>
-      </div>
-
-      {/* Trust Signpost / Conversion Guarantee */}
-      <div className="glass-card rounded-[20px] p-5 border border-white/5 flex gap-4 bg-primary/5 text-left">
-        <div className="w-9 h-9 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary flex-shrink-0">
-          <span className="material-symbols-outlined text-base">verified_user</span>
-        </div>
-        <div className="flex flex-col gap-1">
-          <span className="text-xs font-bold text-on-surface">Acesso Permanente Garantido</span>
-          <p className="text-[10px] text-on-surface-variant/85 leading-relaxed font-normal">
-            Seu pagamento é único e processado com segurança integral. Não cobramos mensalidades, assinaturas ou taxas extras futuras. Seu acesso é vitalício, incluindo qualquer melhoria e novos recursos exclusivos desenvolvidos para o MCO.
-          </p>
-        </div>
-      </div>
-
-      {/* Modal de confirmação/aquisição do MCO Completo */}
-      {showProModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 15 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 15 }}
-            className="w-full max-w-md bg-surface-container-high border border-white/10 rounded-[24px] p-6 text-center shadow-2xl relative overflow-hidden flex flex-col gap-5"
-          >
-            {/* Background premium gradient glow */}
-            <div className="absolute -top-24 -left-24 w-48 h-48 bg-primary/20 rounded-full filter blur-3xl pointer-events-none"></div>
-            <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-primary/10 rounded-full filter blur-3xl pointer-events-none"></div>
-
-            {/* Icon decoration */}
-            <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary relative">
-              <span className="material-symbols-outlined text-2xl">workspace_premium</span>
-              <span className="absolute -top-1 -right-1 bg-amber-400 text-black text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider scale-90">
-                COMPLETO
-              </span>
-            </div>
-
-            {/* Warning Message */}
-            <div className="flex flex-col gap-1.5">
-              <h3 className="text-base font-bold text-on-surface tracking-tight leading-snug">
-                Você ainda não tem acesso ao MCO Completo.
+        {/* Card Top Highlights */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10 border-b border-white/5 pb-6">
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-2">
+              <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                MCO Vitalício Completo
               </h3>
-              <p className="text-xs text-on-surface-variant/80 leading-relaxed font-normal">
-                Libere recursos avançados como Conta Pessoal com Gestão Dupla (PF + PJ), metas e orçamentos, comparativos mensais e suporte prioritário!
-              </p>
+              <span className="text-[10px] uppercase tracking-wider font-black px-2.5 py-0.5 rounded-full bg-gradient-to-r from-primary/30 to-purple-500/30 text-white border border-primary/40">
+                Acesso Total
+              </span>
             </div>
+            <p className="text-xs text-zinc-300 font-medium">
+              Gestão Financeira Empresarial e Pessoal para Autônomos, MEIs e Pequenas Empresas.
+            </p>
+          </div>
 
-            {/* Actions */}
-            <div className="flex flex-col gap-2.5 mt-1">
-              <a
-                href={CHECKOUT_PRO_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setShowProModal(false)}
-                className="w-full py-3.5 rounded-xl bg-primary hover:bg-[#c0aeff] text-on-primary font-bold text-xs transition-all duration-200 flex items-center justify-center gap-2 border border-primary/30 shadow-[0_4px_12px_rgba(160,120,255,0.15)] hover:shadow-[0_6px_20px_rgba(160,120,255,0.3)] select-none text-center"
-              >
-                <span className="material-symbols-outlined text-sm">shopping_bag</span>
-                Quero Acessar o MCO Completo
-              </a>
-              
-              <button
-                type="button"
-                onClick={() => setShowProModal(false)}
-                className="w-full py-3 rounded-xl bg-surface-container-low hover:bg-surface-container-highest text-on-surface-variant hover:text-on-surface border border-outline-variant/20 transition-all duration-200 text-xs font-bold cursor-pointer"
-              >
-                Voltar
-              </button>
+          {/* Price */}
+          <div className="flex items-baseline gap-3 bg-black/40 border border-white/10 rounded-2xl px-5 py-3">
+            <div className="flex flex-col text-right">
+              <span className="text-[11px] text-zinc-400 line-through">De R$ 197,00</span>
+              <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">Pagamento Único</span>
             </div>
-
-            {/* Security Note */}
-            <span className="text-[10px] text-on-surface-variant/60 font-semibold flex items-center justify-center gap-1 mt-1">
-              <span className="material-symbols-outlined text-xs">lock</span>
-              Pagamento 100% seguro & acesso vitalício imediato.
-            </span>
-          </motion.div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-3xl sm:text-4xl font-black text-white tracking-tight">
+                R$ 49,90
+              </span>
+            </div>
+          </div>
         </div>
-      )}
+
+        {/* Status & CTA Bar */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/[0.03] border border-white/10 rounded-2xl p-4 sm:p-5 relative z-10">
+          <div className="flex items-center gap-3.5 w-full sm:w-auto">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+              <span className="material-symbols-outlined text-2xl font-bold">verified</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-black text-white">
+                Seu Plano Vitalício está Ativo
+              </span>
+              <span className="text-xs text-zinc-400 font-medium">
+                Você tem acesso permanente e ilimitado a todos os módulos do sistema.
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 w-full sm:w-auto">
+            <button
+              onClick={() => onNavigateToTab('dashboard')}
+              className="w-full sm:w-auto px-6 py-3.5 rounded-xl text-xs font-black bg-gradient-to-r from-primary to-[#8b6eff] hover:from-[#8b6eff] hover:to-[#a18cff] text-white transition-all shadow-[0_4px_16px_rgba(124,58,237,0.35)] cursor-pointer text-center flex items-center justify-center gap-2"
+            >
+              <span>Acessar Meu Painel</span>
+              <span className="material-symbols-outlined text-sm">arrow_forward</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Features Grid */}
+        <div className="flex flex-col gap-4 relative z-10">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-black uppercase tracking-wider text-primary">
+              Tudo o que está incluído no seu plano vitalício (R$ 49,90)
+            </span>
+            <span className="text-[10px] text-zinc-400 font-medium">
+              100% Desbloqueado
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            {features.map((feat, idx) => (
+              <div
+                key={idx}
+                className="flex items-start gap-3 p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition-colors"
+              >
+                <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 mt-0.5">
+                  <span className="material-symbols-outlined text-base">{feat.icon}</span>
+                </div>
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-xs text-emerald-400 font-bold select-none">check_circle</span>
+                    <h4 className="text-xs font-bold text-white truncate">{feat.title}</h4>
+                  </div>
+                  <p className="text-[11px] text-zinc-400 font-normal leading-relaxed">
+                    {feat.description}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Bottom Trust Signpost */}
+        <div className="pt-4 border-t border-white/5 grid grid-cols-1 sm:grid-cols-3 gap-3 relative z-10 text-center sm:text-left">
+          <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/[0.02]">
+            <span className="material-symbols-outlined text-primary text-lg">lock</span>
+            <div className="flex flex-col">
+              <span className="text-[11px] font-bold text-white">Pagamento 100% Seguro</span>
+              <span className="text-[10px] text-zinc-400">Pix ou Cartão de Crédito</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/[0.02]">
+            <span className="material-symbols-outlined text-emerald-400 text-lg">event_busy</span>
+            <div className="flex flex-col">
+              <span className="text-[11px] font-bold text-white">Sem Mensalidades</span>
+              <span className="text-[10px] text-zinc-400">Pague R$ 49,90 uma única vez</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/[0.02]">
+            <span className="material-symbols-outlined text-amber-400 text-lg">update</span>
+            <div className="flex flex-col">
+              <span className="text-[11px] font-bold text-white">Atualizações Vitalícias</span>
+              <span className="text-[10px] text-zinc-400">Novos recursos sem custo</span>
+            </div>
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 }

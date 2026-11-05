@@ -1,0 +1,262 @@
+{
+  "trials": {
+    "cliente_vip@gmail.com": {
+      "id": "trial_1793647772179_5l7sf",
+      "user_id": "usr_123",
+      "email": "cliente_vip@gmail.com",
+      "admin_id": "local",
+      "admin_email": "kaiopatrick42@gmail.com",
+      "duration_minutes": 60,
+      "released_at": "2026-11-02T19:29:32.179Z",
+      "started_at": "2026-11-02T19:29:32.864Z",
+      "expires_at": "2026-11-02T20:29:32.864Z",
+      "status": "cancelled",
+      "extensions_count": 1,
+      "notes": "Liberado pelo chat da IA",
+      "updated_at": "2026-11-02T19:29:34.658Z"
+    },
+    "kaiopatrick42@gmail.com": {
+      "id": "trial_1793648061308_qvxf0",
+      "user_id": "usr_kaio",
+      "email": "kaiopatrick42@gmail.com",
+      "admin_id": "local",
+      "admin_email": "kaiopatrick42@gmail.com",
+      "duration_minutes": 1,
+      "released_at": "2026-11-02T19:36:37.679Z",
+      "started_at": "2026-11-02T19:36:43.777Z",
+      "expires_at": "2026-11-02T19:37:43.777Z",
+      "status": "expired",
+      "extensions_count": 0,
+      "notes": "Liberado pelo chat da IA",
+      "updated_at": "2026-11-02T19:37:44.111Z"
+    },
+    "aparecidasantos3006@gmail.com": {
+      "id": "trial_1793648264506_82r8r",
+      "user_id": null,
+      "email": "aparecidasantos3006@gmail.com",
+      "admin_id": "local",
+      "admin_email": "kaiopatrick42@gmail.com",
+      "duration_minutes": 30,
+      "released_at": "2026-11-02T19:37:44.506Z",
+      "started_at": null,
+      "expires_at": null,
+      "status": "pending",
+      "extensions_count": 0,
+      "notes": "Liberado pelo chat da IA",
+      "updated_at": "2026-11-02T19:37:44.506Z"
+    },
+    "janiootavio1@gmail.com": {
+      "id": "trial_1793648324782_o74ob",
+      "user_id": null,
+      "email": "janiootavio1@gmail.com",
+      "admin_id": "local",
+      "admin_email": "kaiopatrick42@gmail.com",
+      "duration_minutes": 30,
+      "released_at": "2026-11-02T19:38:44.782Z",
+      "started_at": null,
+      "expires_at": null,
+      "status": "pending",
+      "extensions_count": 0,
+      "notes": "Liberado pelo chat da IA",
+      "updated_at": "2026-11-02T19:38:44.782Z"
+    },
+    "tester_expiring_account@mco.test": {
+      "id": "trial_1793649335562_dcr3g",
+      "user_id": "test_user_777",
+      "email": "tester_expiring_account@mco.test",
+      "admin_id": "admin_123",
+      "admin_email": "kaiopatrick42@gmail.com",
+      "duration_minutes": 1,
+      "released_at": "2026-11-02T19:55:35.562Z",
+      "started_at": "2026-11-02T19:55:36.516Z",
+      "expires_at": "2026-11-02T19:55:26.643Z",
+      "status": "expired",
+      "extensions_count": 0,
+      "notes": "Liberado pelo chat da IA",
+      "updated_at": "2026-11-02T19:55:36.516Z"
+    }
+  },
+  "auditLogs": [
+    {
+      "id": "audit_1793647772497_503tl",
+      "trial_id": "trial_1793647772179_5l7sf",
+      "admin_id": "local",
+      "admin_email": "kaiopatrick42@gmail.com",
+      "target_email": "cliente_vip@gmail.com",
+      "action": "grant",
+      "details": {
+        "durationMinutes": 30
+      },
+      "created_at": "2026-11-02T19:29:32.497Z"
+    },
+    {
+      "id": "audit_1793647773501_8ljei",
+      "admin_id": "local",
+      "admin_email": "kaiopatrick42@gmail.com",
+      "target_email": "cliente_vip@gmail.com",
+      "action": "check_status",
+      "details": {},
+      "created_at": "2026-11-02T19:29:33.501Z"
+    },
+    {
+      "id": "audit_1793647774066_kac2v",
+      "trial_id": "trial_1793647772179_5l7sf",
+      "admin_id": "local",
+      "admin_email": "kaiopatrick42@gmail.com",
+      "target_email": "cliente_vip@gmail.com",
+      "action": "extend",
+      "details": {
+        "additionalMinutes": 30,
+        "newExpiresAt": "2026-11-02T20:29:32.864Z"
+      },
+      "created_at": "2026-11-02T19:29:34.066Z"
+    },
+    {
+      "id": "audit_1793647774978_g61rk",
+      "trial_id": "trial_1793647772179_5l7sf",
+      "admin_id": "local",
+      "admin_email": "kaiopatrick42@gmail.com",
+      "target_email": "cliente_vip@gmail.com",
+      "action": "cancel",
+      "details": {},
+      "created_at": "2026-11-02T19:29:34.978Z"
+    },
+    {
+      "id": "audit_1793648061625_31ssr",
+      "trial_id": "trial_1793648061308_qvxf0",
+      "admin_id": "admin_kaio",
+      "admin_email": "kaiopatrick42@gmail.com",
+      "target_email": "kaiopatrick42@gmail.com",
+      "action": "grant",
+      "details": {
+        "durationMinutes": 30,
+        "notes": "Teste inicial"
+      },
+      "created_at": "2026-11-02T19:34:21.625Z"
+    },
+    {
+      "id": "audit_1793648062620_souht",
+      "trial_id": "trial_1793648061308_qvxf0",
+      "admin_id": "admin_kaio",
+      "admin_email": "kaiopatrick42@gmail.com",
+      "target_email": "kaiopatrick42@gmail.com",
+      "action": "cancel",
+      "details": {
+        "reason": "Cancelado a pedido do administrador"
+      },
+      "created_at": "2026-11-02T19:34:22.620Z"
+    },
+    {
+      "id": "audit_1793648197949_6bzp7",
+      "trial_id": "trial_1793648061308_qvxf0",
+      "admin_id": "local",
+      "admin_email": "kaiopatrick42@gmail.com",
+      "target_email": "kaiopatrick42@gmail.com",
+      "action": "grant",
+      "details": {
+        "durationMinutes": 1
+      },
+      "created_at": "2026-11-02T19:36:37.949Z"
+    },
+    {
+      "id": "audit_1793648265121_xd3uj",
+      "trial_id": "trial_1793648264506_82r8r",
+      "admin_id": "local",
+      "admin_email": "kaiopatrick42@gmail.com",
+      "target_email": "aparecidasantos3006@gmail.com",
+      "action": "grant",
+      "details": {
+        "durationMinutes": 30
+      },
+      "created_at": "2026-11-02T19:37:45.121Z"
+    },
+    {
+      "id": "audit_1793648325126_xsucc",
+      "trial_id": "trial_1793648324782_o74ob",
+      "admin_id": "local",
+      "admin_email": "kaiopatrick42@gmail.com",
+      "target_email": "janiootavio1@gmail.com",
+      "action": "grant",
+      "details": {
+        "durationMinutes": 30
+      },
+      "created_at": "2026-11-02T19:38:45.127Z"
+    },
+    {
+      "id": "audit_1793649248679_cu8gw",
+      "admin_id": "user",
+      "admin_email": "test_user@example.com",
+      "target_email": "test_user@example.com",
+      "action": "check_status",
+      "details": {
+        "event": "hire_intent_click",
+        "planName": "MCO Completo",
+        "timestamp": "2026-11-02T19:54:08.679Z"
+      },
+      "created_at": "2026-11-02T19:54:08.679Z"
+    },
+    {
+      "id": "audit_1793649251884_bfy1j",
+      "admin_id": "user_confirmed",
+      "admin_email": "random_non_trial_user@domain.com",
+      "target_email": "random_non_trial_user@domain.com",
+      "action": "cancel",
+      "details": {
+        "reason": "Exclusão confirmada pelo usuário após encerramento do teste",
+        "deletedUserId": "regular_user_id"
+      },
+      "created_at": "2026-11-02T19:54:11.884Z"
+    },
+    {
+      "id": "audit_1793649278521_yz0vx",
+      "admin_id": "user",
+      "admin_email": "test_user@example.com",
+      "target_email": "test_user@example.com",
+      "action": "check_status",
+      "details": {
+        "event": "hire_intent_click",
+        "planName": "MCO Completo",
+        "timestamp": "2026-11-02T19:54:38.520Z"
+      },
+      "created_at": "2026-11-02T19:54:38.521Z"
+    },
+    {
+      "id": "audit_1793649318817_sd3hj",
+      "admin_id": "user",
+      "admin_email": "test_user@example.com",
+      "target_email": "test_user@example.com",
+      "action": "check_status",
+      "details": {
+        "event": "hire_intent_click",
+        "planName": "MCO Completo",
+        "timestamp": "2026-11-02T19:55:18.817Z"
+      },
+      "created_at": "2026-11-02T19:55:18.817Z"
+    },
+    {
+      "id": "audit_1793649334600_8ldtg",
+      "admin_id": "user",
+      "admin_email": "test_user@example.com",
+      "target_email": "test_user@example.com",
+      "action": "check_status",
+      "details": {
+        "event": "hire_intent_click",
+        "planName": "MCO Completo",
+        "timestamp": "2026-11-02T19:55:34.600Z"
+      },
+      "created_at": "2026-11-02T19:55:34.600Z"
+    },
+    {
+      "id": "audit_1793649335878_o6408",
+      "trial_id": "trial_1793649335562_dcr3g",
+      "admin_id": "admin_123",
+      "admin_email": "kaiopatrick42@gmail.com",
+      "target_email": "tester_expiring_account@mco.test",
+      "action": "grant",
+      "details": {
+        "durationMinutes": 1
+      },
+      "created_at": "2026-11-02T19:55:35.878Z"
+    }
+  ]
+}

@@ -185,60 +185,6 @@ export default function Categories({ profile, userId, onNavigateToPlanos }: Cate
     setFormError(null);
   };
 
-  // Lock screen if user is not Pro
-  if (!isPro) {
-    return (
-      <div className="flex flex-col items-center justify-center py-10 px-4 select-none">
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="w-full max-w-lg rounded-[32px] p-6 sm:p-8 bg-gradient-to-b from-[#1c1533] via-[#140e26] to-[#0e0a1b] border border-primary/30 text-center shadow-2xl relative overflow-hidden"
-        >
-          <div className="absolute top-0 right-0 w-48 h-48 bg-primary/20 rounded-full filter blur-3xl pointer-events-none"></div>
-          
-          <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center border border-primary/35 shadow-[0_0_25px_rgba(208,188,255,0.3)] mx-auto mb-4 text-primary">
-            <span className="material-symbols-outlined text-primary text-3xl font-black">lock</span>
-          </div>
-
-          <span className="text-[10px] font-black tracking-widest text-primary uppercase bg-primary/15 px-3 py-1 rounded-full border border-primary/30">
-            Recurso Exclusivo MCO Completo
-          </span>
-
-          <h3 className="text-xl sm:text-2xl font-black text-white mt-4 tracking-tight">
-            Gerenciamento de Categorias
-          </h3>
-          
-          <p className="text-xs text-zinc-400 leading-relaxed mt-2 max-w-sm mx-auto font-medium">
-            Crie categorias financeiras personalizadas ilimitadas com cores e ícones dedicados para mapear o seu negócio com precisão cirúrgica.
-          </p>
-
-          <div className="mt-6 p-4 rounded-2xl bg-black/40 border border-white/5 flex flex-col gap-2.5 text-left text-xs text-zinc-300">
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-base">check_circle</span>
-              <span>Personalize ícones e cores de categorias</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-base">check_circle</span>
-              <span>Crie categorias de Receitas e Despesas exclusivas</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-base">check_circle</span>
-              <span>Visualização completa nos gráficos e dashboards</span>
-            </div>
-          </div>
-
-          <button
-            onClick={onNavigateToPlanos}
-            className="w-full bg-gradient-to-r from-[#6d3bd7] to-[#8b4bf0] hover:from-[#7c44ea] hover:to-[#9a5df7] text-white font-extrabold py-4 rounded-2xl flex items-center justify-center gap-2.5 transition-all duration-300 shadow-[0_4px_20px_rgba(109,59,215,0.4)] cursor-pointer mt-6 select-none border border-primary/40 text-sm"
-          >
-            <span className="material-symbols-outlined text-base font-bold">workspace_premium</span>
-            <span>Fazer Upgrade para o MCO Completo</span>
-          </button>
-        </motion.div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col gap-6 select-none pb-12 text-left">
       {/* Upper header action area */}

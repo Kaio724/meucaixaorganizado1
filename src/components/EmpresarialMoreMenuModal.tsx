@@ -74,12 +74,12 @@ export default function EmpresarialMoreMenuModal({
     },
     {
       id: 'planos' as ActiveTab,
-      label: isPro ? 'Seu Plano: MCO PRO' : 'Upgrade de Plano',
-      description: isPro ? 'Todos os recursos PRO ativados' : 'Desbloqueie conta dupla, IA ilimitada e automações',
+      label: 'Plano Vitalício',
+      description: 'Acesso permanente completo (R$ 49,90)',
       icon: Sparkles,
-      color: 'text-primary',
-      bgColor: 'bg-primary/20 border-primary/35',
-      badge: isPro ? 'ATIVO' : 'PRO'
+      color: 'text-emerald-400',
+      bgColor: 'bg-emerald-500/20 border-emerald-500/35',
+      badge: 'VITALÍCIO'
     }
   ];
 

@@ -429,51 +429,24 @@ export default function Summary({ transactions, profile, onNavigateToPlanos }: S
               </div>
               <h4 className="text-sm font-extrabold text-white">Projeção de Lucro Futuro</h4>
             </div>
-            {isPro ? (
-              <span className="text-[9px] uppercase font-extrabold text-primary px-2.5 py-1 rounded-full bg-primary/20 border border-primary/30">
-                Desbloqueado MCO Completo
-              </span>
-            ) : (
-              <span className="text-[9px] uppercase font-bold text-zinc-400 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 flex items-center gap-1">
-                <span className="material-symbols-outlined text-[10px]">lock</span>
-                Recurso MCO Completo
-              </span>
-            )}
+            <span className="text-[9px] uppercase font-extrabold text-emerald-400 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center gap-1">
+              <span className="material-symbols-outlined text-xs">verified</span>
+              Plano Vitalício
+            </span>
           </div>
           
-          {isPro ? (
-            <div className="flex flex-col gap-3 z-10">
-              <p className="text-xs text-zinc-400 font-medium leading-relaxed">
-                Com base nos seus lançamentos recentes, sua projeção de faturamento para os próximos 30 dias é de:
-              </p>
-              <div className="bg-black/40 p-4 rounded-2xl border border-white/5 flex justify-between items-center">
-                <span className="text-xs text-zinc-400 font-semibold">Expectativa de Sobra</span>
-                <span className="text-base font-extrabold text-emerald-400">{formatBRL(netBalance * 1.12)}</span>
-              </div>
-              <p className="text-[10px] text-zinc-500 font-medium">
-                *A projeção considera um aumento sazonal estimado de 12% baseado no histórico do seu segmento de {profile.businessType === 'cnpj' ? 'MEI' : 'Autônomo'}.
-              </p>
+          <div className="flex flex-col gap-3 z-10">
+            <p className="text-xs text-zinc-400 font-medium leading-relaxed">
+              Com base nos seus lançamentos recentes, sua projeção de faturamento para os próximos 30 dias é de:
+            </p>
+            <div className="bg-black/40 p-4 rounded-2xl border border-white/5 flex justify-between items-center">
+              <span className="text-xs text-zinc-400 font-semibold">Expectativa de Sobra</span>
+              <span className="text-base font-extrabold text-emerald-400">{formatBRL(netBalance * 1.12)}</span>
             </div>
-          ) : (
-            <div className="flex flex-col gap-3 z-10">
-              <p className="text-xs text-zinc-400 font-medium leading-relaxed">
-                Gostaria de ver estimativas automáticas do seu caixa para os próximos meses com base em inteligência artificial?
-              </p>
-              <div className="filter blur-[3px] bg-black/40 p-4 rounded-2xl border border-white/5 flex justify-between items-center select-none pointer-events-none">
-                <span className="text-xs text-zinc-400">Expectativa de Sobra</span>
-                <span className="text-sm font-bold text-emerald-400">R$ 5.420,00</span>
-              </div>
-              <div className="flex items-center justify-between pt-1">
-                <span className="text-[10px] text-zinc-500 font-medium">Faça o upgrade para liberar a inteligência financeira.</span>
-                <button 
-                  onClick={() => onNavigateToPlanos?.()}
-                  className="text-xs font-extrabold text-primary hover:text-[#bca1f7] transition-colors cursor-pointer flex items-center gap-1"
-                >
-                  Ver Planos <span className="material-symbols-outlined text-xs">arrow_forward</span>
-                </button>
-              </div>
-            </div>
-          )}
+            <p className="text-[10px] text-zinc-500 font-medium">
+              *A projeção considera a média histórica do seu segmento de {profile.businessType === 'cnpj' ? 'MEI' : 'Autônomo'}.
+            </p>
+          </div>
         </div>
       </div>
     </div>

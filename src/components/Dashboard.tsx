@@ -317,12 +317,9 @@ export default function Dashboard({
               <span className="text-xs text-zinc-400 font-medium tracking-wider uppercase">
                 {profile.businessType === 'cnpj' ? 'MEI' : 'Autônomo'}
               </span>
-              <span className={`text-[9px] px-2 py-0.5 rounded-full uppercase font-extrabold border ${
-                (profile.plan || 'essential') === 'pro'
-                  ? 'bg-primary/20 text-primary border-primary/30'
-                  : 'bg-white/10 text-zinc-400 border-white/10'
-              }`}>
-                {(profile.plan || 'essential') === 'pro' ? 'MCO Completo' : 'MCO Essencial'}
+              <span className="text-[9px] px-2.5 py-0.5 rounded-full uppercase font-black tracking-wider border bg-emerald-500/15 text-emerald-400 border-emerald-500/30 flex items-center gap-1 select-none">
+                <span className="material-symbols-outlined text-[10px]">verified</span>
+                Plano Vitalício
               </span>
             </div>
             <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight truncate mt-0.5">
@@ -780,54 +777,21 @@ export default function Dashboard({
           )}
         </div>
 
-        {/* Section: Insights & Plano (PRO) */}
+        {/* Section: Insights & Plano Vitalício */}
         <div className="flex flex-col gap-4 mt-4">
-          {isPro ? (
-            <ProGrowthPanel
-              transactions={transactions}
-              isPro={isPro}
-              onUnlockPro={() => setShowProModal(true)}
-            />
-          ) : (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="rounded-2xl p-5 border border-primary/20 bg-gradient-to-r from-primary/10 to-transparent flex flex-col gap-3 relative overflow-hidden text-left"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black text-white bg-[#6934D1] px-2.5 py-0.5 rounded-full tracking-wider">
-                  MCO Completo
-                </span>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <h3 className="text-sm font-bold text-white tracking-tight">
-                  Desbloqueie o potencial completo do MCO
-                </h3>
-                <p className="text-xs text-zinc-400 font-medium leading-relaxed">
-                  Gráficos avançados, relatórios comparativos, projeções de crescimento e mais.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowProModal(true)}
-                className="mt-1 w-full py-2.5 rounded-xl bg-primary hover:bg-[#8b6eff] text-white font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
-              >
-                Conhecer o MCO Completo
-              </button>
-            </motion.div>
-          )}
+          <ProGrowthPanel
+            transactions={transactions}
+            isPro={true}
+            onUnlockPro={() => setShowProModal(false)}
+          />
         </div>
 
-        {/* Insights PRO Adicionais */}
-        {isPro && (
-          <div className="flex flex-col gap-4 mt-2">
-            <EvolutionCard transactions={transactions} />
-            <MonthComparison transactions={transactions} />
-            <ProInsights transactions={transactions} />
-          </div>
-        )}
+        {/* Insights Adicionais */}
+        <div className="flex flex-col gap-4 mt-2">
+          <EvolutionCard transactions={transactions} />
+          <MonthComparison transactions={transactions} />
+          <ProInsights transactions={transactions} />
+        </div>
 
       </div>
 

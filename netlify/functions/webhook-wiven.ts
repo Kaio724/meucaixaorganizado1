@@ -97,9 +97,9 @@ export const handler = async (event: any) => {
     const offerCode = String(offer.code || offer.id || body.offer_code || body.offerCode || body.offer || '').trim().toLowerCase();
     const productName = String(product.name || product.title || body.product_name || body.product || '').trim().toLowerCase();
 
-    // Regra atualizada: TODOS que adquirirem o sistema a partir de agora já entram com acesso ao MCO COMPLETO ('pro')
+    // Regra atualizada: TODOS que adquirirem o sistema entram com o Plano Vitalício de R$ 49,90
     const plan: 'pro' | 'essential' = 'pro';
-    const planName = 'MCO Completo';
+    const planName = 'Plano Vitalício';
 
     // Supabase Admin connection
     const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || 'https://yfbgauajvijwngvhrkms.supabase.co';

@@ -43,18 +43,12 @@ export function getSupabase() {
 
 // Map db row to UserProfile
 export function mapDbProfileToUserProfile(row: any): UserProfile {
-  const userId = row?.id;
-  let localPlan: string | null = null;
-  if (userId && typeof window !== 'undefined') {
-    localPlan = localStorage.getItem(`mco_profile_plan_${userId}`);
-  }
-  const resolvedPlan = row?.plano || localPlan || 'pro';
   return {
     name: row.nome || '',
     businessName: row.nome_negocio || '',
     businessType: row.tipo_negocio === 'mei' ? 'cnpj' : 'autonomo',
     isOnboarded: true,
-    plan: resolvedPlan === 'essential' ? 'essential' : 'pro',
+    plan: 'vitalicio',
   };
 }
 
@@ -365,13 +359,12 @@ export async function fetchProfile(userId: string): Promise<UserProfile | null> 
 
     // If we have a special case, we can return a basic profile if we're completely offline
     if (userId && userId !== 'local') {
-      const isPro = localStorage.getItem(`mco_profile_plan_${userId}`) === 'pro';
       return {
         name: 'Usuário MCO',
         businessName: 'Meu Negócio',
         businessType: 'autonomo',
         isOnboarded: true,
-        plan: isPro ? 'pro' : 'essential',
+        plan: 'vitalicio',
       };
     }
 
@@ -386,7 +379,7 @@ export async function upsertProfile(userId: string, profile: UserProfile): Promi
   }
 
   // Update plan in local storage cache
-  localStorage.setItem(`mco_profile_plan_${userId}`, profile.plan || 'pro');
+  localStorage.setItem(`mco_profile_plan_${userId}`, 'vitalicio');
   localStorage.setItem(`mco_cached_profile_${userId}`, JSON.stringify(profile));
 
   const supabase = getSupabase();
