@@ -34,7 +34,6 @@ interface AiReportsChatProps {
   accountType: AccountType;
   transactions: Transaction[];
   authToken?: string;
-  userEmail?: string;
   onNavigateToTab?: (tab: any) => void;
 }
 
@@ -77,14 +76,9 @@ export default function AiReportsChat({
   accountType,
   transactions,
   authToken,
-  userEmail,
   onNavigateToTab,
 }: AiReportsChatProps) {
   const isPro = (profile.plan || 'essential') === 'pro';
-  const emailLower = userEmail?.toLowerCase();
-  const isAdmin = 
-    emailLower === 'kaiopatrick42@gmail.com' || 
-    emailLower === 'kaioparick42@gmail.com';
 
   const [conversations, setConversations] = useState<AiConversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
@@ -214,7 +208,6 @@ export default function AiReportsChat({
         transactions,
         authToken,
         userId,
-        userEmail,
       });
 
       const assistantMessage: AiChatMessage = {
@@ -470,54 +463,6 @@ export default function AiReportsChat({
                   );
                 })}
               </div>
-
-              {/* Admin Quick Trial Control Panel */}
-              {isAdmin && (
-                <div className="w-full mt-4 p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-amber-500/10 border border-amber-500/30 text-left flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-sm">admin_panel_settings</span>
-                      Painel Administrativo: Liberação de Testes
-                    </span>
-                    <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-200 border border-amber-500/30 font-bold">
-                      ADMIN
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-zinc-300 leading-tight">
-                    Envie comandos em linguagem natural para gerenciar períodos de teste:
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setInputMessage('Liberar teste de 30 minutos para ')}
-                      className="px-2.5 py-1.5 rounded-xl bg-black/40 hover:bg-black/60 border border-amber-500/20 hover:border-amber-400 text-amber-200 text-[10px] font-bold text-left transition-all truncate cursor-pointer"
-                    >
-                      ⏱️ Liberar teste de 30 minutos para [email]
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setInputMessage('Liberar teste de 1 hora para ')}
-                      className="px-2.5 py-1.5 rounded-xl bg-black/40 hover:bg-black/60 border border-amber-500/20 hover:border-amber-400 text-amber-200 text-[10px] font-bold text-left transition-all truncate cursor-pointer"
-                    >
-                      ⏳ Liberar teste de 1 hora para [email]
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setInputMessage('Consultar o status do teste de ')}
-                      className="px-2.5 py-1.5 rounded-xl bg-black/40 hover:bg-black/60 border border-amber-500/20 hover:border-amber-400 text-amber-200 text-[10px] font-bold text-left transition-all truncate cursor-pointer"
-                    >
-                      🔍 Consultar status do teste de [email]
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setInputMessage('Estender o teste de [email] por mais 30 minutos')}
-                      className="px-2.5 py-1.5 rounded-xl bg-black/40 hover:bg-black/60 border border-amber-500/20 hover:border-amber-400 text-amber-200 text-[10px] font-bold text-left transition-all truncate cursor-pointer"
-                    >
-                      ➕ Estender teste por +30 min
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
           )}
 

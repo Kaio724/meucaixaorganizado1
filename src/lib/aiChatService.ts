@@ -14,7 +14,6 @@ export async function sendAiChatMessage(params: {
   transactions: Transaction[];
   authToken?: string;
   userId?: string;
-  userEmail?: string;
   activeMonthYear?: { year: number; month: number };
 }): Promise<{ reply: string; title?: string }> {
   const headers: Record<string, string> = {
@@ -35,7 +34,6 @@ export async function sendAiChatMessage(params: {
       accountType: params.accountType,
       transactions: params.transactions,
       userId: params.userId,
-      userEmail: params.userEmail,
       activeMonthYear: params.activeMonthYear,
     }),
   });

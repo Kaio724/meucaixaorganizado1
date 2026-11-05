@@ -8,15 +8,6 @@ import { createClient } from '@supabase/supabase-js';
 import { processWivenWebhook } from './src/lib/wivenWebhook';
 import { buildFinancialContext, buildPromptContextText } from './src/lib/aiFinancialContext';
 import { mapDbToTransaction } from './src/lib/supabase';
-import { 
-  isAuthorizedAdmin, 
-  grantTrial, 
-  extendTrial, 
-  cancelTrial, 
-  checkTrialStatusForAdmin, 
-  evaluateUserTrialAccess, 
-  parseTrialNaturalLanguageCommand 
-} from './src/lib/trialService';
 
 // Load environment variables from .env
 dotenv.config();
@@ -404,9 +395,6 @@ app.post('/api/ai-reports/chat', async (req, res) => {
 
     // Verify authentication if token provided
     let verifiedUserId = clientUserId;
-    let verifiedUserEmail = (req.body.userEmail as string) || '';
-    let isUserAdmin = false;
-
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.split(' ')[1];
@@ -415,80 +403,11 @@ app.post('/api/ai-reports/chat', async (req, res) => {
           const { data: { user }, error: authErr } = await supabaseServerClient.auth.getUser(token);
           if (user && !authErr) {
             verifiedUserId = user.id;
-            if (user.email) verifiedUserEmail = user.email;
-            isUserAdmin = isAuthorizedAdmin(user.email) || user.user_metadata?.role === 'admin' || user.app_metadata?.role === 'admin';
           }
         } catch (e) {
           console.warn('[AI Reports] Não foi possível verificar token Bearer:', e);
         }
       }
-    }
-
-    if (!isUserAdmin && verifiedUserEmail) {
-      isUserAdmin = isAuthorizedAdmin(verifiedUserEmail);
-    }
-
-    // ==========================================
-    // SISTEMA DE TESTE CONTROLADO POR IA (MCO)
-    // Interceptação e Execução Segura de Comandos de Teste
-    // ==========================================
-    const trialCommand = parseTrialNaturalLanguageCommand(message);
-    if (trialCommand.isTrialCommand) {
-      // 1. REQUISITO CRÍTICO: Validação de Administrador
-      if (!isUserAdmin) {
-        return res.json({
-          reply: '⚠️ **Acesso negado:** Você não possui permissão de administrador para gerenciar períodos de teste no MCO. Esta operação é restrita exclusivamente à administração do sistema.',
-          isTrialAction: true,
-          title: 'Operação Restrita'
-        });
-      }
-
-      // 2. Se falta e-mail, solicitar ao administrador
-      if (!trialCommand.targetEmail) {
-        return res.json({
-          reply: 'Por favor, informe o e-mail da conta para a qual deseja realizar a operação de teste (ex: `Liberar teste de 30 minutos para usuario@email.com`).',
-          isTrialAction: true,
-          title: 'Gerenciar Teste'
-        });
-      }
-
-      // 3. Execução segura das operações administrativas
-      let actionResult: { success: boolean; message: string; trial?: any } = { success: false, message: '' };
-
-      if (trialCommand.action === 'grant') {
-        actionResult = await grantTrial(
-          verifiedUserId,
-          verifiedUserEmail || 'kaiopatrick42@gmail.com',
-          trialCommand.targetEmail,
-          trialCommand.durationMinutes || 30
-        );
-      } else if (trialCommand.action === 'extend') {
-        actionResult = await extendTrial(
-          verifiedUserId,
-          verifiedUserEmail || 'kaiopatrick42@gmail.com',
-          trialCommand.targetEmail,
-          trialCommand.durationMinutes || 30
-        );
-      } else if (trialCommand.action === 'cancel') {
-        actionResult = await cancelTrial(
-          verifiedUserId,
-          verifiedUserEmail || 'kaiopatrick42@gmail.com',
-          trialCommand.targetEmail
-        );
-      } else if (trialCommand.action === 'check_status') {
-        actionResult = await checkTrialStatusForAdmin(
-          verifiedUserId,
-          verifiedUserEmail || 'kaiopatrick42@gmail.com',
-          trialCommand.targetEmail
-        );
-      }
-
-      return res.json({
-        reply: actionResult.message,
-        isTrialAction: true,
-        title: 'Gerenciamento de Teste',
-        trial: actionResult.trial
-      });
     }
 
     // Check Gemini API Key
@@ -498,7 +417,6 @@ app.post('/api/ai-reports/chat', async (req, res) => {
         error: 'A chave da API do Google Gemini (GEMINI_API_KEY) não está configurada no servidor. Configure-a nas variáveis de ambiente para ativar o assistente inteligente.'
       });
     }
-
 
     // Retrieve authorized transactions
     // Prefer querying directly from Supabase for verified cloud users to guarantee server-side isolation
@@ -654,97 +572,6 @@ ${financialContextText}`;
     return res.status(500).json({
       error: error.message || 'Erro ao processar a análise com a inteligência artificial. Por favor, tente novamente.'
     });
-  }
-});
-
-// ==========================================
-// ENDPOINTS DO SISTEMA DE TESTES (MCO TRIAL)
-// ==========================================
-
-// Consulta e ativação de período de teste do usuário (Relógio oficial do servidor)
-app.get('/api/trial/status', async (req, res) => {
-  try {
-    let email = (req.query.email as string) || '';
-    let userId = (req.query.userId as string) || 'default_user';
-
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.split(' ')[1];
-      if (token) {
-        try {
-          const { data: { user } } = await supabaseServerClient.auth.getUser(token);
-          if (user) {
-            userId = user.id;
-            if (user.email) email = user.email;
-          }
-        } catch (e) {
-          // ignore
-        }
-      }
-    }
-
-    if (!email) {
-      return res.json({ isTrial: false, serverTime: new Date().toISOString() });
-    }
-
-    const trialStatus = await evaluateUserTrialAccess(userId, email);
-    return res.json(trialStatus);
-  } catch (error: any) {
-    console.error('[API Trial Status] Erro:', error);
-    return res.status(500).json({ error: error.message || 'Erro ao verificar status do teste' });
-  }
-});
-
-// Ação administrativa direta (grant, extend, cancel, check_status)
-app.post('/api/trial/admin/action', async (req, res) => {
-  try {
-    const { action, targetEmail, durationMinutes, notes } = req.body;
-    let adminEmail = req.body.adminEmail || '';
-    let adminId = req.body.adminId || 'admin';
-    let isAdmin = false;
-
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.split(' ')[1];
-      if (token) {
-        try {
-          const { data: { user } } = await supabaseServerClient.auth.getUser(token);
-          if (user) {
-            adminId = user.id;
-            adminEmail = user.email || adminEmail;
-            isAdmin = isAuthorizedAdmin(user.email) || user.user_metadata?.role === 'admin';
-          }
-        } catch (e) {
-          // ignore
-        }
-      }
-    }
-
-    if (!isAdmin && adminEmail) {
-      isAdmin = isAuthorizedAdmin(adminEmail);
-    }
-
-    if (!isAdmin) {
-      return res.status(403).json({ error: 'Acesso negado: Somente administradores autorizados podem gerenciar períodos de teste.' });
-    }
-
-    let result;
-    if (action === 'grant') {
-      result = await grantTrial(adminId, adminEmail, targetEmail, durationMinutes || 30, notes);
-    } else if (action === 'extend') {
-      result = await extendTrial(adminId, adminEmail, targetEmail, durationMinutes || 30, notes);
-    } else if (action === 'cancel') {
-      result = await cancelTrial(adminId, adminEmail, targetEmail, notes);
-    } else if (action === 'check_status') {
-      result = await checkTrialStatusForAdmin(adminId, adminEmail, targetEmail);
-    } else {
-      return res.status(400).json({ error: 'Ação inválida especificada.' });
-    }
-
-    return res.json(result);
-  } catch (error: any) {
-    console.error('[API Trial Action] Erro:', error);
-    return res.status(500).json({ error: error.message || 'Erro ao executar ação administrativa de teste' });
   }
 });
 

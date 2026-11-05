@@ -135,49 +135,4 @@ export interface RecorrenciaPessoal {
   created_at?: string;
 }
 
-// ==========================================
-// SISTEMA DE TESTE CONTROLADO POR IA (MCO)
-// ==========================================
-export type TrialStatus = 'pending' | 'active' | 'expired' | 'cancelled';
-
-export interface TrialRecord {
-  id: string;
-  user_id?: string | null;
-  email: string;
-  admin_id: string;
-  admin_email?: string;
-  duration_minutes: number;
-  released_at: string; // ISO 8601
-  started_at?: string | null; // ISO 8601
-  expires_at?: string | null; // ISO 8601
-  status: TrialStatus;
-  updated_at: string;
-  extensions_count: number;
-  notes?: string;
-}
-
-export interface TrialAuditLog {
-  id: string;
-  trial_id?: string;
-  admin_id: string;
-  admin_email?: string;
-  target_email: string;
-  action: 'grant' | 'extend' | 'cancel' | 'check_status';
-  details?: any;
-  created_at: string;
-}
-
-export interface TrialStatusResponse {
-  isTrial: boolean;
-  trial?: TrialRecord | null;
-  status?: TrialStatus;
-  remainingSeconds?: number;
-  startedAt?: string | null;
-  expiresAt?: string | null;
-  durationMinutes?: number;
-  expired?: boolean;
-  serverTime?: string;
-}
-
-
 

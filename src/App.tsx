@@ -28,10 +28,6 @@ import ContasPagarReceber from './components/ContasPagarReceber';
 import AiReportsChat from './components/AiReportsChat';
 import EmpresarialAddModal from './components/EmpresarialAddModal';
 import EmpresarialMoreMenuModal from './components/EmpresarialMoreMenuModal';
-import TrialCountdownBanner from './components/TrialCountdownBanner';
-import TrialExpiredModal from './components/TrialExpiredModal';
-import { TrialStatusResponse } from './types';
-import { fetchUserTrialStatus } from './lib/trialClient';
 
 // Supabase Helpers
 import { 
@@ -61,20 +57,7 @@ export default function App() {
     return 'empresarial';
   });
 
-  // SISTEMA DE TESTES CONTROLADO POR IA (MCO)
-  const [trialInfo, setTrialInfo] = useState<TrialStatusResponse | null>(null);
-  const [trialRemainingSeconds, setTrialRemainingSeconds] = useState<number>(0);
-  const [showTrialExpiredModal, setShowTrialExpiredModal] = useState(false);
-
-  // Active trial flag: user has full PRO capabilities while trial is active
-  const isTrialActive = Boolean(
-    trialInfo?.isTrial &&
-    trialInfo?.status === 'active' &&
-    !trialInfo?.expired &&
-    trialRemainingSeconds > 0
-  );
-
-  const isPro = (profile?.plan || 'essential') === 'pro' || isTrialActive;
+  const isPro = (profile?.plan || 'essential') === 'pro';
 
   // Personal Account Modal States
   const [isPersonalAddModalOpen, setIsPersonalAddModalOpen] = useState(false);
@@ -183,65 +166,6 @@ export default function App() {
     };
   }, []);
 
-  // 1-second continuous countdown for active trial
-  useEffect(() => {
-    if (trialInfo?.status !== 'active' || trialRemainingSeconds <= 0) return;
-
-    const timer = setInterval(() => {
-      setTrialRemainingSeconds((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          // Officially expired! Fetch authoritative status from server
-          if (session?.user?.id && session?.user?.email) {
-            fetchUserTrialStatus(session.user.id, session.user.email, session.access_token).then((res) => {
-              setTrialInfo(res);
-              setShowTrialExpiredModal(true);
-              if (activeAccount === 'pessoal' && profile?.plan !== 'pro') {
-                setActiveAccount('empresarial');
-              }
-            });
-          } else {
-            setShowTrialExpiredModal(true);
-          }
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [trialInfo?.status, trialRemainingSeconds, session, activeAccount, profile?.plan]);
-
-  // Periodic 30-second server time sync (Official clock is the server)
-  useEffect(() => {
-    if (!session?.user?.email) return;
-
-    const syncInterval = setInterval(async () => {
-      try {
-        const res = await fetchUserTrialStatus(session.user.id, session.user.email, session.access_token);
-        if (res.isTrial) {
-          const wasActive = trialInfo?.status === 'active';
-          setTrialInfo(res);
-          if (res.status === 'active' && typeof res.remainingSeconds === 'number') {
-            setTrialRemainingSeconds(res.remainingSeconds);
-          } else if (res.status === 'expired' && res.expired) {
-            setTrialRemainingSeconds(0);
-            if (wasActive) {
-              setShowTrialExpiredModal(true);
-              if (activeAccount === 'pessoal' && profile?.plan !== 'pro') {
-                setActiveAccount('empresarial');
-              }
-            }
-          }
-        }
-      } catch (err) {
-        // ignore
-      }
-    }, 30000);
-
-    return () => clearInterval(syncInterval);
-  }, [session, trialInfo?.status, activeAccount, profile?.plan]);
-
   const loadUserData = async (userId: string, email?: string) => {
     setLoading(true);
     setDbError(null);
@@ -317,24 +241,8 @@ export default function App() {
 
           localStorage.setItem(`mco_last_known_plan_${userId}`, currentPlan);
         }
-
         const dbTxs = await fetchTransactions(userId);
         setTransactions(dbTxs);
-
-        // Check for active or pending trial for this user
-        if (email) {
-          try {
-            const tStatus = await fetchUserTrialStatus(userId, email, session?.access_token);
-            if (tStatus.isTrial) {
-              setTrialInfo(tStatus);
-              if (tStatus.status === 'active' && typeof tStatus.remainingSeconds === 'number') {
-                setTrialRemainingSeconds(tStatus.remainingSeconds);
-              }
-            }
-          } catch (tErr) {
-            console.warn('[App] Erro ao carregar status de teste:', tErr);
-          }
-        }
         
         // After loading profile successfully, check if we need to migrate local storage
         const localTxsSaved = localStorage.getItem('mco_transactions');
@@ -804,45 +712,7 @@ CREATE POLICY "Users can update own ai conversations" ON public.conversas_ia FOR
 DROP POLICY IF EXISTS "Users can delete own ai conversations" ON public.conversas_ia;
 CREATE POLICY "Users can delete own ai conversations" ON public.conversas_ia FOR DELETE USING (auth.uid() = user_id);
 
-CREATE INDEX IF NOT EXISTS idx_conversas_ia_user_account ON public.conversas_ia(user_id, account_type, updated_at DESC);
-
--- 4. Tabela de Períodos de Teste Controlados por IA
-CREATE TABLE IF NOT EXISTS public.testes_temporarios (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
-    email TEXT NOT NULL UNIQUE,
-    admin_id TEXT NOT NULL,
-    admin_email TEXT,
-    duration_minutes INTEGER NOT NULL,
-    released_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    started_at TIMESTAMP WITH TIME ZONE,
-    expires_at TIMESTAMP WITH TIME ZONE,
-    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'expired', 'cancelled')),
-    extensions_count INTEGER NOT NULL DEFAULT 0,
-    notes TEXT,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
-CREATE INDEX IF NOT EXISTS idx_testes_email ON public.testes_temporarios(email);
-CREATE INDEX IF NOT EXISTS idx_testes_status ON public.testes_temporarios(status);
-
--- 5. Tabela de Auditoria de Ações Administrativas de Teste
-CREATE TABLE IF NOT EXISTS public.testes_auditoria (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    trial_id UUID REFERENCES public.testes_temporarios(id) ON DELETE CASCADE,
-    admin_id TEXT NOT NULL,
-    admin_email TEXT,
-    target_email TEXT NOT NULL,
-    action TEXT NOT NULL,
-    details JSONB DEFAULT '{}'::jsonb,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
-ALTER TABLE public.testes_temporarios ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.testes_auditoria ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Public or authenticated can read trials" ON public.testes_temporarios;
-CREATE POLICY "Public or authenticated can read trials" ON public.testes_temporarios FOR SELECT USING (true);`;
+CREATE INDEX IF NOT EXISTS idx_conversas_ia_user_account ON public.conversas_ia(user_id, account_type, updated_at DESC);`;
 
     const sqlScript = `-- 1. Criar a tabela de perfis (profiles) vinculada ao auth.users
 CREATE TABLE IF NOT EXISTS public.profiles (
@@ -1563,21 +1433,6 @@ CREATE INDEX IF NOT EXISTS idx_conversas_ia_user_account ON public.conversas_ia(
                 </div>
               </header>
 
-              {/* Active Trial Countdown Banner */}
-              {isTrialActive && (
-                <div className="mb-3 px-2 sm:px-4">
-                  <TrialCountdownBanner
-                    remainingSeconds={trialRemainingSeconds}
-                    durationMinutes={trialInfo?.durationMinutes}
-                    onViewPlans={() => {
-                      setActiveTab('planos');
-                      setShowPersonalMoreModal(false);
-                      setShowEmpresarialMoreModal(false);
-                    }}
-                  />
-                </div>
-              )}
-
               {/* Dynamic Content Views */}
               <main className="flex-1">
                 <AnimatePresence mode="wait">
@@ -1677,7 +1532,6 @@ CREATE INDEX IF NOT EXISTS idx_conversas_ia_user_account ON public.conversas_ia(
                             accountType="pessoal"
                             transactions={pessoalTransactions}
                             authToken={session?.access_token}
-                            userEmail={session?.user?.email}
                             onNavigateToTab={setActiveTab}
                           />
                         )}
@@ -1738,7 +1592,6 @@ CREATE INDEX IF NOT EXISTS idx_conversas_ia_user_account ON public.conversas_ia(
                             accountType="empresarial"
                             transactions={empresarialTransactions}
                             authToken={session?.access_token}
-                            userEmail={session?.user?.email}
                             onNavigateToTab={setActiveTab}
                           />
                         )}
@@ -2389,24 +2242,6 @@ CREATE INDEX IF NOT EXISTS idx_conversas_ia_user_account ON public.conversas_ia(
         isOpen={showUpgradeSuccessModal}
         onClose={handleCloseUpgradeSuccessModal}
         userName={profile?.name}
-      />
-
-      {/* Trial Expired Conversion Modal (SISTEMA DE TESTE CONTROLADO POR IA) */}
-      <TrialExpiredModal
-        isOpen={showTrialExpiredModal}
-        onClose={() => {
-          setShowTrialExpiredModal(false);
-          if (activeAccount === 'pessoal' && profile?.plan !== 'pro') {
-            setActiveAccount('empresarial');
-          }
-        }}
-        onViewPlans={() => {
-          setShowTrialExpiredModal(false);
-          setActiveTab('planos');
-          if (activeAccount === 'pessoal' && profile?.plan !== 'pro') {
-            setActiveAccount('empresarial');
-          }
-        }}
       />
     </div>
   );
