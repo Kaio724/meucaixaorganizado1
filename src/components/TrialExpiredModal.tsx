@@ -1,3 +1,4 @@
+import ModalLayer from './ModalLayer';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -78,7 +79,7 @@ export default function TrialExpiredModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/90 backdrop-blur-md overflow-y-auto">
+      <ModalLayer className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/90 backdrop-blur-md overflow-y-auto">
         <motion.div
           initial={{ opacity: 0, scale: 0.94, y: 16 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -320,7 +321,7 @@ export default function TrialExpiredModal({
             </div>
           )}
         </motion.div>
-      </div>
+      </ModalLayer>
     </AnimatePresence>
   );
 }

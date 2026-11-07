@@ -1,3 +1,4 @@
+import ModalLayer from '../ModalLayer';
 import { getTodayDateStr } from '../../lib/financialMath';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -699,7 +700,7 @@ export default function PersonalGoals({
       {/* CREATE / EDIT META MODAL */}
       <AnimatePresence>
         {showCreateModal && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/85 backdrop-blur-md p-0 sm:p-4 overflow-y-auto">
+          <ModalLayer className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/85 backdrop-blur-md p-0 sm:p-4 overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
@@ -885,14 +886,14 @@ export default function PersonalGoals({
                 </div>
               </form>
             </motion.div>
-          </div>
+          </ModalLayer>
         )}
       </AnimatePresence>
 
       {/* ADICIONAR RESERVA MODAL */}
       <AnimatePresence>
         {reservaTargetMeta && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/85 backdrop-blur-md p-0 sm:p-4 overflow-y-auto">
+          <ModalLayer className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/85 backdrop-blur-md p-0 sm:p-4 overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
@@ -1030,14 +1031,14 @@ export default function PersonalGoals({
                 </div>
               </form>
             </motion.div>
-          </div>
+          </ModalLayer>
         )}
       </AnimatePresence>
 
       {/* HISTÓRICO DE RESERVAS MODAL */}
       <AnimatePresence>
         {historyTargetMeta && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/85 backdrop-blur-md p-0 sm:p-4 overflow-y-auto">
+          <ModalLayer className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/85 backdrop-blur-md p-0 sm:p-4 overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
@@ -1119,14 +1120,14 @@ export default function PersonalGoals({
                 )}
               </div>
             </motion.div>
-          </div>
+          </ModalLayer>
         )}
       </AnimatePresence>
 
       {/* CELEBRAÇÃO MODAL 🎉 */}
       <AnimatePresence>
         {celebrationMeta && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl p-4">
+          <ModalLayer className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.8, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -1157,7 +1158,7 @@ export default function PersonalGoals({
                 Concluir & Festejar 🎉
               </button>
             </motion.div>
-          </div>
+          </ModalLayer>
         )}
       </AnimatePresence>
 

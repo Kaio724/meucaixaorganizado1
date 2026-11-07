@@ -1,3 +1,4 @@
+import ModalLayer from './ModalLayer';
 import React, { useEffect, useState } from 'react';
 import { AccountType, Transaction, UserProfile } from '../types';
 import { CustomCategory, getCombinedCategories, PRESET_COLORS, PRESET_ICONS, getCustomCategories, saveCustomCategories } from '../lib/categories';
@@ -73,7 +74,7 @@ export default function Categories({ userId, accountType = 'empresarial', transa
     <div className="flex gap-2" role="group" aria-label="Filtrar categorias por tipo">{(['todos', 'entrada', 'saida'] as const).map(type => <button key={type} aria-pressed={filter === type} className={`${action} ${filter === type ? 'bg-primary/15' : ''}`} onClick={() => setFilter(type)}>{type === 'todos' ? 'Todas' : type === 'entrada' ? 'Receitas' : 'Despesas'}</button>)}</div>
     {!visible.length && <p role="status" className="p-6 text-on-surface-variant">Nenhuma categoria encontrada.</p>}
     <div className="grid items-start gap-4 md:grid-cols-2">{visible.map(parent => <article key={parent.id} className="overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-low">{row(parent)}{all.filter(child => child.parentId === parent.id && (matches(parent) || matches(child))).map(child => row(child, true))}</article>)}</div>
-    {(draft || deleting) && <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/80 p-4"><div role="dialog" aria-modal="true" aria-labelledby="category-dialog-title" className="my-auto max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-outline-variant bg-surface-container-low p-6 shadow-xl">
+    {(draft || deleting) && <ModalLayer className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/80 p-4"><div role="dialog" aria-modal="true" aria-labelledby="category-dialog-title" className="my-auto max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-outline-variant bg-surface-container-low p-6 shadow-xl">
       <div className="mb-5 flex items-center justify-between gap-3"><h3 id="category-dialog-title" className="text-lg font-bold text-on-surface">{deleting ? 'Excluir categoria' : editing ? 'Editar categoria' : draft?.parentId ? 'Nova subcategoria' : 'Nova categoria'}</h3><button aria-label="Fechar categorias" disabled={saving} className={action} onClick={() => { setDraft(null); setDeleting(null); setError(''); }}>Fechar</button></div>
       {error && <p role="alert" className="mb-4 rounded-xl bg-error/10 p-3 text-sm text-error">{error}</p>}
       {draft && <form onSubmit={save} className="flex flex-col gap-4">
@@ -86,6 +87,6 @@ export default function Categories({ userId, accountType = 'empresarial', transa
         <button disabled={saving} type="submit" className="rounded-xl bg-primary p-3 font-bold text-on-primary disabled:opacity-50">{saving ? 'Salvando…' : 'Salvar categoria'}</button>
       </form>}
       {deleting && <div className="flex flex-col gap-4"><p className="text-sm text-on-surface">Excluir “{categoryLabel(deleting, all)}”? Categorias com lançamentos ou subcategorias serão preservadas.</p><button disabled={saving} className="rounded-xl bg-error p-3 font-bold text-on-error disabled:opacity-50" onClick={remove}>{saving ? 'Excluindo…' : 'Confirmar exclusão'}</button></div>}
-    </div></div>}
+    </div></ModalLayer>}
   </section>;
 }

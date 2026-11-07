@@ -1,3 +1,4 @@
+import ModalLayer from '../ModalLayer';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -504,7 +505,7 @@ export default function PersonalBudgets({
       {/* CREATE / EDIT ORÇAMENTO MODAL (Bottom Sheet in Mobile) */}
       <AnimatePresence>
         {showModal && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/85 backdrop-blur-md p-0 sm:p-4 overflow-y-auto">
+          <ModalLayer className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/85 backdrop-blur-md p-0 sm:p-4 overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
@@ -607,14 +608,14 @@ export default function PersonalBudgets({
                 </div>
               </form>
             </motion.div>
-          </div>
+          </ModalLayer>
         )}
       </AnimatePresence>
 
       {/* DELETE CONFIRMATION MODAL */}
       <AnimatePresence>
         {deletingId && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
+          <ModalLayer className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -645,7 +646,7 @@ export default function PersonalBudgets({
                 </button>
               </div>
             </motion.div>
-          </div>
+          </ModalLayer>
         )}
       </AnimatePresence>
 

@@ -1,3 +1,4 @@
+import ModalLayer from './ModalLayer';
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -70,7 +71,7 @@ export default function TransactionDetailSheet({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md">
+      <ModalLayer className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md">
         {/* Backdrop dismiss */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -457,7 +458,7 @@ export default function TransactionDetailSheet({
           </div>
 
         </motion.div>
-      </div>
+      </ModalLayer>
     </AnimatePresence>
   );
 }

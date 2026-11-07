@@ -1,3 +1,4 @@
+import ModalLayer from './ModalLayer';
 import { getTodayDateStr } from '../lib/financialMath';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -221,7 +222,7 @@ export default function Withdraw({ transactions, onAddTransaction, onNavigateToT
       {/* Registrar Retirada Modal */}
       <AnimatePresence>
         {showModal && (
-          <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <ModalLayer className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
             
             {/* Backdrop click closer */}
             <div className="absolute inset-0 cursor-default" onClick={() => !success && setShowModal(false)} />
@@ -378,7 +379,7 @@ export default function Withdraw({ transactions, onAddTransaction, onNavigateToT
               </AnimatePresence>
 
             </motion.div>
-          </div>
+          </ModalLayer>
         )}
       </AnimatePresence>
 

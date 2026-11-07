@@ -1,3 +1,4 @@
+import ModalLayer from './ModalLayer';
 import CategoryPicker from './CategoryPicker';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -838,7 +839,7 @@ export default function Dashboard({
       {/* Quick Add Dialog (Modal de Lançamento Limpo) */}
       <AnimatePresence>
         {showQuickAdd && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md">
+          <ModalLayer className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md">
             <div className="absolute inset-0 cursor-default" onClick={() => setShowQuickAdd(false)} />
 
             <motion.div
@@ -1306,7 +1307,7 @@ export default function Dashboard({
                 </button>
               </form>
             </motion.div>
-          </div>
+          </ModalLayer>
         )}
       </AnimatePresence>
 
@@ -1340,7 +1341,7 @@ export default function Dashboard({
       {/* Confirmação de Exclusão de Recorrência (Requirement 15) */}
       <AnimatePresence>
         {recurringTxToDelete && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <ModalLayer className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -1419,7 +1420,7 @@ export default function Dashboard({
                 </button>
               </div>
             </motion.div>
-          </div>
+          </ModalLayer>
         )}
       </AnimatePresence>
 

@@ -1,3 +1,4 @@
+import ModalLayer from './ModalLayer';
 import CategoryPicker from './CategoryPicker';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
@@ -156,7 +157,7 @@ export default function PersonalAddModal({
   const availableCategories = getPersonalCategoryNamesByType(userId, txType);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+    <ModalLayer className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md animate-fade-in">
       {/* Backdrop Click */}
       <div className="absolute inset-0 cursor-default" onClick={onClose} />
 
@@ -400,6 +401,6 @@ export default function PersonalAddModal({
           </button>
         </form>
       </motion.div>
-    </div>
+    </ModalLayer>
   );
 }

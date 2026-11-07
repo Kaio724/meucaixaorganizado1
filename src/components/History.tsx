@@ -1,3 +1,4 @@
+import ModalLayer from './ModalLayer';
 import CategoryPicker from './CategoryPicker';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -1503,7 +1504,7 @@ export default function History({
       {/* Add Transaction Dialog / Modal */}
       <AnimatePresence>
         {showAddModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+          <ModalLayer className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -1991,14 +1992,14 @@ export default function History({
                 </div>
               </form>
             </motion.div>
-          </div>
+          </ModalLayer>
         )}
       </AnimatePresence>
 
       {/* Modal de Confirmação de Aplicação de Alteração Recorrente (Requirement 14) */}
       <AnimatePresence>
         {pendingRecurringEdit && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+          <ModalLayer className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -2066,7 +2067,7 @@ export default function History({
                 </button>
               </div>
             </motion.div>
-          </div>
+          </ModalLayer>
         )}
       </AnimatePresence>
 
@@ -2080,7 +2081,7 @@ export default function History({
 
           if (isRecurring) {
             return (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+              <ModalLayer className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -2157,12 +2158,12 @@ export default function History({
                     </button>
                   </div>
                 </motion.div>
-              </div>
+              </ModalLayer>
             );
           }
 
           return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+            <ModalLayer className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -2222,7 +2223,7 @@ export default function History({
                   </button>
                 </div>
               </motion.div>
-            </div>
+            </ModalLayer>
           );
         })()}
       </AnimatePresence>
@@ -2269,7 +2270,7 @@ export default function History({
 
       {/* Modal de confirmação/aquisição do Plano PRO */}
       {showProModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <ModalLayer className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 15 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -2326,7 +2327,7 @@ export default function History({
               Pagamento 100% seguro & acesso vitalício imediato.
             </span>
           </motion.div>
-        </div>
+        </ModalLayer>
       )}
     </div>
   );

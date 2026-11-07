@@ -1,3 +1,4 @@
+import ModalLayer from './ModalLayer';
 import CategoryPicker from './CategoryPicker';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -194,13 +195,13 @@ export default function EmpresarialAddModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
+      <ModalLayer className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
         <motion.div
           initial={{ opacity: 0, y: 80, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 80, scale: 0.98 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="w-full max-w-lg bg-[#161224] border-t sm:border border-primary/25 rounded-t-[32px] sm:rounded-[32px] shadow-2xl flex flex-col max-h-[92vh] sm:max-h-[88vh] overflow-hidden text-left"
+          role="dialog" aria-modal="true" aria-label="Nova movimentação empresarial" className="w-full max-w-lg bg-[#161224] border-t sm:border border-primary/25 rounded-t-[32px] sm:rounded-[32px] shadow-2xl flex flex-col max-h-[92vh] sm:max-h-[88vh] overflow-hidden text-left"
         >
           {/* Header */}
           <div className="p-5 pb-3 border-b border-white/5 flex items-center justify-between shrink-0">
@@ -223,6 +224,7 @@ export default function EmpresarialAddModal({
             <button
               type="button"
               onClick={onClose}
+              aria-label="Fechar lançamento empresarial"
               className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-zinc-400 hover:text-white transition-colors cursor-pointer"
             >
               <span className="material-symbols-outlined text-base">close</span>
@@ -230,7 +232,8 @@ export default function EmpresarialAddModal({
           </div>
 
           {/* Form scroll container */}
-          <form onSubmit={handleSubmit} className="p-5 overflow-y-auto flex flex-col gap-4">
+          <form onSubmit={handleSubmit} className="min-h-0 flex-1 flex flex-col overflow-hidden">
+<div className="mobile-form-body flex-1 p-4 sm:p-5 flex flex-col gap-4">
             {/* Validation alert */}
             {validationError && (
               <div className="p-3 bg-error/15 border border-error/30 rounded-xl text-xs font-bold text-rose-300 flex items-center gap-2">
@@ -484,7 +487,7 @@ export default function EmpresarialAddModal({
             </div>
 
             {/* Submit Action */}
-            <div className="pt-2">
+            </div><div className="mobile-form-footer">
               <button
                 type="submit"
                 disabled={isSubmitting}
@@ -505,7 +508,7 @@ export default function EmpresarialAddModal({
             </div>
           </form>
         </motion.div>
-      </div>
+      </ModalLayer>
     </AnimatePresence>
   );
 }

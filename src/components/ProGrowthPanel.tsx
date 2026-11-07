@@ -1,3 +1,4 @@
+import ModalLayer from './ModalLayer';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Transaction } from '../types';
@@ -453,7 +454,7 @@ export default function ProGrowthPanel({ transactions, isPro, onUnlockPro }: Pro
       {/* Goal Config Modal for PRO */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4">
+          <ModalLayer className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -509,7 +510,7 @@ export default function ProGrowthPanel({ transactions, isPro, onUnlockPro }: Pro
                 </div>
               </form>
             </motion.div>
-          </div>
+          </ModalLayer>
         )}
       </AnimatePresence>
     </>

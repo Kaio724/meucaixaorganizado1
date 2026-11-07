@@ -1,3 +1,4 @@
+import ModalLayer from './ModalLayer';
 import { getTodayDateStr } from '../lib/financialMath';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -401,7 +402,7 @@ export default function ImportModal({ isOpen, onClose, profile, userId = 'defaul
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/85 backdrop-blur-md p-0 sm:p-4 overflow-y-auto contain-scroll">
+    <ModalLayer className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/85 backdrop-blur-md p-0 sm:p-4 overflow-y-auto contain-scroll">
       <div className="w-full max-w-5xl bg-[#121217] border-t sm:border border-white/10 rounded-t-[28px] sm:rounded-3xl overflow-hidden shadow-[0_24px_50px_-12px_rgba(0,0,0,0.8)] flex flex-col my-0 sm:my-8 max-h-[92vh] sm:max-h-[90vh]">
         
         {/* Mobile Drag Handle */}
@@ -917,6 +918,6 @@ export default function ImportModal({ isOpen, onClose, profile, userId = 'defaul
         </div>
 
       </div>
-    </div>
+    </ModalLayer>
   );
 }

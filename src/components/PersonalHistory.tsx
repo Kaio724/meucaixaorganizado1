@@ -1,3 +1,4 @@
+import ModalLayer from './ModalLayer';
 import { getTodayDateStr } from '../lib/financialMath';
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -488,7 +489,7 @@ export default function PersonalHistory({
       {/* Delete Confirmation Modal */}
       <AnimatePresence>
         {deletingTxId && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <ModalLayer className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -528,7 +529,7 @@ export default function PersonalHistory({
                 </button>
               </div>
             </motion.div>
-          </div>
+          </ModalLayer>
         )}
       </AnimatePresence>
 

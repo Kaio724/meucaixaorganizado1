@@ -1,3 +1,4 @@
+import ModalLayer from './ModalLayer';
 import { getTodayDateStr } from '../lib/financialMath';
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -1066,7 +1067,7 @@ export default function ContasFixasVariaveis({
       {/* ================= MODAL: ADICIONAR / EDITAR CONTA ================= */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md">
+          <ModalLayer className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md">
             <div className="absolute inset-0 cursor-default" onClick={() => setIsModalOpen(false)} />
 
             <motion.div
@@ -1393,14 +1394,14 @@ export default function ContasFixasVariaveis({
                 </div>
               </form>
             </motion.div>
-          </div>
+          </ModalLayer>
         )}
       </AnimatePresence>
 
       {/* ================= MODAL: EXCLUIR CONTA ================= */}
       <AnimatePresence>
         {deletingContaId && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <ModalLayer className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -1433,7 +1434,7 @@ export default function ContasFixasVariaveis({
                 </button>
               </div>
             </motion.div>
-          </div>
+          </ModalLayer>
         )}
       </AnimatePresence>
     </div>

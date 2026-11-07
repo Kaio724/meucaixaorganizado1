@@ -1,3 +1,4 @@
+import ModalLayer from './components/ModalLayer';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { UserProfile, Transaction, ActiveTab, AccountType } from './types';
@@ -1881,7 +1882,7 @@ CREATE INDEX IF NOT EXISTS idx_conversas_ia_user_account ON public.conversas_ia(
       {/* Alterar Perfil Modal */}
       <AnimatePresence>
         {showEditProfileModal && (
-          <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
+          <ModalLayer className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
             
             {/* Backdrop click closer */}
             <div className="absolute inset-0 cursor-default" onClick={closeEditProfileModal} />
@@ -2037,14 +2038,14 @@ CREATE INDEX IF NOT EXISTS idx_conversas_ia_user_account ON public.conversas_ia(
               </div>
 
             </motion.div>
-          </div>
+          </ModalLayer>
         )}
       </AnimatePresence>
 
       {/* Migration Confirmation Modal */}
       <AnimatePresence>
         {showMigrationModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+          <ModalLayer className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -2084,14 +2085,14 @@ CREATE INDEX IF NOT EXISTS idx_conversas_ia_user_account ON public.conversas_ia(
                 </button>
               </div>
             </motion.div>
-          </div>
+          </ModalLayer>
         )}
       </AnimatePresence>
 
       {/* Modal PRO Exclusivo para Conta Pessoal */}
       <AnimatePresence>
         {showPersonalProModal && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <ModalLayer className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -2181,7 +2182,7 @@ CREATE INDEX IF NOT EXISTS idx_conversas_ia_user_account ON public.conversas_ia(
                 </button>
               </div>
             </motion.div>
-          </div>
+          </ModalLayer>
         )}
       </AnimatePresence>
 
