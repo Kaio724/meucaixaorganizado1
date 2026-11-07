@@ -1,5 +1,5 @@
 import ModalLayer from '../ModalLayer';
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   PieChart, 
@@ -29,6 +29,15 @@ export default function PersonalMoreMenuModal({
   onSelectTab,
   onOpenProfile
 }: PersonalMoreMenuModalProps) {
+  const closeButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!isOpen) return;
+    const previousFocus = document.activeElement as HTMLElement | null;
+    closeButton.current?.focus();
+    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', escape);
+    return () => { document.removeEventListener('keydown', escape); previousFocus?.focus(); };
+  }, [isOpen, onClose]);
   if (!isOpen) return null;
 
   const menuItems = [
@@ -84,36 +93,39 @@ export default function PersonalMoreMenuModal({
 
   return (
     <AnimatePresence>
-      <ModalLayer className="fixed inset-0 z-50 flex items-end justify-center bg-black/85 backdrop-blur-md p-0 overflow-y-auto">
+      <ModalLayer onClick={event => { if (event.target === event.currentTarget) onClose(); }} className="fixed inset-0 z-50 flex items-end justify-center bg-black/85 backdrop-blur-md p-0 overflow-y-auto">
         <motion.div
           initial={{ opacity: 0, y: 100 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 100 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="w-full max-w-lg bg-[#161224] border-t border-primary/30 rounded-t-[32px] overflow-hidden shadow-2xl flex flex-col pb-8 pt-3 text-left"
+          role="dialog" aria-modal="true" aria-labelledby="personal-more-title" style={{ overflow: 'hidden' }} className="w-full max-w-lg bg-[#161224] border-t border-primary/30 rounded-t-[32px] overflow-hidden shadow-2xl flex flex-col pt-3 text-left"
         >
           {/* Drag Handle */}
           <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-3 shrink-0" />
 
           {/* Header */}
-          <div className="px-6 py-2 flex items-center justify-between border-b border-white/5 pb-3">
+          <div className="shrink-0 px-4 sm:px-6 py-2 flex items-center justify-between border-b border-white/5 pb-3">
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-[#c4b5fd]">
                 Conta Pessoal
               </span>
-              <h3 className="text-lg font-black text-white">Menu Completo</h3>
+              <h3 id="personal-more-title" className="text-lg font-black text-white">Menu Pessoal</h3>
             </div>
 
             <button
+              ref={closeButton}
+              type="button"
+              aria-label="Fechar menu pessoal"
               onClick={onClose}
-              className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-zinc-400 hover:text-white cursor-pointer"
+              className="shrink-0 w-11 h-11 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-zinc-400 hover:text-white cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
           {/* Items List */}
-          <div className="p-4 flex flex-col gap-2">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 flex flex-col gap-2 [&>*]:shrink-0">
             {menuItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -125,11 +137,11 @@ export default function PersonalMoreMenuModal({
                   }}
                   className="flex items-center justify-between p-3.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/5 transition-all text-left group cursor-pointer"
                 >
-                  <div className="flex items-center gap-3.5">
+                  <div className="flex min-w-0 items-center gap-3">
                     <div className={`w-11 h-11 rounded-2xl flex items-center justify-center border shrink-0 ${item.bgColor} ${item.color}`}>
                       <Icon className="w-5 h-5" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <h4 className="text-sm font-black text-white group-hover:text-[#c4b5fd] transition-colors">
                         {item.label}
                       </h4>
@@ -139,7 +151,7 @@ export default function PersonalMoreMenuModal({
                     </div>
                   </div>
 
-                  <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:text-white transition-colors" />
+                  <ChevronRight className="shrink-0 w-4 h-4 text-zinc-500 group-hover:text-white transition-colors" />
                 </button>
               );
             })}
@@ -157,7 +169,7 @@ export default function PersonalMoreMenuModal({
               }}
               className="flex items-center justify-between p-3.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/5 transition-all text-left group cursor-pointer mt-1"
             >
-              <div className="flex items-center gap-3.5">
+              <div className="flex min-w-0 items-center gap-3">
                 <div className="w-11 h-11 rounded-2xl flex items-center justify-center border shrink-0 bg-zinc-800/80 border-white/10 text-zinc-300">
                   <User className="w-5 h-5" />
                 </div>
@@ -171,11 +183,15 @@ export default function PersonalMoreMenuModal({
                 </div>
               </div>
 
-              <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:text-white transition-colors" />
+              <ChevronRight className="shrink-0 w-4 h-4 text-zinc-500 group-hover:text-white transition-colors" />
             </button>
+          </div>
+          <div className="shrink-0 border-t border-white/10 p-3" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom, 0px))' }}>
+            <button type="button" onClick={onClose} className="w-full min-h-11 rounded-xl bg-primary/15 px-4 py-3 font-bold text-primary">Voltar ao sistema</button>
           </div>
         </motion.div>
       </ModalLayer>
     </AnimatePresence>
   );
 }
+
