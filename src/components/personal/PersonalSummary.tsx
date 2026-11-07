@@ -19,6 +19,8 @@ import {
 import { OrcamentoPessoal, MetaPessoal, Transaction, UserProfile } from '../../types';
 import { fetchOrcamentos, fetchMetas } from '../../lib/personalData';
 import { getPersonalCategoryInfo } from '../../lib/personalCategories';
+import { categoryMatches, groupCategoryTotals } from '../../lib/categoryHierarchy';
+import SubcategoryBreakdown from '../SubcategoryBreakdown';
 
 interface PersonalSummaryProps {
   profile: UserProfile;
@@ -92,7 +94,7 @@ export default function PersonalSummary({
 
   // Filter personal transactions for selected month
   const currentTxs = transactions.filter(t => {
-    if (t.accountType !== 'pessoal') return false;
+    if (t.accountType !== 'pessoal' || t.status === 'cancelado') return false;
     const d = new Date(t.date + 'T12:00:00');
     return (d.getMonth() + 1) === selectedMonth && d.getFullYear() === selectedYear;
   });
@@ -101,7 +103,7 @@ export default function PersonalSummary({
   const prevMonth = selectedMonth === 1 ? 12 : selectedMonth - 1;
   const prevYear = selectedMonth === 1 ? selectedYear - 1 : selectedYear;
   const prevTxs = transactions.filter(t => {
-    if (t.accountType !== 'pessoal') return false;
+    if (t.accountType !== 'pessoal' || t.status === 'cancelado') return false;
     const d = new Date(t.date + 'T12:00:00');
     return (d.getMonth() + 1) === prevMonth && d.getFullYear() === prevYear;
   });
@@ -145,17 +147,19 @@ export default function PersonalSummary({
 
   // Category distribution for expenses
   const categoryTotals: { [key: string]: number } = {};
+  const categoryGroups = groupCategoryTotals(currentTxs.filter(t => t.type === 'saida'));
   currentTxs
     .filter(t => t.type === 'saida')
     .forEach(t => {
       categoryTotals[t.category] = (categoryTotals[t.category] || 0) + t.amount;
     });
 
-  const sortedCategories = Object.entries(categoryTotals)
-    .map(([cat, amount]) => ({
+  const sortedCategories = Object.entries(categoryGroups)
+    .map(([cat, group]) => ({
       category: cat,
-      amount,
-      pct: totalSaidas > 0 ? (amount / totalSaidas) * 100 : 0
+      amount: group.total,
+      children: group.children,
+      pct: totalSaidas > 0 ? (group.total / totalSaidas) * 100 : 0
     }))
     .sort((a, b) => b.amount - a.amount);
 
@@ -184,10 +188,10 @@ export default function PersonalSummary({
   // Budgets summary
   const totalOrcado = orcamentos.reduce((sum, o) => sum + o.valor_limite, 0);
   const totalGastoOrcado = orcamentos.reduce((sum, o) => {
-    const spent = (categoryTotals[o.categoria_nome] || 0);
+    const spent = Object.entries(categoryTotals).filter(([name]) => categoryMatches(name, o.categoria_nome)).reduce((sum, [, value]) => sum + value, 0);
     return sum + spent;
   }, 0);
-  const estourados = orcamentos.filter(o => (categoryTotals[o.categoria_nome] || 0) > o.valor_limite);
+  const estourados = orcamentos.filter(o => Object.entries(categoryTotals).filter(([name]) => categoryMatches(name, o.categoria_nome)).reduce((sum, [, value]) => sum + value, 0) > o.valor_limite);
 
   // Active goals summary
   const activeMetas = metas.filter(m => m.status === 'ativa');
@@ -493,6 +497,7 @@ export default function PersonalSummary({
                         style={{ backgroundColor: item.sliceColor }}
                       />
                     </div>
+                    <SubcategoryBreakdown childrenTotals={item.children} />
                   </div>
                 );
               })}

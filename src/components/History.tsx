@@ -1,8 +1,10 @@
+import CategoryPicker from './CategoryPicker';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Transaction, UserProfile, TransactionType, ExpenseType, RevenueType, RecurrenceFrequency } from '../types';
 import { AVAILABLE_CATEGORIES, PAYMENT_METHODS, ACCOUNT_OPTIONS } from '../initialData';
 import { getCategoryNamesByType, getCategoryInfo } from '../lib/categories';
+import { categoryMatches } from '../lib/categoryHierarchy';
 import { buildRecurringRevenueTransactions, buildRecurringExpenseTransactions } from '../lib/revenueRecurrence';
 import { saveConta } from '../lib/contasData';
 import TransactionDetailSheet from './TransactionDetailSheet';
@@ -112,7 +114,7 @@ export default function History({
   const [formAmount, setFormAmount] = useState('');
   const [formCategory, setFormCategory] = useState('');
   const [formPaymentMethod, setFormPaymentMethod] = useState('Pix');
-  const [formDate, setFormDate] = useState(new Date().toISOString().split('T')[0]);
+  const [formDate, setFormDate] = useState(getTodayDateStr());
   const [formAccount, setFormAccount] = useState<string | undefined>(undefined);
 
   // Handle month switching
@@ -196,7 +198,7 @@ export default function History({
     }
 
     // 3. Category Filter
-    if (advCategory !== 'todas' && tx.category !== advCategory) return false;
+    if (advCategory !== 'todas' && !categoryMatches(tx.category, advCategory)) return false;
 
     // 4. Payment Method Filter
     if (advPaymentMethod !== 'todas' && tx.paymentMethod !== advPaymentMethod) return false;
@@ -296,7 +298,7 @@ export default function History({
 
   // Helper to format date header
   const formatDateHeader = (dateStr: string) => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getTodayDateStr();
     
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
@@ -355,7 +357,7 @@ export default function History({
     setFormAmount('');
     setFormCategory(getCategoryNamesByType(userId, 'entrada')[0] || 'Outros');
     setFormPaymentMethod('Pix');
-    setFormDate(new Date().toISOString().split('T')[0]);
+    setFormDate(getTodayDateStr());
     setFormAccount(undefined);
     setShowAddModal(true);
   };
@@ -1328,18 +1330,7 @@ export default function History({
                                   className="bg-surface-container-low border border-outline-variant/40 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:border-primary text-on-surface"
                                 />
                               </div>
-                              <div className="flex flex-col gap-1">
-                                <label className="text-[10px] font-bold text-on-surface-variant">Categoria</label>
-                                <select 
-                                  value={formCategory}
-                                  onChange={(e) => setFormCategory(e.target.value)}
-                                  className="bg-surface-container-low border border-outline-variant/40 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:border-primary text-on-surface w-full"
-                                >
-                                  {getCategoryNamesByType(userId, formType).map(cat => (
-                                    <option key={cat} value={cat}>{cat}</option>
-                                  ))}
-                                </select>
-                              </div>
+                              <CategoryPicker options={getCategoryNamesByType(userId, formType)} value={formCategory} onChange={setFormCategory} />
                               <div className="flex flex-col gap-1">
                                 <label className="text-[10px] font-bold text-on-surface-variant">Pagamento</label>
                                 <select 
@@ -1897,25 +1888,7 @@ export default function History({
 
                 {/* Category & Payment Method row */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Categoria</label>
-                    <div className="relative">
-                      <select
-                        value={formCategory}
-                        onChange={(e) => setFormCategory(e.target.value)}
-                        className="w-full bg-[#171721] border border-white/[0.08] hover:border-white/[0.15] focus:border-primary focus:bg-[#1b1b26] rounded-xl px-4 py-3 text-xs sm:text-sm focus:outline-none text-white cursor-pointer appearance-none pr-8 transition-all"
-                      >
-                        {getCategoryNamesByType(userId, formType).map((cat) => (
-                          <option key={cat} value={cat} className="bg-[#121217] text-white">
-                            {cat}
-                          </option>
-                        ))}
-                      </select>
-                      <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/70 pointer-events-none text-base">
-                        keyboard_arrow_down
-                      </span>
-                    </div>
-                  </div>
+                  <CategoryPicker options={getCategoryNamesByType(userId, formType)} value={formCategory} onChange={setFormCategory} />
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[10px] font-bold text-on-surface-variant/80 uppercase tracking-widest leading-none">Forma de Pagamento</label>
                     <div className="relative">

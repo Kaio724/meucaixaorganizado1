@@ -23,9 +23,10 @@ import {
   deleteOrcamento 
 } from '../../lib/personalData';
 import { 
-  getCombinedPersonalCategories, 
+  getPersonalCategoryChoices as getCombinedPersonalCategories,
   getPersonalCategoryInfo 
 } from '../../lib/personalCategories';
+import { categoryMatches } from '../../lib/categoryHierarchy';
 
 interface PersonalBudgetsProps {
   profile: UserProfile;
@@ -104,7 +105,7 @@ export default function PersonalBudgets({
 
   // Filter personal expense transactions for this month/year
   const personalExpenses = transactions.filter(t => {
-    if (t.accountType !== 'pessoal' || t.type !== 'saida') return false;
+    if (t.accountType !== 'pessoal' || t.type !== 'saida' || t.status === 'cancelado') return false;
     const d = new Date(t.date + 'T12:00:00');
     return (d.getMonth() + 1) === selectedMonth && d.getFullYear() === selectedYear;
   });
@@ -112,7 +113,7 @@ export default function PersonalBudgets({
   // Calculate spent per category
   const getSpentForCategory = (catName: string) => {
     return personalExpenses
-      .filter(t => t.category.toLowerCase().trim() === catName.toLowerCase().trim())
+      .filter(t => categoryMatches(t.category.toLowerCase().trim(), catName.toLowerCase().trim()))
       .reduce((sum, t) => sum + t.amount, 0);
   };
 

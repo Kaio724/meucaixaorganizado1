@@ -64,14 +64,6 @@ export default function PersonalMoreMenuModal({
       bgColor: 'bg-sky-500/15 border-sky-500/30'
     },
     {
-      id: 'orcamentos' as ActiveTab,
-      label: 'Orçamentos',
-      description: 'Limites de gastos mensais por categoria',
-      icon: PiggyBank,
-      color: 'text-[#c4b5fd]',
-      bgColor: 'bg-[#7C3AED]/20 border-[#7C3AED]/35'
-    },
-    {
       id: 'recorrencias' as ActiveTab,
       label: 'Recorrências',
       description: 'Assinaturas e despesas fixas automatizadas',

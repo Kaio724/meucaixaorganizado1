@@ -1,4 +1,6 @@
 import { UserProfile } from '../types';
+import { categoryLabel, orderedCategoryLabels } from './categoryHierarchy';
+import { persistCategories } from './categoryStorage';
 
 export interface CustomCategory {
   id: string;
@@ -9,9 +11,10 @@ export interface CustomCategory {
   bgColor: string; // tailwind bg/border class
   description?: string;
   isCustom: boolean;
+  parentId?: string;
 }
 
-export const SYSTEM_CATEGORIES: CustomCategory[] = [
+const ALL_SYSTEM_CATEGORIES: CustomCategory[] = [
   // Receitas (Entradas)
   { id: 'sys_vendas', name: 'Vendas', type: 'entrada', icon: 'payments', color: 'text-emerald-400', bgColor: 'bg-emerald-400/10 border-emerald-400/20', isCustom: false },
   { id: 'sys_servicos', name: 'Prestação de Serviços', type: 'entrada', icon: 'business_center', color: 'text-sky-400', bgColor: 'bg-sky-400/10 border-sky-400/20', isCustom: false },
@@ -39,6 +42,15 @@ export const SYSTEM_CATEGORIES: CustomCategory[] = [
   { id: 'sys_fornecedores', name: 'Fornecedores', type: 'saida', icon: 'storefront', color: 'text-amber-300', bgColor: 'bg-amber-300/10 border-amber-300/20', isCustom: false },
   { id: 'sys_outros_des', name: 'Outros', type: 'saida', icon: 'category', color: 'text-slate-400', bgColor: 'bg-slate-400/10 border-slate-400/20', isCustom: false }
 ];
+
+// Keep the default list short. Original definitions remain available for history
+// and for custom subcategories already attached to a previous system category.
+const BASIC_CATEGORY_IDS = new Set([
+  'sys_vendas', 'sys_servicos', 'sys_outros_rec',
+  'sys_alimentacao', 'sys_transporte', 'sys_marketing', 'sys_aluguel',
+  'sys_funcionarios', 'sys_impostos', 'sys_fornecedores', 'sys_outros_des',
+]);
+export const SYSTEM_CATEGORIES = ALL_SYSTEM_CATEGORIES.filter(category => BASIC_CATEGORY_IDS.has(category.id));
 
 export const PRESET_COLORS = [
   { name: 'Verde Esmeralda', color: 'text-emerald-400', bgColor: 'bg-emerald-400/10 border-emerald-400/20' },
@@ -91,33 +103,27 @@ export function getCustomCategories(userId: string): CustomCategory[] {
 
 // Save custom categories for a user
 export function saveCustomCategories(userId: string, categories: CustomCategory[]) {
-  if (!userId) return;
-  const key = `mco_custom_categories_${userId}`;
-  try {
-    localStorage.setItem(key, JSON.stringify(categories));
-  } catch (e) {
-    console.error('Error saving custom categories', e);
-  }
+  return persistCategories(userId, 'empresarial', categories);
 }
 
 // Get combined categories
 export function getCombinedCategories(userId: string): CustomCategory[] {
   const custom = getCustomCategories(userId);
-  return [...SYSTEM_CATEGORIES, ...custom];
+  const parentIds = new Set(custom.map(category => category.parentId).filter(Boolean));
+  const system = ALL_SYSTEM_CATEGORIES.filter(category => BASIC_CATEGORY_IDS.has(category.id) || parentIds.has(category.id));
+  return [...system, ...custom];
 }
 
 // Get names for selection dropdown based on type ('entrada' | 'saida')
 export function getCategoryNamesByType(userId: string, type: 'entrada' | 'saida'): string[] {
   const combined = getCombinedCategories(userId);
-  return combined
-    .filter(cat => cat.type === type)
-    .map(cat => cat.name);
+  return orderedCategoryLabels(combined, type);
 }
 
 // Get icon and color info for any category name (with fallback)
 export function getCategoryInfo(name: string, type: 'entrada' | 'saida', userId: string): { icon: string; color: string; bgColor: string } {
-  const combined = getCombinedCategories(userId);
-  const found = combined.find(cat => cat.name.toLowerCase() === name.toLowerCase() && cat.type === type) 
+  const combined = [...getCombinedCategories(userId), ...ALL_SYSTEM_CATEGORIES];
+  const found = combined.find(cat => categoryLabel(cat, combined).toLowerCase() === name.toLowerCase() && cat.type === type)
               || combined.find(cat => cat.name.toLowerCase() === name.toLowerCase());
   
   if (found) {

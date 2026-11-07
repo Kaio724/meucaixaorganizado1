@@ -1,3 +1,4 @@
+import CategoryPicker from './CategoryPicker';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -382,22 +383,7 @@ export default function EmpresarialAddModal({
 
             {/* Categoria & Forma de Pagamento */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
-                  Categoria
-                </label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full bg-[#1b162b] border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-primary cursor-pointer truncate"
-                >
-                  {categories.map((c) => (
-                    <option key={c} value={c} className="bg-[#1b162b] text-white">
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <CategoryPicker options={categories} value={category} onChange={setCategory} />
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">

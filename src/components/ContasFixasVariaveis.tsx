@@ -1,3 +1,4 @@
+import { getTodayDateStr } from '../lib/financialMath';
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -75,7 +76,7 @@ export default function ContasFixasVariaveis({
   const [formFrequencia, setFormFrequencia] = useState<ContaFrequencia>('mensal');
   const [formFrequenciaPersonalizada, setFormFrequenciaPersonalizada] = useState('');
   const [formDiaVencimento, setFormDiaVencimento] = useState<string>('10');
-  const [formDataInicio, setFormDataInicio] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [formDataInicio, setFormDataInicio] = useState<string>(getTodayDateStr());
   const [formDataVencimento, setFormDataVencimento] = useState<string>('');
   const [formDataTermino, setFormDataTermino] = useState<string>('');
   const [formValidationError, setFormValidationError] = useState<string>('');
@@ -251,7 +252,7 @@ export default function ContasFixasVariaveis({
     setFormFrequencia('mensal');
     setFormFrequenciaPersonalizada('');
     setFormDiaVencimento('10');
-    setFormDataInicio(new Date().toISOString().split('T')[0]);
+    setFormDataInicio(getTodayDateStr());
     setFormDataVencimento('');
     setFormDataTermino('');
     setFormValidationError('');
@@ -272,7 +273,7 @@ export default function ContasFixasVariaveis({
     setFormFrequencia(conta.frequencia);
     setFormFrequenciaPersonalizada(conta.frequenciaPersonalizada || '');
     setFormDiaVencimento(conta.diaVencimento ? String(conta.diaVencimento) : '10');
-    setFormDataInicio(conta.dataInicio || new Date().toISOString().split('T')[0]);
+    setFormDataInicio(conta.dataInicio || getTodayDateStr());
     setFormDataVencimento(conta.dataVencimento || '');
     setFormDataTermino(conta.dataTermino || '');
     setFormValidationError('');
@@ -409,7 +410,7 @@ export default function ContasFixasVariaveis({
         ? undefined
         : (conta.frequencia as any);
 
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = getTodayDateStr();
       const isFutureOrToday = dateStr >= todayStr;
 
       await onAddTransaction({

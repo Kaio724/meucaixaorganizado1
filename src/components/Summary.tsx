@@ -1,6 +1,8 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Transaction, UserProfile } from '../types';
+import { groupCategoryTotals } from '../lib/categoryHierarchy';
+import SubcategoryBreakdown from './SubcategoryBreakdown';
 import { isTransactionRealized, isTransactionPending } from '../lib/financialMath';
 
 interface SummaryProps {
@@ -42,8 +44,9 @@ export default function Summary({ transactions, profile, onNavigateToPlanos }: S
 
   // Filter transactions strictly by active month competence (or all-time if chosen)
   const filteredTransactions = React.useMemo(() => {
-    if (viewAllTime) return transactions;
-    return transactions.filter((t) => {
+    const active = transactions.filter(t => t.status !== 'cancelado');
+    if (viewAllTime) return active;
+    return active.filter((t) => {
       if (!t.date) return false;
       const parts = t.date.split('-');
       if (parts.length >= 2) {
@@ -100,16 +103,14 @@ export default function Summary({ transactions, profile, onNavigateToPlanos }: S
     const list = filteredTransactions.filter(t => t.type === type);
     const total = list.reduce((sum, t) => sum + t.amount, 0);
     
-    const groups: { [cat: string]: number } = {};
-    list.forEach(t => {
-      groups[t.category] = (groups[t.category] || 0) + t.amount;
-    });
+    const groups = groupCategoryTotals(list);
 
     return Object.keys(groups)
       .map(cat => ({
         category: cat,
-        amount: groups[cat],
-        percentage: total > 0 ? Math.round((groups[cat] / total) * 100) : 0
+        amount: groups[cat].total,
+        children: groups[cat].children,
+        percentage: total > 0 ? Math.round((groups[cat].total / total) * 100) : 0
       }))
       .sort((a, b) => b.amount - a.amount);
   };
@@ -383,6 +384,7 @@ export default function Summary({ transactions, profile, onNavigateToPlanos }: S
                     <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden">
                       <div className="bg-emerald-400 h-full rounded-full" style={{ width: `${item.percentage}%` }}></div>
                     </div>
+                    <SubcategoryBreakdown childrenTotals={item.children} />
                   </div>
                 ))}
               </div>
@@ -411,6 +413,7 @@ export default function Summary({ transactions, profile, onNavigateToPlanos }: S
                     <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden">
                       <div className="bg-rose-400 h-full rounded-full" style={{ width: `${item.percentage}%` }}></div>
                     </div>
+                    <SubcategoryBreakdown childrenTotals={item.children} />
                   </div>
                 ))}
               </div>

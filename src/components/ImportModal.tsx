@@ -1,3 +1,4 @@
+import { getTodayDateStr } from '../lib/financialMath';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -279,7 +280,7 @@ export default function ImportModal({ isOpen, onClose, profile, userId = 'defaul
         
         return {
           id: String(index + Date.now()),
-          date: t.date || new Date().toISOString().split('T')[0],
+          date: t.date || getTodayDateStr(),
           title: t.title || 'Lançamento',
           type: isEntrada ? 'entrada' : 'saida',
           amount: Math.abs(Number(t.amount)) || 0,

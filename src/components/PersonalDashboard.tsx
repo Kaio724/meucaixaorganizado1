@@ -16,6 +16,7 @@ import {
 import { Transaction, UserProfile, OrcamentoPessoal, MetaPessoal, RecorrenciaPessoal } from '../types';
 import { getPersonalCategoryInfo } from '../lib/personalCategories';
 import { fetchOrcamentos, fetchMetas, fetchRecorrencias, saveRecorrencia, computeNextDate } from '../lib/personalData';
+import { categoryMatches } from '../lib/categoryHierarchy';
 import { fetchContas } from '../lib/contasData';
 import TransactionDetailSheet from './TransactionDetailSheet';
 import { calculateMonthlyFinancialMetrics, resolveTransactionStatus } from '../lib/financialMath';
@@ -166,7 +167,7 @@ export default function PersonalDashboard({
   const totalOrcado = orcamentos.reduce((sum, o) => sum + o.valor_limite, 0);
   const totalGastoOrcado = orcamentos.reduce((sum, o) => {
     const spent = monthTransactions
-      .filter(t => t.type === 'saida' && t.category.toLowerCase().trim() === o.categoria_nome.toLowerCase().trim())
+      .filter(t => t.type === 'saida' && t.status !== 'cancelado' && categoryMatches(t.category.toLowerCase().trim(), o.categoria_nome.toLowerCase().trim()))
       .reduce((s, t) => s + t.amount, 0);
     return sum + spent;
   }, 0);

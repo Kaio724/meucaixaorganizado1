@@ -17,6 +17,10 @@ import {
   unsettleTransaction,
 } from '../lib/financialMath';
 import { getCategoryInfo } from '../lib/categories';
+import { getCategoryNamesByType } from '../lib/categories';
+import { getPersonalCategoryNamesByType } from '../lib/personalCategories';
+import { buildMonthlyForecasts } from '../lib/monthlyForecasts';
+import CategoryPicker from './CategoryPicker';
 import ConfirmSettlementModal from './ConfirmSettlementModal';
 import TransactionDetailSheet from './TransactionDetailSheet';
 
@@ -32,6 +36,7 @@ interface ContasPagarReceberProps {
   transactions: Transaction[];
   initialFilter?: FilterTab;
   onAddTransaction: (tx: Omit<Transaction, 'id'>) => Promise<void> | void;
+  onAddTransactions: (items: Array<Omit<Transaction, 'id'>>) => Promise<void>;
   onEditTransaction: (tx: Transaction) => Promise<void> | void;
   onDeleteTransaction: (id: string) => Promise<void> | void;
   onNavigateToTab?: (tab: any) => void;
@@ -46,6 +51,7 @@ export default function ContasPagarReceber({
   transactions,
   initialFilter = 'todas',
   onAddTransaction,
+  onAddTransactions,
   onEditTransaction,
   onDeleteTransaction,
   onNavigateToTab,
@@ -75,6 +81,9 @@ export default function ContasPagarReceber({
   const [addDescription, setAddDescription] = useState('');
   const [addIsPending, setAddIsPending] = useState(true);
   const [addLoading, setAddLoading] = useState(false);
+  const [addRecurring, setAddRecurring] = useState(false);
+  const [addRepeatUntil, setAddRepeatUntil] = useState('');
+  const [addError, setAddError] = useState('');
 
   const todayStr = getTodayDateStr();
 
@@ -224,12 +233,21 @@ export default function ContasPagarReceber({
         revenueType: addType === 'entrada' ? 'variavel' : undefined,
       };
 
-      await onAddTransaction(newTx);
+      if (addRecurring) {
+        const series = buildMonthlyForecasts(newTx, addRepeatUntil, addIsPending);
+        await onAddTransactions(series);
+      } else {
+        await onAddTransaction(newTx);
+      }
       setShowAddModal(false);
       setAddTitle('');
       setAddAmount('');
       setAddDescription('');
-    } catch (e) {
+      setAddRecurring(false);
+      setAddRepeatUntil('');
+      setAddError('');
+    } catch (e: any) {
+      setAddError(e.message || 'Não foi possível salvar os lançamentos. Tente novamente.');
       console.warn('Erro ao criar lançamento:', e);
     } finally {
       setAddLoading(false);
@@ -354,6 +372,10 @@ export default function ContasPagarReceber({
           <button
             onClick={() => {
               setAddType('saida');
+              setAddRecurring(false);
+              setAddRepeatUntil('');
+              setAddError('');
+              setAddIsPending(true);
               setShowAddModal(true);
             }}
             className="bg-primary hover:bg-[#8455ef] text-white font-black text-xs uppercase tracking-wider py-2.5 px-4 rounded-2xl flex items-center gap-1.5 shadow-lg shadow-primary/20 transition-all cursor-pointer active:scale-95"
@@ -701,7 +723,7 @@ export default function ContasPagarReceber({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-md bg-[#18181c] border border-white/10 rounded-3xl p-6 shadow-2xl relative text-left"
+              className="w-full max-w-md max-h-[90vh] overflow-y-auto bg-[#18181c] border border-white/10 rounded-3xl p-6 shadow-2xl relative text-left"
             >
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-base font-extrabold text-on-surface">
@@ -719,7 +741,7 @@ export default function ContasPagarReceber({
               <div className="flex bg-black/40 p-1 rounded-2xl border border-white/10 mb-4 gap-1">
                 <button
                   type="button"
-                  onClick={() => setAddType('saida')}
+                  onClick={() => { setAddType('saida'); setAddCategory(''); }}
                   className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
                     addType === 'saida'
                       ? 'bg-rose-600 text-white shadow-md'
@@ -730,7 +752,7 @@ export default function ContasPagarReceber({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setAddType('entrada')}
+                  onClick={() => { setAddType('entrada'); setAddCategory(''); }}
                   className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
                     addType === 'entrada'
                       ? 'bg-emerald-600 text-white shadow-md'
@@ -742,6 +764,11 @@ export default function ContasPagarReceber({
               </div>
 
               <form onSubmit={handleAddNewItem} className="flex flex-col gap-3">
+                {addError && <p role="alert" className="rounded-xl bg-error/10 p-3 text-sm text-error">{addError}</p>}
+                <label className="flex items-center gap-2 rounded-xl border border-primary/30 p-3 text-sm text-on-surface">
+                  <input type="checkbox" checked={addRecurring} onChange={event => { setAddRecurring(event.target.checked); setAddError(''); }} />
+                  {addType === 'entrada' ? 'Receita fixa — repetir mensalmente' : 'Despesa fixa — repetir mensalmente'}
+                </label>
                 <div>
                   <label className="block text-[11px] font-bold text-on-surface-variant uppercase mb-1">
                     Descrição *
@@ -786,8 +813,14 @@ export default function ContasPagarReceber({
                 </div>
 
                 {/* Status Toggle: Pendente vs Já Realizado */}
-                <div className="flex items-center gap-2 p-3 bg-white/[0.03] border border-white/5 rounded-xl cursor-pointer"
-                     onClick={() => setAddIsPending(!addIsPending)}>
+                <CategoryPicker options={accountType === 'pessoal' ? getPersonalCategoryNamesByType(userId, addType) : getCategoryNamesByType(userId, addType)} value={addCategory} onChange={setAddCategory} />
+                {addRecurring && <div className="flex flex-col gap-2 rounded-xl border border-primary/20 p-3">
+                  <label className="flex flex-col gap-1 text-xs font-bold text-on-surface-variant">Repetir até
+                    <input type="date" required min={addDueDate} value={addRepeatUntil} onChange={event => setAddRepeatUntil(event.target.value)} className="rounded-xl border border-white/10 bg-[#111115] p-3 text-sm text-on-surface" />
+                  </label>
+                  <p className="text-xs text-on-surface-variant">Será criada uma previsão por mês até a data final. Os próximos meses ficam pendentes e só entram no caixa quando você confirmar a baixa.</p>
+                </div>}
+                <label className="flex items-center gap-2 p-3 bg-white/[0.03] border border-white/5 rounded-xl cursor-pointer">
                   <input
                     type="checkbox"
                     checked={addIsPending}
@@ -802,7 +835,7 @@ export default function ContasPagarReceber({
                       Você poderá confirmar o recebimento/pagamento quando a movimentação for realizada.
                     </span>
                   </div>
-                </div>
+                </label>
 
                 <div className="flex justify-end gap-2 pt-2">
                   <button

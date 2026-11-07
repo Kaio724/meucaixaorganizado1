@@ -817,3 +817,25 @@ export async function deleteTransaction(userId: string, txId: string): Promise<b
   }
 }
 
+
+// Save a complete monthly series in one Supabase request. Never fall back to a partial local series.
+export async function insertTransactionBatch(userId: string, transactions: Array<Omit<Transaction, 'id'>>): Promise<Transaction[]> {
+  if (!userId || userId === 'local') throw new Error('Faça login para salvar as previsões em nuvem.');
+  if (!transactions.length || transactions.length > 120) throw new Error('Informe entre 1 e 120 parcelas.');
+  const client = getSupabase();
+  if (!client) throw new Error('Conexão com o Supabase indisponível.');
+  const rows = transactions.map(transaction => ({
+    ...mapTransactionToDb({ ...transaction, id: crypto.randomUUID() }, userId),
+    // A forecast must not silently lose its pending/fixed status because of legacy schema flags.
+    status: transaction.status || 'pendente',
+    data_vencimento: transaction.dueDate || transaction.date,
+    data_efetiva: transaction.effectiveDate || null,
+    valor_pago: transaction.amountPaid ?? null,
+    ...(transaction.type === 'entrada' ? { tipo_receita: 'fixa' } : { tipo_despesa: 'fixa' }),
+  }));
+  const { data, error } = await client.from('lancamentos').insert(rows).select();
+  if (error) throw new Error('Não foi possível salvar a série de previsões: ' + error.message);
+  if (!data || data.length !== transactions.length) throw new Error('Não foi possível confirmar todas as parcelas salvas. Recarregue antes de tentar novamente.');
+  return data.map(mapDbToTransaction);
+}
+

@@ -1,3 +1,4 @@
+import CategoryPicker from './CategoryPicker';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Transaction, UserProfile, TransactionType, ExpenseType, RevenueType, RecurrenceFrequency } from '../types';
@@ -23,7 +24,7 @@ export const MONTHS_PT = [
 
 interface DashboardProps {
   profile: UserProfile;
-  userId?: string;
+  userId: string;
   transactions: Transaction[];
   onAddTransaction: (tx: Omit<Transaction, 'id'>) => void;
   onEditTransaction?: (tx: Transaction) => void;
@@ -34,7 +35,7 @@ interface DashboardProps {
 
 export default function Dashboard({ 
   profile, 
-  userId = 'default_user', 
+  userId,
   transactions, 
   onAddTransaction,
   onEditTransaction,
@@ -60,7 +61,7 @@ export default function Dashboard({
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('Pix');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(getTodayDateStr());
   const [account, setAccount] = useState<string | undefined>(undefined);
   const [estimatedFixedTotal, setEstimatedFixedTotal] = useState(0);
 
@@ -789,8 +790,8 @@ export default function Dashboard({
         {/* Insights Adicionais */}
         <div className="flex flex-col gap-4 mt-2">
           <EvolutionCard transactions={transactions} />
-          <MonthComparison transactions={transactions} />
-          <ProInsights transactions={transactions} />
+          <MonthComparison transactions={transactions} referenceYear={selectedYear} referenceMonth={selectedMonthIndex} />
+          <ProInsights transactions={transactions} referenceYear={selectedYear} referenceMonth={selectedMonthIndex} />
         </div>
 
       </div>
@@ -1225,31 +1226,7 @@ export default function Dashboard({
                   </div>
                 )}
 
-                {/* Categorias Chips */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider">
-                    Categoria
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-36 overflow-y-auto pr-1">
-                    {getCategoryNamesByType(userId, txType).map((catName) => {
-                      const isSelected = category === catName;
-                      return (
-                        <button
-                          key={catName}
-                          type="button"
-                          onClick={() => setCategory(catName)}
-                          className={`p-2.5 rounded-xl border text-left text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-                            isSelected
-                              ? 'bg-primary/20 border-primary text-primary shadow-sm'
-                              : 'bg-white/[0.02] border-white/5 text-zinc-400 hover:text-white hover:bg-white/5'
-                          }`}
-                        >
-                          <span className="truncate">{catName}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+                <CategoryPicker options={getCategoryNamesByType(userId, txType)} value={category} onChange={setCategory} />
 
                 {/* Forma de Pagamento e Data (para Receita Variável e Despesa) */}
                 <div className="grid grid-cols-2 gap-2">

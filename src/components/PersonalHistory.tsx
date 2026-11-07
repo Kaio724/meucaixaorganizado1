@@ -1,3 +1,4 @@
+import { getTodayDateStr } from '../lib/financialMath';
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Transaction, UserProfile, TransactionType } from '../types';
@@ -136,7 +137,7 @@ export default function PersonalHistory({
 
   // Helper to format date label
   const formatDateGroupLabel = (dateStr: string) => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDateStr();
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
     if (dateStr === today) return 'Hoje';

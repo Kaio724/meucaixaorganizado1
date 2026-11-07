@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Transaction } from '../types';
+import { calculateMonthlyFinancialMetrics } from '../lib/financialMath';
 
 interface MonthComparisonProps {
   transactions: Transaction[];
+  referenceYear?: number;
+  referenceMonth?: number;
 }
 
 const MONTHS_PT = [
@@ -11,7 +14,7 @@ const MONTHS_PT = [
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
 ];
 
-export default function MonthComparison({ transactions }: MonthComparisonProps) {
+export default function MonthComparison({ transactions, referenceYear, referenceMonth }: MonthComparisonProps) {
   // Outer comparison period selector: 'mensal' or 'anual'
   const [comparePeriod, setComparePeriod] = useState<'mensal' | 'anual'>('mensal');
   
@@ -19,7 +22,7 @@ export default function MonthComparison({ transactions }: MonthComparisonProps) 
   const [activeView, setActiveView] = useState<'comparativo' | 'atual' | 'anterior'>('comparativo');
   
   // Anual configurations
-  const [selectedCompareYear, setSelectedCompareYear] = useState<number>(2026);
+  const [selectedCompareYear, setSelectedCompareYear] = useState<number>(referenceYear ?? new Date().getFullYear());
 
   // Format currency
   const formatBRL = (val: number) => {
@@ -30,17 +33,17 @@ export default function MonthComparison({ transactions }: MonthComparisonProps) 
   };
 
   const getMonthName = (monthOffset: number) => {
-    const date = new Date();
+    const date = new Date(referenceYear ?? new Date().getFullYear(), referenceMonth ?? new Date().getMonth(), 1);
     date.setMonth(date.getMonth() - monthOffset);
     const name = date.toLocaleString('pt-BR', { month: 'long' });
     return name.charAt(0).toUpperCase() + name.slice(1);
   };
 
-  const now = new Date();
+  const now = new Date(referenceYear ?? new Date().getFullYear(), referenceMonth ?? new Date().getMonth(), 1);
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
 
-  const prevMonthDate = new Date();
+  const prevMonthDate = new Date(now);
   prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
   const prevMonth = prevMonthDate.getMonth();
   const prevYear = prevMonthDate.getFullYear();
@@ -48,38 +51,14 @@ export default function MonthComparison({ transactions }: MonthComparisonProps) 
   const currentMonthName = getMonthName(0);
   const prevMonthName = getMonthName(1);
 
-  // Filter transactions for MENSAL
-  const currentTxs = transactions.filter((t) => {
-    const tDate = new Date(t.date + 'T12:00:00');
-    return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
-  });
-
-  const prevTxs = transactions.filter((t) => {
-    const tDate = new Date(t.date + 'T12:00:00');
-    return tDate.getMonth() === prevMonth && tDate.getFullYear() === prevYear;
-  });
-
-  // Calculations Current
-  const currentReceita = currentTxs
-    .filter(t => t.type === 'entrada')
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const currentDespesas = currentTxs
-    .filter(t => t.type === 'saida' && t.category !== 'Pro-Labore')
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const currentLucro = currentReceita - currentDespesas;
-
-  // Calculations Previous
-  const prevReceita = prevTxs
-    .filter(t => t.type === 'entrada')
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const prevDespesas = prevTxs
-    .filter(t => t.type === 'saida' && t.category !== 'Pro-Labore')
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const prevLucro = prevReceita - prevDespesas;
+  const currentMetrics = calculateMonthlyFinancialMetrics(transactions, currentYear, currentMonth);
+  const prevMetrics = calculateMonthlyFinancialMetrics(transactions, prevYear, prevMonth);
+  const currentReceita = currentMetrics.entradasRealizadas;
+  const currentDespesas = currentMetrics.saidasRealizadas;
+  const currentLucro = currentMetrics.saldoRealizado;
+  const prevReceita = prevMetrics.entradasRealizadas;
+  const prevDespesas = prevMetrics.saidasRealizadas;
+  const prevLucro = prevMetrics.saldoRealizado;
 
   // Variations
   const calculateVar = (curr: number, prev: number) => {
@@ -123,26 +102,11 @@ export default function MonthComparison({ transactions }: MonthComparisonProps) 
   };
 
   // --- ANUAL CALCULATIONS & STRUCTURES ---
-  const yearTxs = transactions.filter(t => {
-    const tDate = new Date(t.date + 'T12:00:00');
-    return tDate.getFullYear() === selectedCompareYear;
-  });
-
   const monthlyData = Array.from({ length: 12 }, (_, index) => {
-    const monthTxs = yearTxs.filter(t => {
-      const tDate = new Date(t.date + 'T12:00:00');
-      return tDate.getMonth() === index;
-    });
-
-    const receita = monthTxs
-      .filter(t => t.type === 'entrada')
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    const despesas = monthTxs
-      .filter(t => t.type === 'saida' && t.category !== 'Pro-Labore')
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    const lucro = receita - despesas;
+    const metrics = calculateMonthlyFinancialMetrics(transactions, selectedCompareYear, index);
+    const receita = metrics.entradasRealizadas;
+    const despesas = metrics.saidasRealizadas;
+    const lucro = metrics.saldoRealizado;
 
     return {
       monthIndex: index,

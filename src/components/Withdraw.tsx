@@ -1,3 +1,4 @@
+import { getTodayDateStr } from '../lib/financialMath';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Transaction } from '../types';
@@ -14,7 +15,7 @@ export default function Withdraw({ transactions, onAddTransaction, onNavigateToT
   const [category, setCategory] = useState('Pró-labore');
   const [destination, setDestination] = useState('Pix');
   const [notes, setNotes] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(getTodayDateStr());
   const [success, setSuccess] = useState(false);
 
   // Calculations for current month
@@ -62,7 +63,7 @@ export default function Withdraw({ transactions, onAddTransaction, onNavigateToT
     setCategory('Pró-labore');
     setDestination('Pix');
     setNotes('');
-    setDate(new Date().toISOString().split('T')[0]);
+    setDate(getTodayDateStr());
     setShowModal(true);
   };
 

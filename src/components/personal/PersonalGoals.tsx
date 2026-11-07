@@ -1,3 +1,4 @@
+import { getTodayDateStr } from '../../lib/financialMath';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
@@ -104,7 +105,7 @@ export default function PersonalGoals({
   // Modal: Adicionar Reserva
   const [reservaTargetMeta, setReservaTargetMeta] = useState<MetaPessoal | null>(null);
   const [reservaValor, setReservaValor] = useState('');
-  const [reservaData, setReservaData] = useState(new Date().toISOString().split('T')[0]);
+  const [reservaData, setReservaData] = useState(getTodayDateStr());
   const [reservaDescricao, setReservaDescricao] = useState('');
   const [reservaError, setReservaError] = useState<string | null>(null);
 
@@ -220,7 +221,7 @@ export default function PersonalGoals({
   const handleOpenReservaModal = (meta: MetaPessoal) => {
     setReservaTargetMeta(meta);
     setReservaValor('');
-    setReservaData(new Date().toISOString().split('T')[0]);
+    setReservaData(getTodayDateStr());
     setReservaDescricao('');
     setReservaError(null);
   };

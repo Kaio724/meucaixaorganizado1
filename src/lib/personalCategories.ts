@@ -1,3 +1,6 @@
+import { categoryLabel, orderedCategoryLabels } from './categoryHierarchy';
+import { persistCategories } from './categoryStorage';
+
 export interface PersonalCategory {
   id: string;
   name: string;
@@ -6,6 +9,8 @@ export interface PersonalCategory {
   color: string;
   bgColor: string;
   isCustom?: boolean;
+  parentId?: string;
+  description?: string;
 }
 
 export const PERSONAL_SYSTEM_CATEGORIES: PersonalCategory[] = [
@@ -137,13 +142,7 @@ export function getCustomPersonalCategories(userId: string): PersonalCategory[] 
 
 // Save custom personal categories
 export function saveCustomPersonalCategories(userId: string, categories: PersonalCategory[]) {
-  if (!userId) return;
-  const key = `mco_custom_personal_categories_${userId}`;
-  try {
-    localStorage.setItem(key, JSON.stringify(categories));
-  } catch (e) {
-    console.error('Error saving custom personal categories', e);
-  }
+  return persistCategories(userId, 'pessoal', categories);
 }
 
 // Get combined personal categories
@@ -153,17 +152,20 @@ export function getCombinedPersonalCategories(userId: string): PersonalCategory[
 }
 
 // Get category names for personal selection
+export function getPersonalCategoryChoices(userId: string): PersonalCategory[] {
+  const all = getCombinedPersonalCategories(userId);
+  return all.map(item => ({ ...item, name: categoryLabel(item, all) }));
+}
+
 export function getPersonalCategoryNamesByType(userId: string, type: 'entrada' | 'saida'): string[] {
   const combined = getCombinedPersonalCategories(userId);
-  return combined
-    .filter(cat => cat.type === type)
-    .map(cat => cat.name);
+  return orderedCategoryLabels(combined, type);
 }
 
 // Get category icon and styling info
 export function getPersonalCategoryInfo(name: string, type: 'entrada' | 'saida', userId: string = 'default_user'): { icon: string; color: string; bgColor: string } {
   const combined = getCombinedPersonalCategories(userId);
-  const found = combined.find(cat => cat.name.toLowerCase() === name.toLowerCase() && cat.type === type) 
+  const found = combined.find(cat => categoryLabel(cat, combined).toLowerCase() === name.toLowerCase() && cat.type === type)
               || combined.find(cat => cat.name.toLowerCase() === name.toLowerCase());
   
   if (found) {

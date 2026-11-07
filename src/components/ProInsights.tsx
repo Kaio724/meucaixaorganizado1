@@ -1,12 +1,15 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Transaction } from '../types';
+import { isTransactionRealized } from '../lib/financialMath';
 
 interface ProInsightsProps {
   transactions: Transaction[];
+  referenceYear?: number;
+  referenceMonth?: number;
 }
 
-export default function ProInsights({ transactions }: ProInsightsProps) {
+export default function ProInsights({ transactions, referenceYear, referenceMonth }: ProInsightsProps) {
   // Format currency
   const formatBRL = (val: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -15,24 +18,26 @@ export default function ProInsights({ transactions }: ProInsightsProps) {
     }).format(val);
   };
 
-  const now = new Date();
+  const now = new Date(referenceYear ?? new Date().getFullYear(), referenceMonth ?? new Date().getMonth(), 1);
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
 
-  const prevMonthDate = new Date();
+  const prevMonthDate = new Date(now);
   prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
   const prevMonth = prevMonthDate.getMonth();
   const prevYear = prevMonthDate.getFullYear();
 
   // Current month txs
   const currentMonthTxs = transactions.filter((t) => {
-    const tDate = new Date(t.date + 'T12:00:00');
+    if (!isTransactionRealized(t)) return false;
+    const tDate = new Date((t.effectiveDate || t.date) + 'T12:00:00');
     return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
   });
 
   // Previous month txs
   const prevMonthTxs = transactions.filter((t) => {
-    const tDate = new Date(t.date + 'T12:00:00');
+    if (!isTransactionRealized(t)) return false;
+    const tDate = new Date((t.effectiveDate || t.date) + 'T12:00:00');
     return tDate.getMonth() === prevMonth && tDate.getFullYear() === prevYear;
   });
 
@@ -45,20 +50,20 @@ export default function ProInsights({ transactions }: ProInsightsProps) {
   // Current statistics
   const currentRevenues = currentMonthTxs
     .filter(t => t.type === 'entrada')
-    .reduce((sum, t) => sum + t.amount, 0);
+    .reduce((sum, t) => sum + (t.amountPaid ?? t.amount), 0);
 
   const currentExpenses = currentMonthTxs
-    .filter(t => t.type === 'saida' && t.category !== 'Pro-Labore')
-    .reduce((sum, t) => sum + t.amount, 0);
+    .filter(t => t.type === 'saida')
+    .reduce((sum, t) => sum + (t.amountPaid ?? t.amount), 0);
 
   // Previous statistics
   const prevRevenues = prevMonthTxs
     .filter(t => t.type === 'entrada')
-    .reduce((sum, t) => sum + t.amount, 0);
+    .reduce((sum, t) => sum + (t.amountPaid ?? t.amount), 0);
 
   const prevExpenses = prevMonthTxs
-    .filter(t => t.type === 'saida' && t.category !== 'Pro-Labore')
-    .reduce((sum, t) => sum + t.amount, 0);
+    .filter(t => t.type === 'saida')
+    .reduce((sum, t) => sum + (t.amountPaid ?? t.amount), 0);
 
   // Generate dynamic insights
   const insights: { id: string; text: string; icon: string; color: string; bg: string; border: string }[] = [];

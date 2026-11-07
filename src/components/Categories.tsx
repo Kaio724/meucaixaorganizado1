@@ -1,657 +1,91 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { UserProfile } from '../types';
-import { 
-  CustomCategory, 
-  SYSTEM_CATEGORIES, 
-  PRESET_COLORS, 
-  PRESET_ICONS, 
-  getCustomCategories, 
-  saveCustomCategories 
-} from '../lib/categories';
+import React, { useEffect, useState } from 'react';
+import { AccountType, Transaction, UserProfile } from '../types';
+import { CustomCategory, getCombinedCategories, PRESET_COLORS, PRESET_ICONS, getCustomCategories, saveCustomCategories } from '../lib/categories';
+import { PERSONAL_SYSTEM_CATEGORIES, getCustomPersonalCategories, saveCustomPersonalCategories } from '../lib/personalCategories';
+import { categoryLabel, categoryMatches, validateCategory } from '../lib/categoryHierarchy';
 
-interface CategoriesProps {
-  profile: UserProfile;
-  userId: string;
-  onNavigateToPlanos: () => void;
-}
+interface Props { profile: UserProfile; userId: string; accountType?: AccountType; transactions?: Transaction[]; onNavigateToPlanos: () => void; }
 
-export default function Categories({ profile, userId, onNavigateToPlanos }: CategoriesProps) {
-  const isPro = (profile.plan || 'essential') === 'pro';
-
-  // State
-  const [customCategories, setCustomCategories] = useState<CustomCategory[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState<'todos' | 'entrada' | 'saida' | 'sistema' | 'personalizadas'>('todos');
-
-  // Modals state
-  const [showFormModal, setShowFormModal] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<CustomCategory | null>(null);
-  
-  // Form state
-  const [formName, setFormName] = useState('');
-  const [formType, setFormType] = useState<'entrada' | 'saida'>('entrada');
-  const [formIcon, setFormIcon] = useState('category');
-  const [formColor, setFormColor] = useState('text-violet-400');
-  const [formBgColor, setFormBgColor] = useState('bg-violet-400/10 border-violet-400/20');
-  const [formDescription, setFormDescription] = useState('');
-  const [formError, setFormError] = useState<string | null>(null);
-
-  // Exclude modal state
-  const [categoryToDelete, setCategoryToDelete] = useState<CustomCategory | null>(null);
-
-  // Load custom categories on mount/userId change
+export default function Categories({ userId, accountType = 'empresarial', transactions = [] }: Props) {
+  const [custom, setCustom] = useState<CustomCategory[]>([]);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<'todos' | 'entrada' | 'saida'>('todos');
+  const [draft, setDraft] = useState<CustomCategory | null>(null);
+  const [deleting, setDeleting] = useState<CustomCategory | null>(null);
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const system = (accountType === 'pessoal' ? PERSONAL_SYSTEM_CATEGORIES : getCombinedCategories(userId).filter(category => !category.isCustom)) as CustomCategory[];
+  const all = [...system, ...custom];
+  const roots = all.filter(item => !item.parentId);
+  const isUsed = (category: CustomCategory) => transactions.some(tx => (tx.accountType || 'empresarial') === accountType && tx.type === category.type && categoryMatches(tx.category, categoryLabel(category, all)));
   useEffect(() => {
-    if (userId) {
-      setCustomCategories(getCustomCategories(userId));
+    setCustom((accountType === 'pessoal' ? getCustomPersonalCategories(userId) : getCustomCategories(userId)) as CustomCategory[]);
+    setDraft(null); setDeleting(null); setError(''); setSearch(''); setFilter('todos');
+  }, [userId, accountType]);
+  async function persist(next: CustomCategory[]) {
+    if (accountType === 'pessoal') await saveCustomPersonalCategories(userId, next);
+    else await saveCustomCategories(userId, next);
+    setCustom(next);
+  }
+  function create(parent?: CustomCategory) {
+    setError('');
+    setDraft({ id: `custom_${crypto.randomUUID()}`, name: '', type: parent?.type || 'saida', parentId: parent?.id, icon: parent?.icon || 'category', color: parent?.color || PRESET_COLORS[2].color, bgColor: parent?.bgColor || PRESET_COLORS[2].bgColor, isCustom: true });
+  }
+  async function save(event: React.FormEvent) {
+    event.preventDefault();
+    if (!draft || saving) return;
+    const next = { ...draft, name: draft.name.trim().replace(/\s+/g, ' ') };
+    const validation = validateCategory(next, all);
+    if (validation) { setError(validation); return; }
+    const previous = custom.find(item => item.id === next.id);
+    if (previous && isUsed(previous) && (previous.name !== next.name || previous.type !== next.type || previous.parentId !== next.parentId)) {
+      setError('Esta categoria ou suas subcategorias têm lançamentos. Preserve nome, tipo e grupo para manter o histórico.'); return;
     }
-  }, [userId]);
-
-  // Combined categories
-  const allCategories = [...SYSTEM_CATEGORIES, ...customCategories];
-
-  // Search and Filter Logic
-  const filteredCategories = allCategories.filter((cat) => {
-    // Search filter
-    const matchesSearch = 
-      cat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      cat.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (cat.isCustom ? 'personalizada' : 'sistema').includes(searchQuery.toLowerCase()) ||
-      (cat.type === 'entrada' ? 'receita' : 'despesa').includes(searchQuery.toLowerCase());
-
-    if (!matchesSearch) return false;
-
-    // Fast category filter buttons
-    if (activeFilter === 'todos') return true;
-    if (activeFilter === 'entrada') return cat.type === 'entrada';
-    if (activeFilter === 'saida') return cat.type === 'saida';
-    if (activeFilter === 'sistema') return !cat.isCustom;
-    if (activeFilter === 'personalizadas') return cat.isCustom;
-
-    return true;
-  });
-
-  // Separate into System and Personalizada for grouping
-  const systemGroups = filteredCategories.filter(cat => !cat.isCustom);
-  const customGroups = filteredCategories.filter(cat => cat.isCustom);
-
-  // Handle Save (Create / Edit)
-  const handleSaveCategory = (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError(null);
-
-    const cleanedName = formName.trim().replace(/\s+/g, ' ');
-    if (!cleanedName) {
-      setFormError('O nome da categoria é obrigatório.');
-      return;
-    }
-
-    if (cleanedName.length > 40) {
-      setFormError('O nome da categoria não pode exceder 40 caracteres.');
-      return;
-    }
-
-    // Check duplication (excluding the one being edited)
-    const isDuplicate = allCategories.some(
-      (cat) => 
-        cat.name.toLowerCase() === cleanedName.toLowerCase() && 
-        cat.type === formType &&
-        (!editingCategory || cat.id !== editingCategory.id)
-    );
-
-    if (isDuplicate) {
-      setFormError(`Já existe uma categoria chamada "${cleanedName}" para ${formType === 'entrada' ? 'Receitas' : 'Despesas'}.`);
-      return;
-    }
-
-    let updatedList: CustomCategory[] = [];
-
-    if (editingCategory) {
-      // Edit
-      updatedList = customCategories.map((cat) => 
-        cat.id === editingCategory.id 
-          ? {
-              ...cat,
-              name: cleanedName,
-              type: formType,
-              icon: formIcon,
-              color: formColor,
-              bgColor: formBgColor,
-              description: formDescription.trim() || undefined
-            }
-          : cat
-      );
-    } else {
-      // Create
-      const newCat: CustomCategory = {
-        id: `custom_${Date.now()}`,
-        name: cleanedName,
-        type: formType,
-        icon: formIcon,
-        color: formColor,
-        bgColor: formBgColor,
-        description: formDescription.trim() || undefined,
-        isCustom: true
-      };
-      updatedList = [newCat, ...customCategories];
-    }
-
-    setCustomCategories(updatedList);
-    saveCustomCategories(userId, updatedList);
-    
-    // Close & reset
-    setShowFormModal(false);
-    setEditingCategory(null);
-    resetForm();
-  };
-
-  // Handle Delete Confirmation
-  const handleDeleteConfirm = () => {
-    if (!categoryToDelete) return;
-
-    const updatedList = customCategories.filter(cat => cat.id !== categoryToDelete.id);
-    setCustomCategories(updatedList);
-    saveCustomCategories(userId, updatedList);
-    setCategoryToDelete(null);
-  };
-
-  // Edit Button Action
-  const handleEditClick = (cat: CustomCategory) => {
-    setEditingCategory(cat);
-    setFormName(cat.name);
-    setFormType(cat.type);
-    setFormIcon(cat.icon);
-    setFormColor(cat.color);
-    setFormBgColor(cat.bgColor);
-    setFormDescription(cat.description || '');
-    setFormError(null);
-    setShowFormModal(true);
-  };
-
-  // Open Create Modal Action
-  const handleCreateClick = () => {
-    setEditingCategory(null);
-    resetForm();
-    setShowFormModal(true);
-  };
-
-  const resetForm = () => {
-    setFormName('');
-    setFormType('entrada');
-    setFormIcon('category');
-    setFormColor('text-violet-400');
-    setFormBgColor('bg-violet-400/10 border-violet-400/20');
-    setFormDescription('');
-    setFormError(null);
-  };
-
-  return (
-    <div className="flex flex-col gap-6 select-none pb-12 text-left">
-      {/* Upper header action area */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-[#140f24]/90 p-5 rounded-[28px] border border-primary/20 backdrop-blur-xl shadow-xl">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-primary/15 border border-primary/30 flex items-center justify-center text-primary shadow-[0_0_20px_rgba(208,188,255,0.2)] shrink-0">
-            <span className="material-symbols-outlined text-2xl font-bold">category</span>
-          </div>
-          <div>
-            <span className="text-[10px] font-bold text-primary uppercase tracking-wider bg-primary/10 px-2 py-0.5 rounded-full border border-primary/25">
-              Personalização PJ
-            </span>
-            <h2 className="text-lg sm:text-xl font-black text-white tracking-tight mt-0.5">Categorias</h2>
-            <p className="text-xs text-zinc-400 font-medium">
-              Gerencie as categorias utilizadas nas movimentações financeiras da sua empresa.
-            </p>
-          </div>
-        </div>
-        
-        <button
-          onClick={handleCreateClick}
-          className="px-5 py-3 rounded-2xl bg-gradient-to-r from-[#6d3bd7] to-[#8b4bf0] hover:from-[#7c44ea] hover:to-[#9a5df7] text-white font-extrabold text-xs tracking-wide uppercase transition-all duration-200 shadow-[0_4px_16px_rgba(109,59,215,0.35)] flex items-center justify-center gap-2 cursor-pointer border border-primary/40 self-start sm:self-auto shrink-0"
-        >
-          <span className="material-symbols-outlined text-base">add_circle</span>
-          Nova Categoria
-        </button>
-      </div>
-
-      {/* Realtime Search & Filter Tabs */}
-      <div className="flex flex-col gap-3">
-        {/* Search Bar */}
-        <div className="relative">
-          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 text-lg">
-            search
-          </span>
-          <input
-            type="text"
-            placeholder="Pesquisar categoria..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#130f21]/90 border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-primary/60 transition-colors font-medium shadow-sm backdrop-blur-md"
-          />
-        </div>
-
-        {/* Filters Panel with horizontal smooth scrolling */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 cursor-default">
-          {[
-            { id: 'todos', label: 'Todos' },
-            { id: 'entrada', label: 'Receitas' },
-            { id: 'saida', label: 'Despesas' },
-            { id: 'sistema', label: 'Sistema' },
-            { id: 'personalizadas', label: 'Personalizadas' }
-          ].map((filt) => (
-            <button
-              key={filt.id}
-              onClick={() => setActiveFilter(filt.id as any)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border shrink-0 ${
-                activeFilter === filt.id
-                  ? 'bg-primary/20 text-primary border-primary/40 shadow-sm'
-                  : 'bg-[#130f21]/60 text-zinc-400 hover:text-white border-white/5'
-              }`}
-            >
-              {filt.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Categories View Lists */}
-      <div className="flex flex-col gap-6">
-        {/* First section: Categorias do Sistema */}
-        {systemGroups.length > 0 && (
-          <div className="flex flex-col gap-3">
-            <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider text-left px-1">
-              Categorias do Sistema ({systemGroups.length})
-            </h3>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {systemGroups.map((cat) => (
-                <div 
-                  key={cat.id}
-                  className="group relative bg-[#130f21]/90 border border-white/5 rounded-2xl p-4 flex flex-col justify-between gap-3 hover:border-primary/30 hover:bg-[#181329] transition-all duration-300 min-h-[130px] text-left shadow-md backdrop-blur-md"
-                >
-                  <div className="flex items-start justify-between">
-                    {/* Category Icon and Color badge */}
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${cat.bgColor} border transition-all duration-300 group-hover:scale-105`}>
-                      <span className={`material-symbols-outlined text-lg ${cat.color}`} style={{ fontVariationSettings: "'FILL' 1" }}>
-                        {cat.icon}
-                      </span>
-                    </div>
-                    
-                    {/* Category Badges */}
-                    <div className="flex flex-col items-end gap-1">
-                      <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase border ${
-                        cat.type === 'entrada'
-                          ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                          : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
-                      }`}>
-                        {cat.type === 'entrada' ? 'Receita' : 'Despesa'}
-                      </span>
-                      <span className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase bg-white/5 text-zinc-500 border border-white/5">
-                        Sistema
-                      </span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="text-sm font-extrabold text-white truncate tracking-tight">
-                      {cat.name}
-                    </h4>
-                    <p className="text-[11px] text-zinc-500 line-clamp-1 mt-0.5">
-                      {cat.description || `Categoria nativa para ${cat.type === 'entrada' ? 'entradas' : 'saídas'}`}
-                    </p>
-                  </div>
-
-                  {/* Actions layer - System locked */}
-                  <div className="flex items-center gap-2 border-t border-white/5 pt-2.5 justify-end group/actions relative">
-                    <button 
-                      disabled
-                      className="text-[10px] font-bold text-zinc-600 flex items-center gap-1 cursor-not-allowed opacity-50"
-                    >
-                      <span className="material-symbols-outlined text-xs">edit</span>
-                      Editar
-                    </button>
-                    <span className="w-1 h-1 rounded-full bg-white/10" />
-                    <button 
-                      disabled
-                      className="text-[10px] font-bold text-zinc-600 flex items-center gap-1 cursor-not-allowed opacity-50"
-                    >
-                      <span className="material-symbols-outlined text-xs">delete</span>
-                      Excluir
-                    </button>
-
-                    {/* Tooltip on Actions Hover */}
-                    <div className="pointer-events-none absolute bottom-full mb-2 right-0 bg-[#1e1932] border border-white/10 text-[10px] font-semibold text-zinc-300 px-2.5 py-1 rounded-lg opacity-0 group-hover/actions:opacity-100 transition-opacity duration-200 shadow-xl whitespace-nowrap z-20">
-                      Categorias do sistema não podem ser alteradas.
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Second section: Categorias Personalizadas */}
-        <div className="flex flex-col gap-3">
-          <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider text-left px-1">
-            Categorias Personalizadas ({customGroups.length})
-          </h3>
-
-          {customGroups.length === 0 ? (
-            <div className="p-8 text-center bg-[#130f21]/40 border border-dashed border-white/10 rounded-[24px] flex flex-col items-center justify-center gap-2.5">
-              <span className="material-symbols-outlined text-zinc-600 text-4xl">
-                category
-              </span>
-              <div className="flex flex-col">
-                <span className="text-xs font-bold text-white">Nenhuma categoria personalizada criada</span>
-                <p className="text-[11px] text-zinc-500 mt-0.5 leading-relaxed">
-                  Crie suas próprias categorias para adaptar as movimentações perfeitamente às suas necessidades.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {customGroups.map((cat) => (
-                <div 
-                  key={cat.id}
-                  className="group relative bg-[#130f21]/90 border border-white/5 rounded-2xl p-4 flex flex-col justify-between gap-3 hover:border-primary/40 hover:bg-[#181329] transition-all duration-300 min-h-[130px] text-left shadow-md backdrop-blur-md"
-                >
-                  <div className="flex items-start justify-between">
-                    {/* Category Icon & Color badge */}
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${cat.bgColor} border border-transparent group-hover:border-white/10 transition-all duration-300 group-hover:scale-105`}>
-                      <span className={`material-symbols-outlined text-lg ${cat.color}`} style={{ fontVariationSettings: "'FILL' 1" }}>
-                        {cat.icon}
-                      </span>
-                    </div>
-
-                    {/* Category Badges */}
-                    <div className="flex flex-col items-end gap-1">
-                      <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase border ${
-                        cat.type === 'entrada'
-                          ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                          : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
-                      }`}>
-                        {cat.type === 'entrada' ? 'Receita' : 'Despesa'}
-                      </span>
-                      <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase bg-primary/20 text-primary border border-primary/30">
-                        Personalizada
-                      </span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="text-sm font-extrabold text-white truncate tracking-tight">
-                      {cat.name}
-                    </h4>
-                    <p className="text-[11px] text-zinc-500 line-clamp-1 mt-0.5">
-                      {cat.description || 'Sem descrição cadastrada'}
-                    </p>
-                  </div>
-
-                  {/* Actions Row */}
-                  <div className="flex items-center gap-2 border-t border-white/5 pt-2.5 justify-end relative">
-                    <button 
-                      onClick={() => handleEditClick(cat)}
-                      className="text-[10px] font-extrabold text-primary hover:text-[#c0aeff] flex items-center gap-1 cursor-pointer transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-xs">edit</span>
-                      Editar
-                    </button>
-                    <span className="w-1 h-1 rounded-full bg-white/10" />
-                    <button 
-                      onClick={() => setCategoryToDelete(cat)}
-                      className="text-[10px] font-extrabold text-rose-400 hover:text-rose-300 flex items-center gap-1 cursor-pointer transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-xs">delete</span>
-                      Excluir
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* CREATE / EDIT CATEGORY MODAL */}
-      <AnimatePresence>
-        {showFormModal && (
-          <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-            
-            {/* Backdrop click closer */}
-            <div className="absolute inset-0 cursor-default" onClick={() => setShowFormModal(false)} />
-
-            <motion.div
-              initial={{ opacity: 0, y: 50, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 50, scale: 0.95 }}
-              className="relative w-full sm:max-w-md bg-[#131020]/98 border-t sm:border border-white/10 rounded-t-[32px] sm:rounded-[32px] p-5 sm:p-6 shadow-2xl overflow-hidden flex flex-col gap-4 sm:gap-5 max-h-[92vh] overflow-y-auto contain-scroll z-10 text-left"
-            >
-              {/* Mobile Drag Handle */}
-              <div className="w-12 h-1 bg-white/25 rounded-full mx-auto -mt-1 mb-1 sm:hidden shrink-0"></div>
-
-              {/* Header */}
-              <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                <div className="flex flex-col">
-                  <h3 className="text-base sm:text-lg font-extrabold text-white tracking-tight flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>category</span>
-                    {editingCategory ? 'Editar Categoria' : 'Nova Categoria'}
-                  </h3>
-                  <p className="text-xs text-zinc-400 font-medium">
-                    Preencha os dados e escolha um ícone e cor correspondente
-                  </p>
-                </div>
-                <button 
-                  onClick={() => setShowFormModal(false)}
-                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer select-none"
-                  aria-label="Fechar modal"
-                >
-                  <span className="material-symbols-outlined text-sm">close</span>
-                </button>
-              </div>
-
-              {formError && (
-                <div className="p-3.5 rounded-xl text-xs bg-rose-500/15 border border-rose-500/30 text-rose-400 font-semibold flex items-center gap-2">
-                  <span className="material-symbols-outlined text-sm font-bold">warning</span>
-                  <span>{formError}</span>
-                </div>
-              )}
-
-              <form onSubmit={handleSaveCategory} className="flex flex-col gap-3.5 sm:gap-4">
-                {/* Nome do Campo */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Nome da Categoria</label>
-                  <input
-                    type="text"
-                    required
-                    maxLength={40}
-                    placeholder="Ex: Consultoria, Embalagens"
-                    value={formName}
-                    onChange={(e) => setFormName(e.target.value)}
-                    className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 min-h-[48px] text-xs focus:outline-none focus:border-primary text-white font-medium placeholder:text-zinc-600"
-                  />
-                </div>
-
-                {/* Tipo de Categoria */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Tipo</label>
-                  <div className="flex bg-black/40 p-1 rounded-2xl border border-white/5 gap-1 h-12">
-                    <button
-                      type="button"
-                      onClick={() => setFormType('entrada')}
-                      className={`flex-1 h-full px-3 text-xs font-bold uppercase rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 ${
-                        formType === 'entrada'
-                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-sm'
-                          : 'text-zinc-400 hover:text-white hover:bg-white/5'
-                      }`}
-                    >
-                      <span className="material-symbols-outlined text-sm">trending_up</span>
-                      Receita
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFormType('saida')}
-                      className={`flex-1 h-full px-3 text-xs font-bold uppercase rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 ${
-                        formType === 'saida'
-                          ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30 shadow-sm'
-                          : 'text-zinc-400 hover:text-white hover:bg-white/5'
-                      }`}
-                    >
-                      <span className="material-symbols-outlined text-sm">trending_down</span>
-                      Despesa
-                    </button>
-                  </div>
-                </div>
-
-                {/* Selecionador de Cor */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Cor de Identificação</label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {PRESET_COLORS.map((col) => {
-                      const isSelected = formColor === col.color;
-                      return (
-                        <button
-                          key={col.name}
-                          type="button"
-                          onClick={() => {
-                            setFormColor(col.color);
-                            setFormBgColor(col.bgColor);
-                          }}
-                          className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border transition-all cursor-pointer min-h-[48px] ${
-                            isSelected 
-                              ? 'bg-primary/20 border-primary shadow-lg' 
-                              : 'bg-black/40 border-white/5 hover:bg-white/5'
-                          }`}
-                        >
-                          <div className={`w-5 h-5 rounded-full ${col.bgColor} border border-white/10 flex items-center justify-center`}>
-                            {isSelected && <span className="material-symbols-outlined text-[10px] text-primary font-black">done</span>}
-                          </div>
-                          <span className="text-[9px] text-zinc-400 truncate w-full text-center">
-                            {col.name.split(' ')[0]}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Selecionador de Ícone */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Ícone representativo</label>
-                  <div className="grid grid-cols-6 gap-2 bg-black/40 p-2.5 rounded-2xl border border-white/5 max-h-[140px] overflow-y-auto">
-                    {PRESET_ICONS.map((ico) => {
-                      const isSelected = formIcon === ico.icon;
-                      return (
-                        <button
-                          key={ico.icon}
-                          type="button"
-                          onClick={() => setFormIcon(ico.icon)}
-                          className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all cursor-pointer shrink-0 ${
-                            isSelected
-                              ? `${formBgColor} ${formColor} border-primary/40 scale-105 shadow-md`
-                              : 'text-zinc-500 hover:text-white hover:bg-white/5'
-                          }`}
-                          title={ico.name}
-                        >
-                          <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
-                            {ico.icon}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Descrição (Opcional) */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Descrição (Opcional)</label>
-                  <textarea
-                    placeholder="Ex: Entradas referentes aos serviços mensais"
-                    rows={2}
-                    value={formDescription}
-                    onChange={(e) => setFormDescription(e.target.value)}
-                    className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-xs focus:outline-none focus:border-primary text-white font-medium placeholder:text-zinc-600 resize-none"
-                  />
-                </div>
-
-                {/* Botões de Ação */}
-                <div className="flex gap-3 mt-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowFormModal(false)}
-                    className="flex-1 h-[50px] rounded-2xl bg-white/5 hover:bg-white/10 text-white font-bold text-xs uppercase tracking-wide transition-all border border-white/5 cursor-pointer text-center flex items-center justify-center"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 h-[50px] rounded-2xl bg-gradient-to-r from-[#6d3bd7] to-[#8b4bf0] hover:from-[#7c44ea] hover:to-[#9a5df7] text-white font-extrabold text-xs uppercase tracking-wide transition-all shadow-[0_4px_16px_rgba(109,59,215,0.35)] cursor-pointer border border-primary/40 text-center flex items-center justify-center"
-                  >
-                    Salvar Categoria
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* EXCLUSION CONFIRMATION MODAL */}
-      <AnimatePresence>
-        {categoryToDelete && (
-          <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-            
-            <div className="absolute inset-0 cursor-default" onClick={() => setCategoryToDelete(null)} />
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 25 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 25 }}
-              className="relative w-full sm:max-w-md bg-[#131020]/98 border-t sm:border border-white/10 rounded-t-[32px] sm:rounded-[32px] p-5 sm:p-6 shadow-2xl flex flex-col gap-4 sm:gap-5 z-10 text-left contain-scroll"
-            >
-              {/* Mobile Drag Handle */}
-              <div className="w-12 h-1 bg-white/25 rounded-full mx-auto -mt-1 mb-1 sm:hidden shrink-0"></div>
-
-              {/* Header */}
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-rose-500/15 flex items-center justify-center border border-rose-500/30 text-rose-400 shrink-0">
-                  <span className="material-symbols-outlined text-2xl">delete_forever</span>
-                </div>
-                <div className="flex flex-col text-left">
-                  <h3 className="text-base sm:text-lg font-black text-white">Excluir categoria</h3>
-                  <p className="text-xs text-zinc-400 font-medium">
-                    Esta ação não pode ser desfeita
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-black/40 border border-white/5">
-                <p className="text-xs text-zinc-300 leading-relaxed">
-                  Tem certeza que deseja excluir a categoria <strong className="text-white">"{categoryToDelete.name}"</strong>? 
-                  <br />
-                  <span className="text-primary mt-1.5 block font-semibold">💡 Movimentações antigas permanecerão registradas normalmente.</span>
-                </p>
-              </div>
-
-              {/* Botões */}
-              <div className="flex gap-3 mt-1">
-                <button
-                  type="button"
-                  onClick={() => setCategoryToDelete(null)}
-                  className="flex-1 h-[50px] rounded-2xl bg-white/5 hover:bg-white/10 text-white font-bold text-xs uppercase tracking-wide transition-all border border-white/5 cursor-pointer text-center flex items-center justify-center"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDeleteConfirm}
-                  className="flex-1 h-[50px] rounded-2xl bg-rose-500 hover:bg-rose-600 text-white font-extrabold text-xs uppercase tracking-wide transition-all shadow-[0_4px_16px_rgba(244,63,94,0.35)] cursor-pointer border border-rose-500/40 text-center flex items-center justify-center"
-                >
-                  Excluir Categoria
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
+    if (all.some(item => item.parentId === next.id && item.type !== next.type)) { setError('O tipo deve ser igual ao das subcategorias.'); return; }
+    setSaving(true); setError('');
+    try { await persist(previous ? custom.map(item => item.id === next.id ? next : item) : [...custom, next]); setDraft(null); }
+    catch (error: any) { setError(error.message || 'Não foi possível salvar a categoria.'); }
+    finally { setSaving(false); }
+  }
+  async function remove() {
+    if (!deleting || saving) return;
+    if (all.some(item => item.parentId === deleting.id)) { setError('Exclua ou mova as subcategorias antes de excluir a categoria principal.'); return; }
+    if (isUsed(deleting)) { setError('Esta categoria tem lançamentos e não pode ser excluída. O histórico foi preservado.'); return; }
+    setSaving(true); setError('');
+    try { await persist(custom.filter(item => item.id !== deleting.id)); setDeleting(null); }
+    catch (error: any) { setError(error.message || 'Não foi possível excluir.'); }
+    finally { setSaving(false); }
+  }
+  const matches = (item: CustomCategory) => (filter === 'todos' || item.type === filter) && categoryLabel(item, all).toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR').trim());
+  const visible = roots.filter(root => matches(root) || all.some(child => child.parentId === root.id && matches(child)));
+  const editing = draft && custom.some(item => item.id === draft.id);
+  const field = 'w-full rounded-xl border border-outline-variant bg-surface-container-low p-3 text-sm text-on-surface';
+  const action = 'rounded-xl border border-primary/30 px-3 py-2 text-xs font-bold text-primary hover:bg-primary/10 disabled:opacity-50';
+  function row(item: CustomCategory, child = false) {
+    return <div key={item.id} className={`flex flex-wrap items-center justify-between gap-3 p-4 ${child ? 'ml-5 border-l-2 border-primary/30 bg-primary/5' : ''}`} data-testid={`category-${item.id}`}>
+      <div className="flex min-w-0 items-center gap-3"><span aria-hidden="true" className={`material-symbols-outlined rounded-xl p-2 ${item.color} ${item.bgColor}`}>{item.icon}</span><div className="min-w-0"><p className="break-words text-sm font-bold text-on-surface">{item.name}</p><p className="text-xs text-on-surface-variant">{child ? 'Subcategoria' : item.type === 'entrada' ? 'Receita' : 'Despesa'}{!item.isCustom ? ' · Sistema' : ''}</p></div></div>
+      <div className="flex flex-wrap gap-2">{!child && <button className={action} onClick={() => create(item)} aria-label={`Adicionar subcategoria em ${item.name} (${item.type === 'entrada' ? 'receita' : 'despesa'})`}>+ Subcategoria</button>}{item.isCustom && <><button className={action} aria-label={`Editar ${categoryLabel(item, all)}`} onClick={() => { setError(''); setDraft({ ...item }); }}>Editar</button><button className={action} aria-label={`Excluir ${categoryLabel(item, all)}`} onClick={() => { setError(''); setDeleting(item); }}>Excluir</button></>}</div>
+    </div>;
+  }
+  return <section className="flex flex-col gap-5 pb-16 text-left">
+    <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-primary/20 bg-surface-container-low p-5"><div><h2 className="text-xl font-bold text-on-surface">Categorias e subcategorias</h2><p className="mt-1 text-sm text-on-surface-variant">Conta {accountType === 'pessoal' ? 'pessoal' : 'empresarial'} · Organize despesas e receitas em grupos.</p><p className="mt-2 text-xs text-on-surface-variant">Exemplo: Loja → Água/Esgoto, Telefone, Energia, IPTU.</p></div><button className="rounded-2xl bg-primary px-5 py-3 font-bold text-on-primary" onClick={() => create()}>Nova categoria</button></div>
+    <label className="flex flex-col gap-2 text-sm text-on-surface-variant">Buscar categoria ou subcategoria<input className={field} value={search} onChange={event => setSearch(event.target.value)} placeholder="Ex.: Loja ou Energia" /></label>
+    <div className="flex gap-2" role="group" aria-label="Filtrar categorias por tipo">{(['todos', 'entrada', 'saida'] as const).map(type => <button key={type} aria-pressed={filter === type} className={`${action} ${filter === type ? 'bg-primary/15' : ''}`} onClick={() => setFilter(type)}>{type === 'todos' ? 'Todas' : type === 'entrada' ? 'Receitas' : 'Despesas'}</button>)}</div>
+    {!visible.length && <p role="status" className="p-6 text-on-surface-variant">Nenhuma categoria encontrada.</p>}
+    <div className="grid items-start gap-4 md:grid-cols-2">{visible.map(parent => <article key={parent.id} className="overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-low">{row(parent)}{all.filter(child => child.parentId === parent.id && (matches(parent) || matches(child))).map(child => row(child, true))}</article>)}</div>
+    {(draft || deleting) && <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/80 p-4"><div role="dialog" aria-modal="true" aria-labelledby="category-dialog-title" className="my-auto max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-outline-variant bg-surface-container-low p-6 shadow-xl">
+      <div className="mb-5 flex items-center justify-between gap-3"><h3 id="category-dialog-title" className="text-lg font-bold text-on-surface">{deleting ? 'Excluir categoria' : editing ? 'Editar categoria' : draft?.parentId ? 'Nova subcategoria' : 'Nova categoria'}</h3><button aria-label="Fechar categorias" disabled={saving} className={action} onClick={() => { setDraft(null); setDeleting(null); setError(''); }}>Fechar</button></div>
+      {error && <p role="alert" className="mb-4 rounded-xl bg-error/10 p-3 text-sm text-error">{error}</p>}
+      {draft && <form onSubmit={save} className="flex flex-col gap-4">
+        <label className="flex flex-col gap-2 text-sm text-on-surface">Nome<input autoFocus required maxLength={40} className={field} value={draft.name} onChange={event => setDraft({ ...draft, name: event.target.value })} /></label>
+        <label className="flex flex-col gap-2 text-sm text-on-surface">Tipo<select className={field} value={draft.type} onChange={event => setDraft({ ...draft, type: event.target.value as 'entrada' | 'saida', parentId: undefined })}><option value="saida">Despesa</option><option value="entrada">Receita</option></select></label>
+        <label className="flex flex-col gap-2 text-sm text-on-surface">Categoria principal<select className={field} value={draft.parentId || ''} onChange={event => setDraft({ ...draft, parentId: event.target.value || undefined })}><option value="">Nenhuma — categoria principal</option>{roots.filter(item => item.type === draft.type && item.id !== draft.id).map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+        <label className="flex flex-col gap-2 text-sm text-on-surface">Ícone<select className={field} value={draft.icon} onChange={event => setDraft({ ...draft, icon: event.target.value })}>{PRESET_ICONS.map(icon => <option key={icon.icon} value={icon.icon}>{icon.name}</option>)}</select></label>
+        <fieldset><legend className="mb-2 text-sm text-on-surface">Cor</legend><div className="flex flex-wrap gap-2">{PRESET_COLORS.map(color => <button type="button" key={color.color} aria-label={color.name} aria-pressed={draft.color === color.color} className={`rounded-full border-2 p-2 ${color.bgColor} ${draft.color === color.color ? 'border-primary' : 'border-transparent'}`} onClick={() => setDraft({ ...draft, color: color.color, bgColor: color.bgColor })}><span aria-hidden="true" className={`${color.color} text-lg`}>●</span></button>)}</div></fieldset>
+        <label className="flex flex-col gap-2 text-sm text-on-surface">Descrição (opcional)<input maxLength={200} className={field} value={draft.description || ''} onChange={event => setDraft({ ...draft, description: event.target.value })} /></label>
+        <button disabled={saving} type="submit" className="rounded-xl bg-primary p-3 font-bold text-on-primary disabled:opacity-50">{saving ? 'Salvando…' : 'Salvar categoria'}</button>
+      </form>}
+      {deleting && <div className="flex flex-col gap-4"><p className="text-sm text-on-surface">Excluir “{categoryLabel(deleting, all)}”? Categorias com lançamentos ou subcategorias serão preservadas.</p><button disabled={saving} className="rounded-xl bg-error p-3 font-bold text-on-error disabled:opacity-50" onClick={remove}>{saving ? 'Excluindo…' : 'Confirmar exclusão'}</button></div>}
+    </div></div>}
+  </section>;
 }

@@ -1,3 +1,4 @@
+import { getTodayDateStr } from '../../lib/financialMath';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -26,7 +27,7 @@ import {
   computeNextDate 
 } from '../../lib/personalData';
 import { 
-  getCombinedPersonalCategories, 
+  getPersonalCategoryChoices as getCombinedPersonalCategories,
   getPersonalCategoryInfo 
 } from '../../lib/personalCategories';
 
@@ -58,7 +59,7 @@ export default function PersonalRecurring({
   const [frequencia, setFrequencia] = useState<'semanal' | 'quinzenal' | 'mensal'>('mensal');
   const [diaCobranca, setDiaCobranca] = useState<number>(new Date().getDate());
   const [formaPagamento, setFormaPagamento] = useState('Cartão de Crédito');
-  const [proximaData, setProximaData] = useState(new Date().toISOString().split('T')[0]);
+  const [proximaData, setProximaData] = useState(getTodayDateStr());
   const [formError, setFormError] = useState<string | null>(null);
 
   // Delete modal
@@ -103,7 +104,7 @@ export default function PersonalRecurring({
     setFrequencia('mensal');
     setDiaCobranca(new Date().getDate());
     setFormaPagamento('Cartão de Crédito');
-    setProximaData(new Date().toISOString().split('T')[0]);
+    setProximaData(getTodayDateStr());
     setFormError(null);
     setShowModal(true);
   };

@@ -37,6 +37,7 @@ import {
   upsertProfile, 
   fetchTransactions, 
   insertTransaction, 
+  insertTransactionBatch,
   updateTransaction, 
   deleteTransaction 
 } from './lib/supabase';
@@ -354,7 +355,14 @@ export default function App() {
       setTransactions((prev) => [savedTx, ...prev]);
     } catch (err) {
       setDbError('Sem conexão, tente novamente');
+      throw err;
     }
+  };
+
+  const handleAddTransactionBatch = async (items: Array<Omit<Transaction, 'id'>>) => {
+    if (!session?.user) throw new Error('Faça login para salvar os lançamentos.');
+    const saved = await insertTransactionBatch(session.user.id, items);
+    setTransactions(previous => [...saved, ...previous]);
   };
 
   // Update Transaction (Edit)
@@ -370,6 +378,7 @@ export default function App() {
       setTransactions((prev) => prev.map((t) => (t.id === savedTx.id ? savedTx : t)));
     } catch (err) {
       setDbError('Sem conexão, tente novamente');
+      throw err;
     }
   };
 
@@ -1471,6 +1480,8 @@ CREATE INDEX IF NOT EXISTS idx_conversas_ia_user_account ON public.conversas_ia(
 
                         {activeTab === 'categorias' && (
                           <Categories
+                            accountType="pessoal"
+                            transactions={transactions}
                             profile={profile}
                             userId={session?.user?.id || 'default_user'}
                             onNavigateToPlanos={() => setActiveTab('planos')}
@@ -1483,6 +1494,7 @@ CREATE INDEX IF NOT EXISTS idx_conversas_ia_user_account ON public.conversas_ia(
                         {activeTab === 'dashboard' && (
                           <Dashboard 
                             profile={profile}
+                            userId={session.user.id}
                             transactions={empresarialTransactions}
                             onAddTransaction={handleAddTransaction}
                             onEditTransaction={handleEditTransaction}
@@ -1507,6 +1519,7 @@ CREATE INDEX IF NOT EXISTS idx_conversas_ia_user_account ON public.conversas_ia(
 
                         {activeTab === 'contas_pagar_receber' && (
                           <ContasPagarReceber
+                            onAddTransactions={handleAddTransactionBatch}
                             profile={profile}
                             userId={session?.user?.id || 'default_user'}
                             accountType="empresarial"
@@ -1568,6 +1581,8 @@ CREATE INDEX IF NOT EXISTS idx_conversas_ia_user_account ON public.conversas_ia(
 
                         {activeTab === 'categorias' && (
                           <Categories 
+                            accountType="empresarial"
+                            transactions={transactions}
                             profile={profile}
                             userId={session?.user?.id || 'default_user'}
                             onNavigateToPlanos={() => setActiveTab('planos')}
@@ -1854,9 +1869,9 @@ CREATE INDEX IF NOT EXISTS idx_conversas_ia_user_account ON public.conversas_ia(
         }}
         onSave={(tx) => {
           if (editingPersonalTx) {
-            handleEditTransaction(tx as Transaction);
+            return handleEditTransaction(tx as Transaction);
           } else {
-            handleAddTransaction(tx);
+            return handleAddTransaction(tx);
           }
         }}
         editingTx={editingPersonalTx}

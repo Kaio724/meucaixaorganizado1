@@ -1,7 +1,10 @@
+import CategoryPicker from './CategoryPicker';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { Transaction, TransactionType, ExpenseType } from '../types';
 import { PAYMENT_METHODS } from '../initialData';
+import { validateCategory } from '../lib/categoryHierarchy';
+import { getTodayDateStr } from '../lib/financialMath';
 import { 
   getPersonalCategoryNamesByType, 
   getPersonalCategoryInfo,
@@ -13,7 +16,7 @@ import {
 interface PersonalAddModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (tx: Omit<Transaction, 'id'> & { id?: string }) => void;
+  onSave: (tx: Omit<Transaction, 'id'> & { id?: string }) => Promise<void> | void;
   editingTx?: Transaction | null;
   userId?: string;
   defaultType?: TransactionType;
@@ -33,7 +36,9 @@ export default function PersonalAddModal({
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('Pix');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(getTodayDateStr());
+  const [categoryError, setCategoryError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
   const [description, setDescription] = useState('');
   
   // Custom category creation modal state inside add modal
@@ -52,7 +57,7 @@ export default function PersonalAddModal({
         setAmount(editingTx.amount ? editingTx.amount.toString() : '');
         setCategory(editingTx.category || '');
         setPaymentMethod(editingTx.paymentMethod || 'Pix');
-        setDate(editingTx.date || new Date().toISOString().split('T')[0]);
+        setDate(editingTx.date || getTodayDateStr());
         setDescription(editingTx.description || '');
       } else {
         setTxType(defaultType);
@@ -62,7 +67,7 @@ export default function PersonalAddModal({
         const cats = getPersonalCategoryNamesByType(userId, defaultType);
         setCategory(cats[0] || 'Outros');
         setPaymentMethod('Pix');
-        setDate(new Date().toISOString().split('T')[0]);
+        setDate(getTodayDateStr());
         setDescription('');
       }
 
@@ -82,7 +87,7 @@ export default function PersonalAddModal({
     }
   };
 
-  const handleCreateCustomCategory = (e: React.FormEvent) => {
+  const handleCreateCustomCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCatName.trim()) return;
 
@@ -98,25 +103,32 @@ export default function PersonalAddModal({
     };
 
     const customOnly = currentCats.filter(c => c.isCustom);
-    saveCustomPersonalCategories(userId, [...customOnly, newCategoryObj]);
+    const validation = validateCategory(newCategoryObj, currentCats);
+    if (validation) { setCategoryError(validation); return; }
+    try { await saveCustomPersonalCategories(userId, [...customOnly, newCategoryObj]); }
+    catch (error: any) { setCategoryError(error.message); return; }
+    setCategoryError('');
     setCategory(newCatName.trim());
     setNewCatName('');
     setShowAddCustomCat(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSaving) return;
     const parsedAmount = parseFloat(amount.replace(',', '.'));
     if (isNaN(parsedAmount) || parsedAmount <= 0) return;
 
     // Use category as title if title is empty
     const effectiveTitle = title.trim() || category || (txType === 'entrada' ? 'Entrada Pessoal' : 'Despesa Pessoal');
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getTodayDateStr();
     const isFuture = date > todayStr;
     const initialStatus = isFuture ? 'pendente' : 'realizado';
 
-    onSave({
+    setIsSaving(true);
+    setCategoryError('');
+    try { await onSave({
       id: editingTx ? editingTx.id : undefined,
       title: effectiveTitle,
       amount: parsedAmount,
@@ -135,6 +147,8 @@ export default function PersonalAddModal({
     });
 
     onClose();
+    } catch (error: any) { setCategoryError(error.message || 'Não foi possível salvar. Tente novamente.'); }
+    finally { setIsSaving(false); }
   };
 
   if (!isOpen) return null;
@@ -281,6 +295,7 @@ export default function PersonalAddModal({
             </div>
           </div>
 
+          {categoryError && <p role="alert" className="text-sm text-error">{categoryError}</p>}
           {/* Categorias Pessoais Chips / Selection */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
@@ -320,31 +335,7 @@ export default function PersonalAddModal({
               </div>
             )}
 
-            {/* Categorias Badges Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-40 overflow-y-auto pr-1">
-              {availableCategories.map((catName) => {
-                const isSelected = category === catName;
-                const info = getPersonalCategoryInfo(catName, txType, userId);
-
-                return (
-                  <button
-                    key={catName}
-                    type="button"
-                    onClick={() => setCategory(catName)}
-                    className={`flex items-center gap-2 p-2.5 rounded-xl border text-left text-xs font-bold transition-all cursor-pointer truncate min-h-[44px] tap-target ${
-                      isSelected
-                        ? 'bg-[#7C3AED]/25 border-[#7C3AED] text-white shadow-[0_0_12px_rgba(124,58,237,0.35)]'
-                        : 'bg-white/[0.03] border-white/5 text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-200'
-                    }`}
-                  >
-                    <span className={`material-symbols-outlined text-base shrink-0 ${isSelected ? 'text-[#c4b5fd]' : info.color}`}>
-                      {info.icon}
-                    </span>
-                    <span className="truncate">{catName}</span>
-                  </button>
-                );
-              })}
-            </div>
+            <CategoryPicker options={availableCategories} value={category} onChange={setCategory} />
           </div>
 
           {/* Descrição / Título */}
@@ -399,6 +390,7 @@ export default function PersonalAddModal({
           {/* Submit Button */}
           <button
             type="submit"
+            disabled={isSaving}
             className="w-full mt-2 h-[52px] rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#9333ea] hover:from-[#8b4bf0] hover:to-[#a855f7] text-white font-extrabold text-base flex items-center justify-center gap-2 transition-all duration-200 shadow-[0_4px_20px_rgba(124,58,237,0.4)] hover:shadow-[0_6px_25px_rgba(124,58,237,0.6)] cursor-pointer select-none border border-[#c4b5fd]/30 tap-target"
           >
             <span className="material-symbols-outlined text-xl font-bold">
